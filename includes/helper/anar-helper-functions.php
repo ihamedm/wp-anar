@@ -168,6 +168,9 @@ function awca_get_data_from_api($api_url)
 function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = false) {
     set_time_limit(300);
 
+    set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
+
+
     awca_log('Run fetch API and Store , key: ' . $key . ', record_per_page: ' . $record_per_page);
     global $wpdb;
     $table_name = $wpdb->prefix . 'awca_large_api_responses';
@@ -318,6 +321,8 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
     $time_taken = $end_time - $start_time;
     awca_log("Time taken to fetch and store API response: " . $time_taken . " seconds");
     delete_transient('awca_product_creation_progress');
+    delete_transient('awca_sync_all_products_lock');
+
     return true;
 }
 
