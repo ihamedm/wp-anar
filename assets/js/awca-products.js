@@ -177,4 +177,43 @@ jQuery(document).ready(function($) {
     }
 
 
+    var getAndSaveProductsBtn = $('#get-save-products-btn')
+    if(getAndSaveProductsBtn.length !== 0){
+        getAndSaveProductsBtn.on('click', function(e){
+            e.preventDefault()
+
+            var spinnerLoading = $(this).find(".spinner-loading")
+
+            $.ajax({
+                url: awca_ajax_object.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'awca_get_products_save_on_db_ajax'
+                },
+                beforeSend: function () {
+                    spinnerLoading.show();
+                    $(this).attr("disabled", "disabled");
+                },
+                success: function(response) {
+                    if (response.success) {
+                        awca_show_toast(response.message, "success");
+                    } else {
+                        awca_show_toast(response.message, "error");
+                    }
+                },
+                error: function (xhr, status, err) {
+                    spinnerLoading.hide();
+                    $(this).removeAttr("disabled");
+
+                    awca_show_toast(xhr.responseText)
+
+                },
+                complete: function () {
+                    spinnerLoading.hide();
+                    $(this).removeAttr("disabled");
+                },
+            });
+        })
+    }
+
 });

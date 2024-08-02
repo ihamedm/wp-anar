@@ -6,7 +6,7 @@ class AWCA_Cart{
 
     public function __construct()
     {
-        add_filter( 'woocommerce_cart_ready_to_calc_shipping', [$this, 'disable_shipping_calc_on_cart'], 99 );
+        //add_filter( 'woocommerce_cart_ready_to_calc_shipping', [$this, 'disable_shipping_calc_on_cart'], 99 );
 
     }
 

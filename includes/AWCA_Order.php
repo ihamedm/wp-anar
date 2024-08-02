@@ -17,7 +17,11 @@ class AWCA_Order {
         add_action( 'woocommerce_admin_order_data_after_billing_address', [$this, 'display_custom_option_in_admin'], 10, 1 );
         add_filter('woocommerce_get_order_item_totals', [$this, 'filter_fee_and_shipment_name_in_order_details'], 10, 3);
 
+
+
     }
+    
+
 
     public function add_custom_columns($columns) {
         $new_columns = [];
@@ -100,4 +104,3 @@ class AWCA_Order {
         return $total_rows;
     }
 }
-

@@ -39,9 +39,11 @@ class AWCA_Checkout {
             }
             if ($value) {
                 // anar product
-                $sku = awca_get_anar_sku($_product->get_id());
-                $productShipment = AWCA_Product::get_all_products_shipments();
-                $val = $productShipment[$sku];
+//                $sku = awca_get_anar_sku($_product->get_id());
+//                $productShipment = AWCA_Product::get_all_products_shipments();
+//
+//                $val = $productShipment[$sku];
+                $val = AWCA_Product::get_anar_product_shipments($_product->get_id());
                 if (isset($ship[$val['shipmentId']])) {
                     $ship[$val['shipmentId']]['names'][] = $_product->get_title();
                 } else {
@@ -53,6 +55,8 @@ class AWCA_Checkout {
                 }
             }
         }
+
+
         foreach ($ship as $key => $v) {
             $tags = implode(', ', $v['names']);
             $names = [];

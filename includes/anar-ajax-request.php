@@ -94,9 +94,9 @@ function awca_handle_pair_categories_ajax()
     wp_send_json($response);
 }
 
-
 add_action('wp_ajax_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
 add_action('wp_ajax_nopriv_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
+
 function awca_handle_product_creation_ajax($job_id) {
     $anarCats = get_transient('_anar_api_categories_transient');
     $wooCats = get_transient('_anar_woocomerce_categories_transient');
@@ -105,7 +105,6 @@ function awca_handle_product_creation_ajax($job_id) {
 
     $job_id = $job_id ?? $_GET['job_id'];
 
-    // Set sync transient to prevent sync start before all products added
     set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
 
     awca_log('--------------- AJAX[Start]: handle_product_creation_ajax job ID: '.$job_id.' -----------------');
@@ -138,117 +137,114 @@ function awca_handle_product_creation_ajax($job_id) {
             'message' => 'ابتدا نیاز هست دسته بندی ها را در تب قبلی معادل سازی کنید',
         );
         wp_send_json_error($response);
+        return;
     }
 
     $responses = [];
     $created_product_ids = [];
     $exist_product_ids = [];
-    $formatted_product_data = [];
-    $prepared_products = [];
+    $serialized_products = [];
     $product_creation = [];
+    $total_products = 0;
 
     $api_url = 'https://api.anar360.com/api/360/products';
-    $limit = 10; // Number of products per page
+    $limit = 30; // Number of products per page
     $page = 1; // Starting page
 
     $has_more_pages = true;
     $is_job_aborted = awca_is_job_aborted($job_id);
 
     while ($has_more_pages) {
+        // Fetch products from API with retry mechanism
+//        $paged_url = add_query_arg(array('page' => $page, 'limit' => $limit), $api_url);
+//        $awca_products = awca_get_data_from_api($paged_url);
+        $awca_products = awca_get_stored_response_paged('products', $page);
 
-        // get page (x) of products
-        $paged_url = add_query_arg(array('page' => $page, 'limit' => $limit), $api_url);
-        $awca_products = awca_get_data_from_api($paged_url);
-
-
-        // if get products is ok
-        if ($awca_products && !is_wp_error($awca_products)) {
-
-            // Check for last page using total products count
-            if ($page * $limit >= $awca_products->total) {
-                $has_more_pages = false;
-            } else {
-                $has_more_pages = true;
-            }
-
-            // loop through products and create an array of modified data of products
-            foreach ($awca_products->items as $index => $item) {
-                $prepared_product = awca_prepare_results_for_product($item);
-                $prepared_products[] = $prepared_product;
-
-                $product_attributes = [];
-                $prepared_product['attributes'] = $product_attributes;
-
-                $formatted_product_data[] = $prepared_product;
-            }
-
-            // pass data to helper create wc product function
-            foreach ($prepared_products as $index => $product_item) {
-                $product_creation_data = array(
-                    'name' => $product_item['name'],
-                    'regular_price' => $product_item['regular_price'],
-                    'description' => $product_item['description'],
-                    'image' => $product_item['image'],
-                    'categories' => $product_item['categories'],
-                    'category' => $product_item['category'],
-                    'stock_quantity' => $product_item['stock_quantity'],
-                    'gallery_images' => $product_item['gallery_images'],
-                    'attributes' => $product_item['attributes'],
-                    'variants' => $product_item['variants'],
-                    'sku' => $product_item['sku']
-                );
-
-                $product_creation_result = awca_create_woocommerce_product($product_creation_data, $combinedCategories, $attributeMap, $categoryMap);
-
-                $product_id = $product_creation_result['product_id'];
-                if ($product_creation_result['created']){
-                    $created_product_ids[] = $product_id;
-                }else{
-                    $exist_product_ids[] = $product_id;
-                }
-
-
-                $product_creation[] = [
-                    'product_item' => $product_item,
-                    'formatted_product_data' => $product_creation_data,
-                    'product_id' => $product_id
-                ];
-
-                if ($product_id) {
-                    $responses[] = array(
-                        'success' => true,
-                        'message' => "Product with ID $product_id created",
-                        'data' => $product_creation_data,
-                    );
-                } else {
-                    $responses[] = array(
-                        'success' => false,
-                        'message' => "A product was not created",
-                        'data' => $product_creation_data,
-                    );
-                }
-
-                // Save the progress in a transient
-                $creation_progress_data = ['created' => count($created_product_ids), 'exist' => count($exist_product_ids)];
-                //awca_log('product create progress - created : ' . $creation_progress_data['created']. '  exist : ' .$creation_progress_data['exist']);
-
-                $progress_message = sprintf('ساخت محصولات - %s محصول جدید ساخته شد', count($created_product_ids));
-                set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
-            }
-
-            // Increment the page counter for the next loop
-            $page++;
-
-        } else {
+        if ($awca_products === false) {
+            awca_log("Failed to fetch products data from API after multiple retries. Job ID: $job_id, Page: $page");
             $response = array(
                 'success' => false,
-                'message' => 'Failed to fetch products data from API: ' . ($awca_products ? $awca_products->get_error_message() : 'Unknown error'),
+                'message' => 'Failed to fetch products data from API after multiple retries.',
             );
             wp_send_json_error($response);
             return;
         }
-    }
 
+        $total_products = $awca_products->total;
+
+        // Check for last page using total products count
+        if ($page * $limit >= $awca_products->total) {
+            $has_more_pages = false;
+        } else {
+            $has_more_pages = true;
+        }
+
+        // Log the page number and product count for each page
+        awca_log("Processing Page: $page, Products Retrieved: " . count($awca_products->items));
+
+        // Loop through products and create an array of modified data of products
+        foreach ($awca_products->items as $index => $item) {
+            $prepared_product = awca_product_list_serializer($item);
+            $serialized_products[] = $prepared_product;
+
+            $product_attributes = [];
+            $prepared_product['attributes'] = $product_attributes;
+        }
+
+        // Pass data to helper create wc product function
+        foreach ($serialized_products as $index => $product_item) {
+            $product_creation_data = array(
+                'name' => $product_item['name'],
+                'regular_price' => $product_item['regular_price'],
+                'description' => $product_item['description'],
+                'image' => $product_item['image'],
+                'categories' => $product_item['categories'],
+                'category' => $product_item['category'],
+                'stock_quantity' => $product_item['stock_quantity'],
+                'gallery_images' => $product_item['gallery_images'],
+                'attributes' => $product_item['attributes'],
+                'variants' => $product_item['variants'],
+                'sku' => $product_item['sku'],
+                'shipments' => $product_item['shipments'],
+                'shipments_ref' => $product_item['shipments_ref'],
+            );
+
+            $product_creation_result = awca_create_woocommerce_product($product_creation_data, $combinedCategories, $attributeMap, $categoryMap);
+
+            $product_id = $product_creation_result['product_id'];
+            if ($product_creation_result['created']) {
+                $created_product_ids[] = $product_id;
+            } else {
+                $exist_product_ids[] = $product_id;
+            }
+
+
+            if ($product_id) {
+                $responses[] = array(
+                    'success' => true,
+                    'message' => "Product with ID $product_id created",
+                    'data' => $product_creation_data,
+                );
+            } else {
+                $responses[] = array(
+                    'success' => false,
+                    'message' => "A product was not created",
+                    'data' => $product_creation_data,
+                );
+            }
+
+
+            // Save the progress in a transient
+            $creation_progress_data = ['created' => count($created_product_ids), 'exist' => count($exist_product_ids)];
+
+            awca_log('Product create progress - Created: ' . $creation_progress_data['created'] . ', Exist: ' . $creation_progress_data['exist']);
+            $progress_message = 'انار - افزودن محصول ' . count($created_product_ids) .'/' .$total_products;
+            set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
+        }
+
+        // Increment the page counter for the next loop
+        $page++;
+    }
 
     $response = array(
         'success' => true,
@@ -258,12 +254,13 @@ function awca_handle_product_creation_ajax($job_id) {
 
     awca_log('--------------- AJAX[End]: handle_product_creation_ajax -----------------');
 
-    // all products successfully add so sync can start from now
+    // All products successfully added so sync can start from now
     delete_transient('awca_sync_all_products_lock');
 
     awca_dl_all_product_images_ajax();
     wp_send_json($response);
 }
+
 
 
 add_action( 'wp_ajax_awca_fetch_products_paginate_ajax', 'awca_fetch_products_paginate_ajax' );
@@ -346,14 +343,30 @@ function awca_get_categories_save_on_db_ajax() {
 
 add_action( 'wp_ajax_awca_get_attributes_save_on_db_ajax', 'awca_get_attributes_save_on_db_ajax' );
 add_action( 'wp_ajax_nopriv_awca_get_attributes_save_on_db_ajax', 'awca_get_attributes_save_on_db_ajax' );
-function awca_get_attributes_save_on_db_ajax() {
+function awca_get_attributes_save_on_db_ajax()
+{
     $products_api = 'https://api.anar360.com/api/360/attributes';
     $result = awca_fetch_and_store_api_response('attributes', $products_api);
 
     if ($result) {
-        wp_send_json_success('Categories fetched and stored successfully.');
+        wp_send_json_success('attributes fetched and stored successfully.');
     } else {
         wp_send_json_error('Failed to fetch and store categories.');
+    }
+
+}
+
+add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', 'awca_get_products_save_on_db_ajax' );
+add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', 'awca_get_products_save_on_db_ajax' );
+function awca_get_products_save_on_db_ajax() {
+    $products_api = 'https://api.anar360.com/api/360/products';
+
+    $result = awca_fetch_and_store_api_response('products', $products_api, true);
+
+    if ($result) {
+        wp_send_json_success('Products fetched and stored successfully.');
+    } else {
+        wp_send_json_error('Failed to fetch and store products.');
     }
 }
 

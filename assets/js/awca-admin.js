@@ -274,8 +274,8 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
 
 
     var productCreationInterval = null;
-    var creatingProductsInProgress = false
-    // Store the AJAX request in a variable
+    var creatingProductsInProgress = false;
+// Store the AJAX request in a variable
     var productCreationAjaxRequest;
 
     var jobId = 'unique_job_id_' + Date.now();
@@ -307,7 +307,6 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
             clearInterval(productCreationInterval);
 
             window.location.href = response.woo_url;
-            
           } else {
             awca_show_toast(response.data.message);
           }
@@ -319,14 +318,13 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
             console.log('524 error occurred, keeping button in loading state.');
           } else {
             // Handle other errors
-            console.log('ajax error accured');
+            console.log('ajax error occurred');
             awca_show_toast(xhr.responseText);
             jQuery(".spinner-loading").hide();
             jQuery(".configuration_save_button").removeAttr("disabled");
           }
-
         },
-        complete: function () {
+        complete: function (xhr, status) {
           console.log('completed ajax')
           if (xhr.status === 524) {
             // Keep spinner and button in loading state

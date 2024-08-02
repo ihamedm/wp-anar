@@ -67,7 +67,7 @@ include_once ANAR_WC_API_PLUGIN_DIR . '/includes/anar-ajax-request.php';
  * @since    1.0.0
  */
 
-include_once ANAR_WC_API_ADMIN . 'partials/anar-admin-menu.php';
+//include_once ANAR_WC_API_ADMIN . 'partials/anar-admin-menu.php';
 
 /**
  * Plugin Woocomerce Customization Related Hooks and Function.

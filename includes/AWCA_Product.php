@@ -48,6 +48,7 @@ class AWCA_Product{
                                 "name" => self::verbose_shipment_name($delivery->deliveryType),
                                 "price" => $delivery->price,
                                 "estimatedTime" => $delivery->estimatedTime,
+                                "deliveryType" => $delivery->deliveryType,
                             ];
                         }
                     }
@@ -130,6 +131,55 @@ class AWCA_Product{
         return [
             $anarProducts, $otherProducts
         ];
+    }
+
+
+    public static function get_anar_product_shipments($product_id){
+        $shipments_json = get_post_meta($product_id, '_anar_shipments', true);
+        $shipments_ref_json = get_post_meta($product_id, '_anar_shipments_ref', true);
+
+        if(!$shipments_json || $shipments_json !== ''){
+            return false;
+        }
+
+        $shipments = json_decode($shipments_json);
+        $shipments_ref = json_decode($shipments_ref_json);
+
+        $deliveryArray = [];
+        foreach ($shipments as $value) {
+            if($value->type == "insideShopCity") {
+                foreach ($value->delivery as $delivery) {
+                    if ($delivery->active == true || $delivery->active == "true") {
+                        $deliveryArray[$delivery->_id] = [
+                            "name" => self::verbose_shipment_name($delivery->deliveryType),
+                            "price" => $delivery->price,
+                            "estimatedTime" => $delivery->estimatedTime,
+                            "deliveryType" => $delivery->deliveryType,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $serialized_shipments = [
+            'shipments' => $shipments,
+            'shipmentsReferenceId' => $shipments_ref->shipmentsReferenceId,
+            'shipmentsReferenceState' => $shipments_ref->shipmentsReferenceState,
+            'shipmentsReferenceCity' => $shipments_ref->shipmentsReferenceCity,
+
+            'shipmentId' => $shipments_ref->shipmentsReferenceId,
+            'delivery' => $deliveryArray,
+        ];
+
+//        foreach ($i->variants as $v) {
+//            $sku_ship[$v->_id] = [
+//                'shipmentId' => $shipmentsReferenceId,
+//                'delivery' => $deliveryArray,
+//            ];
+//        }
+
+
+        return $serialized_shipments;
     }
 
 }

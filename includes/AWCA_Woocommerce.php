@@ -47,6 +47,7 @@ class AWCA_Woocommerce{
         $paged = 1; // Start from the first page
         $posts_per_page = 20; // Number of products per page
         $total_processed = 0; // Counter to keep track of processed products
+        $found_posts = 0;
         do {
             // Setup WP_Query arguments
             $args = array(
@@ -88,11 +89,13 @@ class AWCA_Woocommerce{
 
             $paged++; // Increment the page number
 
-            $progress_message = sprintf(' دانلود تصاویر - %s تصویر شاخص دانلود شد', $total_processed);
+            $progress_message = 'انار - دانلود تصاویر ' . $total_processed .'/' .$found_posts;
+
             set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
 
         } while ($found_posts > 0);
 
+        delete_transient('awca_product_creation_progress');
         awca_log('Total products processed: ' . $total_processed);
     }
 

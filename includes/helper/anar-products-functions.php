@@ -1,5 +1,5 @@
 <?php
-function awca_prepare_results_for_product($product)
+function awca_product_list_serializer($product)
 {
     if (!is_object($product)) {
         return null;
@@ -7,15 +7,29 @@ function awca_prepare_results_for_product($product)
 
     $prepared_product = array();
 
+
+    // change array keys
     $prepared_product['image'] = isset($product->mainImage) ? $product->mainImage : '';
     $prepared_product['name'] = isset($product->title) ? $product->title : '';
     $prepared_product['sku'] = isset($product->id) ? $product->id : '';
-    $prepared_product['description'] = isset($product->description) ? $product->description : '';
+    $prepared_product['description'] = isset($product->description) ? preg_replace('/<a.*>(.*)<\/a>/isU','$1',$product->description) : '';
     $prepared_product['regular_price'] = isset($product->variants[0]->price) ? $product->variants[0]->price : 0;
     $prepared_product['stock_quantity'] = isset($product->variants[0]->stock) ? $product->variants[0]->stock : 0;
     $prepared_product['categories'] = isset($product->categories) ? $product->categories : '';
     $prepared_product['category'] = isset($product->categories) ? awca_find_best_match_category_from_categories($product->categories) : '';
     $prepared_product['formatted_price'] = awca_product_price_digits_seprator($product->variants[0]->priceForResell);
+    $prepared_product['shipments'] = isset($product->shipments) ? json_encode($product->shipments) : '';
+
+    if(isset($product->shipmentsReferenceId) && isset($product->shipmentsReferenceState) && isset($product->shipmentsReferenceCity)){
+
+        $prepared_product['shipments_ref'] = array(
+            'shipmentsReferenceId' => $product->shipmentsReferenceId,
+            'shipmentsReferenceState' => $product->shipmentsReferenceState,
+            'shipmentsReferenceCity' => $product->shipmentsReferenceCity,
+        );
+
+    }
+
 
     $categories = isset($product->categories) ? $product->categories : array();
     $category_names = array();
@@ -125,6 +139,11 @@ function awca_create_woocommerce_product($product_data, $combinedCategories, $at
                 update_post_meta($product_id, '_anar_gallery_images', $product_data['gallery_images']);
             }
             update_post_meta($product_id, '_anar_products', 'true');
+
+            // shipments data
+            update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
+            update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
+
             awca_log('------- Product Created ----------------' . print_r($product_id, true) . '-----');
         }
         return ['product_id' => $product_id , 'created' => $product_created];

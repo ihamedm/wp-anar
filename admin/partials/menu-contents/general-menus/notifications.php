@@ -15,7 +15,7 @@ $awca_messages = array(
     </p>
 
     <?php if ($awca_messages != null) : ?>
-        <table class="awca_product_list_table">
+        <table class="awca_notification_list_table">
             <thead>
             <tr>
                 <th>ردیف</th>
@@ -42,7 +42,7 @@ $awca_messages = array(
                                 </svg>
                             </span>
 
-                            <span>خواندم</span>
+                            <span>مشاهده</span>
                         </button>
                     </td>
                 </tr>

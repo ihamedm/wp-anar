@@ -902,3 +902,62 @@ select::-ms-expand {
   text-align: center;
   color: #0f834d;
 }
+
+
+.awca-progress-bar-menu-bar-item{
+  color: #fff;
+  background-color: rgba(255, 67, 67, 0.27) !important;
+}
+
+.awca-progress-bar-menu-bar-item .wrap
+{
+  display: flex !important;
+  flex-direction:row;
+  justify-content: center;
+  align-items: center;
+}
+
+.awca-progress-bar-menu-bar-item span{
+  font-family: KalamehWeb, serif !important;
+}
+
+
+.ripple-dot {
+  display:block;
+  height: 8px !important;
+  width: 8px !important;
+  border-radius: 50% !important;
+  background-color: #ff4343 !important;
+  position:relative !important;
+  margin:0 8px !important
+}
+
+.ripple-dot:before,
+.ripple-dot:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border: 1px solid #ff4343;
+  border-radius: 50%;
+}
+
+
+.ripple-dot:before {
+  animation: ripple 2s linear infinite;
+}
+
+.ripple-dot:after {
+  animation: ripple 2s linear 1s infinite;
+}
+
+@keyframes ripple{
+  0% { transform: scale(1); }
+  20% { transform: scale(1.2); opacity:1; }
+  50% { transform: scale(1.4); opacity:0.8; }
+  50% { transform: scale(1.6); opacity:0.5; }
+  100% { transform: scale(1.8); opacity:0; }
+}

@@ -1,7 +1,13 @@
 <div class="wrapper">
     <h2 class="awca_plugin_titles">تسویه حساب با انار</h2>
-    <p class="awca_plugin_subTitles">
+    <p class="awca_plugin_subTitles" style="text-align:center">
 برای تسویه حساب اردر ها با انار روی لینک زیر کلیک کنید.
+    </p>
+
+    <p class="awca_plugin_subTitles" style="color:red; text-align:center">
+        مبلغ بدهی شما
+        <strong>2,560,000</strong>
+        تومان است.
     </p>
     <form class="plugin_pay_form" id="plugin_pay_form">
             <div class="stepper_button_container">
