@@ -708,6 +708,7 @@ function awca_process_products_cron_function() {
                 $product_id = $product_creation_result['product_id'];
                 if ($product_creation_result['created']) {
                     $created_product_ids[] = $product_id;
+                    awca_set_product_image_from_url($product_id, $prepared_product['image']);
                 } else {
                     $exist_product_ids[] = $product_id;
                 }
