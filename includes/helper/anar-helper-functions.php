@@ -708,6 +708,7 @@ function awca_process_products_cron_function() {
                 $product_id = $product_creation_result['product_id'];
                 if ($product_creation_result['created']) {
                     $created_product_ids[] = $product_id;
+
                     awca_set_product_image_from_url($product_id, $prepared_product['image']);
                 } else {
                     $exist_product_ids[] = $product_id;
@@ -728,7 +729,7 @@ function awca_process_products_cron_function() {
                 }
 
                 // Save the progress in a transient
-                $creation_progress_data = ['created' => count($created_product_ids), 'exist' => count($exist_product_ids)];
+                $creation_progress_data = ['created' => (count($created_product_ids) + (($page-1) * 30)), 'exist' => count($exist_product_ids)];
                 awca_log('Product create progress - Created: ' . $creation_progress_data['created'] . ', Exist: ' . $creation_progress_data['exist']);
                 $progress_message = 'انار - افزودن محصول ' . count($created_product_ids) . '/' . $total_products;
                 set_transient('awca_product_creation_progress', $progress_message, 4 * MINUTE_IN_SECONDS);
@@ -746,6 +747,7 @@ function awca_process_products_cron_function() {
             awca_log("Page $page processed and marked as complete.");
         } else {
             awca_log('No unprocessed product pages found.');
+            delete_transient('awca_product_creation_lock');
         }
     } catch (Exception $e) {
         awca_log('Error processing products: ' . $e->getMessage());
