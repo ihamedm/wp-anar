@@ -380,23 +380,34 @@ function awca_get_attributes_save_on_db_ajax()
 add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', 'awca_get_products_save_on_db_ajax' );
 add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', 'awca_get_products_save_on_db_ajax' );
 function awca_get_products_save_on_db_ajax() {
-    $products_api = 'https://api.anar360.com/api/360/products';
+    $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+    $products_api = "https://api.anar360.com/api/360/products";
+    $total_items_per_page = 0 ;
 
-    $result = awca_fetch_and_store_api_response('products', $products_api, true);
-    if ($result) {
+    $result = awca_fetch_and_store_api_response_by_page('products', $products_api, $page);
+    if ($result !== false) {
+        $total_items = $result['total_items'];
+        $total_products = $result['total_products']; // Assuming the API response includes total products count
+
+        // Check if there are more pages to fetch
+        $has_more = ($total_items > 0 && $page * 30 < $total_products);
+
         $response = array(
             'success' => true,
-            'message' => 'دریافت محصولات به طور کامل انجام شد. ساخت محصولات در پس زمینه انجام می شود. می توانید این صفحه را ببندید.'
+            'has_more' => $has_more,
+            'total_added' => $total_items,
+            'total_products' => $total_products
         );
+        wp_send_json($response);
     } else {
         $response = array(
             'success' => false,
-            'message' => 'دریافت محصولات با مشکل مواجه شد. برای تلاش مجدد می توانید دوباره دکمه ذخیره نهایی را کلیک کنید.'
+            'message' => 'Failed to fetch page ' . $page . '.'
         );
+        wp_send_json($response);
     }
-
-    wp_send_json($response);
 }
+
 
 
 add_action('wp_ajax_awca_get_product_creation_progress', 'awca_get_product_creation_progress');

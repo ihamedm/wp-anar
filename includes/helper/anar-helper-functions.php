@@ -167,10 +167,9 @@ function awca_get_data_from_api($api_url)
 
 function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = false) {
     set_time_limit(300);
-
     set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
 
-    awca_log('Run fetch API and Store , key: ' . $key . ', record_per_page: ' . $record_per_page);
+    awca_log('Run fetch API and Store, key: ' . $key . ', record_per_page: ' . $record_per_page);
     global $wpdb;
     $table_name = $wpdb->prefix . 'awca_large_api_responses';
 
@@ -187,7 +186,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
 
     while ($has_more_pages) {
         $paged_url = add_query_arg(array('page' => $page, 'limit' => $limit), $api_url);
-        awca_log('Get : ' . $paged_url);
+        awca_log('Get: ' . $paged_url);
 
         $token = awca_get_activation_key();
         $response = false;
@@ -218,18 +217,21 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
         if (is_wp_error($response)) {
             $error_message = $response->get_error_message();
             awca_log("API request failed after $max_retries attempts: $error_message");
+            delete_transient('awca_sync_all_products_lock');
             return false;
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
         if ($http_code != 200) {
             awca_log("API request returned HTTP status code: $http_code");
+            delete_transient('awca_sync_all_products_lock');
             return false;
         }
 
         $body = wp_remote_retrieve_body($response);
         if (empty($body)) {
             awca_log("API response body is empty");
+            delete_transient('awca_sync_all_products_lock');
             return false;
         }
 
@@ -238,8 +240,6 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
         // Determine if there are more pages
         if ($page * $limit >= $data->total) {
             $has_more_pages = false;
-        } else {
-            $has_more_pages = true;
         }
 
         $progress_message = 'انار - دریافت محصولات ' . ($page * $limit) . '/' . $data->total;
@@ -274,6 +274,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
             if ($inserted === false) {
                 $wpdb_error = $wpdb->last_error;
                 awca_log("Failed to insert API response into the database: $wpdb_error");
+                delete_transient('awca_sync_all_products_lock');
                 return false;
             }
 
@@ -286,7 +287,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
     }
 
     if (!$record_per_page) {
-        awca_log('All items : ' . count($all_data));
+        awca_log('All items: ' . count($all_data));
         $serialized_data = maybe_serialize($all_data);
         $current_time = current_time('mysql'); // Get the current time in MySQL DATETIME format
 
@@ -310,6 +311,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
         if ($inserted === false) {
             $wpdb_error = $wpdb->last_error;
             awca_log("Failed to insert API response into the database: $wpdb_error");
+            delete_transient('awca_sync_all_products_lock');
             return false;
         }
 
@@ -323,6 +325,113 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
     delete_transient('awca_sync_all_products_lock');
 
     return true;
+}
+
+
+function awca_fetch_and_store_api_response_by_page($key, $api_url, $page, $limit = 30) {
+    set_time_limit(300);
+
+    awca_log('Run fetch API and Store by page, key: ' . $key . ', page: ' . $page . ', limit: ' . $limit);
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'awca_large_api_responses';
+    // Remove existing records for the key
+
+    if($page == 1)
+        $wpdb->delete($table_name, array('key' => $key), array('%s'));
+
+    $paged_url = add_query_arg(array('page' => $page, 'limit' => $limit), $api_url);
+    awca_log('Get: ' . $paged_url);
+
+    $token = awca_get_activation_key();
+    $response = false;
+    $retries = 0;
+    $max_retries = 5;
+    $retry_delay = 5; // seconds
+    $data_items = array();
+    $total_products = 0;
+
+    // Retry mechanism
+    while ($retries < $max_retries) {
+        $response = wp_remote_get(
+            $paged_url,
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer ' . $token,
+                ),
+                'timeout' => 300,
+            )
+        );
+
+        if (!is_wp_error($response)) {
+            break;
+        }
+
+        $error_message = $response->get_error_message();
+        awca_log("API request failed (attempt " . ($retries + 1) . "): $error_message");
+        $retries++;
+        sleep($retry_delay); // wait before retrying
+    }
+
+    if (is_wp_error($response)) {
+        $error_message = $response->get_error_message();
+        awca_log("API request failed after $max_retries attempts: $error_message");
+        return false;
+    }
+
+    $http_code = wp_remote_retrieve_response_code($response);
+    if ($http_code != 200) {
+        awca_log("API request returned HTTP status code: $http_code");
+        return false;
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    if (empty($body)) {
+        awca_log("API response body is empty");
+        return false;
+    }
+
+    $data = json_decode($body);
+    $data_items = $data->items;
+    $total_items = count($data_items);
+    $total_products = $data->total; // Assuming the total number of products is included in the API response
+
+    $progress_message = 'انار - دریافت محصولات ' . ($page * $limit) . '/' . $total_products;
+    set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
+
+    awca_log($total_items . ' items in this page');
+
+    // Save each page's data as a new record
+    $serialized_data = maybe_serialize($data);
+    $current_time = current_time('mysql'); // Get the current time in MySQL DATETIME format
+
+    // Insert a new record
+    $inserted = $wpdb->insert(
+        $table_name,
+        array(
+            'response' => $serialized_data,
+            'processed' => 0,
+            'key' => $key,
+            'page' => $page,
+            'created_at' => $current_time // Insert the date field
+        ),
+        array(
+            '%s',
+            '%d',
+            '%s',
+            '%d',
+            '%s'
+        )
+    );
+
+    if ($inserted === false) {
+        $wpdb_error = $wpdb->last_error;
+        awca_log("Failed to insert API response into the database: $wpdb_error");
+        return false;
+    }
+
+    awca_log("API response for page $page successfully fetched and stored");
+
+    return array('total_items' => $total_items, 'data_items' => $data_items, 'total_products' => $total_products);
 }
 
 

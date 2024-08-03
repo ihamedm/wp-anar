@@ -177,47 +177,82 @@ jQuery(document).ready(function($) {
     }
 
 
-    var getAndSaveProductsBtn = $('#get-save-products-btn')
-    if(getAndSaveProductsBtn.length !== 0){
-        getAndSaveProductsBtn.on('click', function(e){
-            e.preventDefault()
-
-            var spinnerLoading = $(this).find(".spinner-loading")
-            var resultEl = $(this).next('.awca_step-ajax-result')
-
-            $.ajax({
-                url: awca_ajax_object.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'awca_get_products_save_on_db_ajax'
-                },
-                beforeSend: function () {
-                    spinnerLoading.show();
-                    $(this).attr("disabled", "disabled");
-                },
-                success: function(response) {
-                    console.log('awca_get_products_save_on_db_ajax', response)
-                    if (response.success) {
-                        resultEl.addClass('success').text(response.message)
-                        awca_show_toast(response.message, "success");
-                    } else {
-                        resultEl.addClass('error').text(response.message)
-                        awca_show_toast(response.message, "error");
-                    }
-                },
-                error: function (xhr, status, err) {
-                    spinnerLoading.hide();
-                    $(this).removeAttr("disabled");
-
-                    awca_show_toast(xhr.responseText)
-
-                },
-                complete: function () {
-                    spinnerLoading.hide();
-                    $(this).removeAttr("disabled");
-                },
-            });
-        })
-    }
-
 });
+
+jQuery(document).ready(function($) {
+    var getAndSaveProductsBtn = $('#get-save-products-btn');
+    if (getAndSaveProductsBtn.length !== 0) {
+        getAndSaveProductsBtn.on('click', function(e) {
+            e.preventDefault();
+
+            var spinnerLoading = $(this).find(".spinner-loading");
+            var resultEl = $(this).next('.awca_step-ajax-result');
+            var page = 1;
+            var retries = 0;
+            var maxRetries = 3;
+            var totalAdded = 0;
+            var totalProducts = 0;
+            var hasMorePages = true; // Add a variable to track if there are more pages
+
+            function fetchProducts(page) {
+                $.ajax({
+                    url: awca_ajax_object.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'awca_get_products_save_on_db_ajax',
+                        page: page
+                    },
+                    beforeSend: function() {
+                        spinnerLoading.show();
+                        getAndSaveProductsBtn.attr("disabled", "disabled");
+                    },
+                    success: function(response) {
+                        console.log('awca_get_products_save_on_db_ajax', response);
+                        if (response.success) {
+                            totalAdded += response.total_added;
+                            totalProducts = response.total_products; // Set the total products only once
+
+                            message = totalAdded + ' محصول از کل ' + totalProducts + ' دریافت شد'
+                            resultEl.addClass('success').text(message);
+
+                            hasMorePages = response.has_more; // Update the hasMorePages variable
+                            if (hasMorePages) {
+                                fetchProducts(page + 1); // Fetch the next page
+                            } else {
+                                spinnerLoading.hide();
+                                getAndSaveProductsBtn.removeAttr("disabled");
+                                resultEl.append('<p style="font-weight:bold;">همه محصولات انار دریافت شد. ساخت محصولات در پس زمینه انجام می شود. می توانید این صفحه را ببندید.</p>');
+                                awca_show_toast('کل محصولات انار دریافت شد.', "success");
+                            }
+                        } else {
+                            resultEl.addClass('error').text(response.message);
+                            awca_show_toast(response.message, "error");
+                            spinnerLoading.hide();
+                            getAndSaveProductsBtn.removeAttr("disabled");
+                        }
+                    },
+                    error: function(xhr, status, err) {
+                        if (retries < maxRetries) {
+                            retries++;
+                            awca_show_toast('ارتباط قطع شد. تلاش مجدد ... (' + retries + '/' + maxRetries + ')');
+                            fetchProducts(page); // Retry the same page
+                        } else {
+                            spinnerLoading.hide();
+                            getAndSaveProductsBtn.removeAttr("disabled");
+                            resultEl.addClass('error').text('ارتباط پس از ' + maxRetries + ' تلاش مجدد قطع شد!');
+                        }
+                    },
+                    complete: function() {
+                        if (!hasMorePages) {
+                            spinnerLoading.hide();
+                            getAndSaveProductsBtn.removeAttr("disabled");
+                        }
+                    }
+                });
+            }
+
+            fetchProducts(page);
+        });
+    }
+});
+
