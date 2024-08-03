@@ -402,7 +402,7 @@ function awca_get_products_save_on_db_ajax() {
     } else {
         $response = array(
             'success' => false,
-            'message' => 'Failed to fetch page ' . $page . '.'
+            'message' => 'مشکلی در ارتباط با سرور انار پیش آمده است.  '
         );
         wp_send_json($response);
     }

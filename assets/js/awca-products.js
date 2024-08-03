@@ -181,18 +181,25 @@ jQuery(document).ready(function($) {
 
 jQuery(document).ready(function($) {
     var getAndSaveProductsBtn = $('#get-save-products-btn');
+    var isTaskRunning = false; // Track if the task is running
+
     if (getAndSaveProductsBtn.length !== 0) {
         getAndSaveProductsBtn.on('click', function(e) {
             e.preventDefault();
 
             var spinnerLoading = $(this).find(".spinner-loading");
             var resultEl = $(this).next('.awca_step-ajax-result');
+            var wrapper = $(this).parent('.awca-save-products-wrapper');
+            var progressEl = wrapper.find('.awca_step-ajax-result-progress');
             var page = 1;
             var retries = 0;
-            var maxRetries = 3;
+            var maxRetries = 10;
             var totalAdded = 0;
             var totalProducts = 0;
             var hasMorePages = true; // Add a variable to track if there are more pages
+
+            // Set task running flag
+            isTaskRunning = true;
 
             function fetchProducts(page) {
                 $.ajax({
@@ -207,12 +214,16 @@ jQuery(document).ready(function($) {
                         getAndSaveProductsBtn.attr("disabled", "disabled");
                     },
                     success: function(response) {
-                        console.log('awca_get_products_save_on_db_ajax', response);
                         if (response.success) {
                             totalAdded += response.total_added;
                             totalProducts = response.total_products; // Set the total products only once
 
-                            message = totalAdded + ' محصول از کل ' + totalProducts + ' دریافت شد'
+                            var percent = (totalAdded * 100) / totalProducts + "%";
+
+                            progressEl.show();
+                            progressEl.find('.bar').animate({"width": percent}, 500);
+
+                            var message = totalAdded + ' محصول از کل ' + totalProducts + ' دریافت شد';
                             resultEl.addClass('success').text(message);
 
                             hasMorePages = response.has_more; // Update the hasMorePages variable
@@ -223,12 +234,14 @@ jQuery(document).ready(function($) {
                                 getAndSaveProductsBtn.removeAttr("disabled");
                                 resultEl.append('<p style="font-weight:bold;">همه محصولات انار دریافت شد. ساخت محصولات در پس زمینه انجام می شود. می توانید این صفحه را ببندید.</p>');
                                 awca_show_toast('کل محصولات انار دریافت شد.', "success");
+                                isTaskRunning = false; // Task completed
                             }
                         } else {
                             resultEl.addClass('error').text(response.message);
                             awca_show_toast(response.message, "error");
                             spinnerLoading.hide();
                             getAndSaveProductsBtn.removeAttr("disabled");
+                            isTaskRunning = false; // Task failed
                         }
                     },
                     error: function(xhr, status, err) {
@@ -240,6 +253,7 @@ jQuery(document).ready(function($) {
                             spinnerLoading.hide();
                             getAndSaveProductsBtn.removeAttr("disabled");
                             resultEl.addClass('error').text('ارتباط پس از ' + maxRetries + ' تلاش مجدد قطع شد!');
+                            isTaskRunning = false; // Task failed
                         }
                     },
                     complete: function() {
@@ -253,6 +267,16 @@ jQuery(document).ready(function($) {
 
             fetchProducts(page);
         });
+
+        // Add beforeunload event listener to alert user if the task is running
+        window.addEventListener('beforeunload', function(e) {
+            if (isTaskRunning) {
+                var confirmationMessage = 'در صورت بستن یا باگزاری مجدد دریافت اطلاعات از انار قطع می شود. مطمئنید؟';
+                (e || window.event).returnValue = confirmationMessage; // For older browsers
+                return confirmationMessage; // For modern browsers
+            }
+        });
     }
 });
+
 

@@ -11,7 +11,7 @@
     </p>
 
 
-    <div style="display:flex;align-items:center;justify-content:center;flex-direction: column;">
+    <div class="awca-save-products-wrapper" style="display:flex;align-items:center;justify-content:center;flex-direction: column;">
 
         <button id="get-save-products-btn" class="awca_sync_btn">
             ذخیره نهایی
@@ -21,6 +21,7 @@
         </button>
 
         <div class="awca_step-ajax-result"></div>
+        <div class="awca_step-ajax-result-progress"><span class="bar"></span></div>
     </div>
 
 </div>
