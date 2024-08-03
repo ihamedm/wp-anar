@@ -13,6 +13,10 @@
         <div class="step-title"> معادل سازی ویژگی‌ها </div>
         <a href="#attributes" class="step" onclick="<?php echo awca_check_activation_state() ? 'awca_move_to_step(3)' : "awca_show_toast('لطفا برای ادامه پیکربندی یک کلید معتبر انار وارد کنید');" ;                                                                                                                        ?> "></a>
     </div>
+    <div class="stepper-container">
+        <div class="step-title"> ساخت محصولات </div>
+        <a href="#final" class="step" onclick="<?php echo awca_check_activation_state() ? 'awca_move_to_step(4)' : "awca_show_toast('لطفا برای ادامه پیکربندی یک کلید معتبر انار وارد کنید');" ;                                                                                                                        ?> "></a>
+    </div>
 </div>
 
 
@@ -21,6 +25,7 @@
     <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/configuration-menus/products-menu-content.php'; ?>
     <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/configuration-menus/categories-menu-content.php'; ?>
     <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/configuration-menus/varient-menu-content.php'; ?>
+    <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/configuration-menus/final-menu-content.php'; ?>
 </div>
 
 <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/footer.php';?>

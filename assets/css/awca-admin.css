@@ -594,6 +594,18 @@ input#plugin_activation_button {
   font-size: 0.8rem;
 }
 
+.awca_step-ajax-result{
+  text-align: center;
+  padding: 32px 0;
+}
+.awca_step-ajax-result.success{
+  color: #0FA34C;
+}
+
+.awca_step-ajax-result.error{
+  color:var(--line-border-fill);
+}
+
 /******
 *************************************
 ***** PRODUCT STYLES ******

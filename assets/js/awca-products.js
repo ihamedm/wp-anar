@@ -183,6 +183,7 @@ jQuery(document).ready(function($) {
             e.preventDefault()
 
             var spinnerLoading = $(this).find(".spinner-loading")
+            var resultEl = $(this).next('.awca_step-ajax-result')
 
             $.ajax({
                 url: awca_ajax_object.ajax_url,
@@ -195,9 +196,12 @@ jQuery(document).ready(function($) {
                     $(this).attr("disabled", "disabled");
                 },
                 success: function(response) {
+                    console.log('awca_get_products_save_on_db_ajax', response)
                     if (response.success) {
+                        resultEl.addClass('success').text(response.message)
                         awca_show_toast(response.message, "success");
                     } else {
+                        resultEl.addClass('error').text(response.message)
                         awca_show_toast(response.message, "error");
                     }
                 },

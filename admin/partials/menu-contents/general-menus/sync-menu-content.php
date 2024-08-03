@@ -37,6 +37,6 @@
 </div>
 
 
-<?php include_once ANAR_WC_API_ADMIN . 'partials/menu-contents/general-menus/sync-menu-content-products.php';?>
+<?php //include_once ANAR_WC_API_ADMIN . 'partials/menu-contents/general-menus/sync-menu-content-products.php';?>
 
 <?php include ANAR_WC_API_ADMIN . 'partials/menu-contents/footer.php';?>

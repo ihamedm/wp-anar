@@ -170,7 +170,6 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
 
     set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
 
-
     awca_log('Run fetch API and Store , key: ' . $key . ', record_per_page: ' . $record_per_page);
     global $wpdb;
     $table_name = $wpdb->prefix . 'awca_large_api_responses';
@@ -258,7 +257,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
                 $table_name,
                 array(
                     'response' => $serialized_data,
-                    'processed' => $has_more_pages ? 0 : 1,
+                    'processed' => 0,
                     'key' => $key,
                     'page' => $page,
                     'created_at' => $current_time // Insert the date field
@@ -296,7 +295,7 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
             $table_name,
             array(
                 'response' => $serialized_data,
-                'processed' => $has_more_pages ? 0 : 1,
+                'processed' => 0,
                 'key' => $key,
                 'created_at' => $current_time // Insert the date field
             ),
@@ -632,6 +631,127 @@ function awca_sync_all_products() {
     }
 
     awca_log('------- sync end --------');
+}
+
+
+function awca_process_products_cron_function() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'awca_large_api_responses';
+
+    // Check if the lock is already set
+    if (get_transient('awca_product_creation_lock')) {
+        awca_log('Cron job skipped because lock is set.');
+        return; // Exit if lock is set
+    }
+
+    // Set the lock
+    set_transient('awca_product_creation_lock', true, 3600); // Lock for 1 hour
+
+    try {
+        // Fetch the next unprocessed page of products
+        $row = $wpdb->get_row("SELECT * FROM $table_name WHERE `key` = 'products' AND `processed` = 0 ORDER BY `page` ASC LIMIT 1", ARRAY_A);
+
+        if ($row) {
+            $page = $row['page'];
+            $serialized_response = $row['response'];
+            $awca_products = maybe_unserialize($serialized_response);
+
+            if ($awca_products === false) {
+                awca_log("Failed to unserialize the response for page $page.");
+                throw new Exception("Failed to unserialize the response for page $page.");
+            }
+
+            if (!isset($awca_products->items)) {
+                awca_log("Unserialized data does not contain 'items' for page $page.");
+                throw new Exception("Unserialized data does not contain 'items' for page $page.");
+            }
+
+            awca_log("Processing Page: $page, Products Retrieved: " . count($awca_products->items));
+
+            // Get Categories & Attributes needed for product creation
+            $attributeMap = get_option('attributeMap');
+            $combinedCategories = get_option('combinedCategories');
+            $categoryMap = get_option('categoryMap');
+
+            $responses = [];
+            $created_product_ids = [];
+            $exist_product_ids = [];
+            $serialized_products = [];
+            $total_products = $awca_products->total;
+
+            // Loop through products and create them in WooCommerce
+            foreach ($awca_products->items as $item) {
+                $prepared_product = awca_product_list_serializer($item);
+                $serialized_products[] = $prepared_product;
+
+                $product_attributes = [];
+                $prepared_product['attributes'] = $product_attributes;
+
+                $product_creation_data = array(
+                    'name' => $prepared_product['name'],
+                    'regular_price' => $prepared_product['regular_price'],
+                    'description' => $prepared_product['description'],
+                    'image' => $prepared_product['image'],
+                    'categories' => $prepared_product['categories'],
+                    'category' => $prepared_product['category'],
+                    'stock_quantity' => $prepared_product['stock_quantity'],
+                    'gallery_images' => $prepared_product['gallery_images'],
+                    'attributes' => $prepared_product['attributes'],
+                    'variants' => $prepared_product['variants'],
+                    'sku' => $prepared_product['sku'],
+                    'shipments' => $prepared_product['shipments'],
+                    'shipments_ref' => $prepared_product['shipments_ref'],
+                );
+
+                $product_creation_result = awca_create_woocommerce_product($product_creation_data, $combinedCategories, $attributeMap, $categoryMap);
+
+                $product_id = $product_creation_result['product_id'];
+                if ($product_creation_result['created']) {
+                    $created_product_ids[] = $product_id;
+                } else {
+                    $exist_product_ids[] = $product_id;
+                }
+
+                if ($product_id) {
+                    $responses[] = array(
+                        'success' => true,
+                        'message' => "Product with ID $product_id created",
+                        'data' => $product_creation_data,
+                    );
+                } else {
+                    $responses[] = array(
+                        'success' => false,
+                        'message' => "A product was not created",
+                        'data' => $product_creation_data,
+                    );
+                }
+
+                // Save the progress in a transient
+                $creation_progress_data = ['created' => count($created_product_ids), 'exist' => count($exist_product_ids)];
+                awca_log('Product create progress - Created: ' . $creation_progress_data['created'] . ', Exist: ' . $creation_progress_data['exist']);
+                $progress_message = 'انار - افزودن محصول ' . count($created_product_ids) . '/' . $total_products;
+                set_transient('awca_product_creation_progress', $progress_message, 4 * MINUTE_IN_SECONDS);
+            }
+
+            // Mark the page as processed
+            $wpdb->update(
+                $table_name,
+                array('processed' => 1),
+                array('id' => $row['id']),
+                array('%d'),
+                array('%d')
+            );
+
+            awca_log("Page $page processed and marked as complete.");
+        } else {
+            awca_log('No unprocessed product pages found.');
+        }
+    } catch (Exception $e) {
+        awca_log('Error processing products: ' . $e->getMessage());
+    } finally {
+        // Remove the lock
+        delete_transient('awca_product_creation_lock');
+    }
 }
 
 

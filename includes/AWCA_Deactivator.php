@@ -98,7 +98,7 @@ class AWCA_Deactivator
 
 
     private function clear_scheduled(){
-        $cron_jobs = new Anar\AWCA_CronJobs();
+        $cron_jobs = new AWCA_CronJobs();
         $cron_jobs->deactivate();
     }
 }

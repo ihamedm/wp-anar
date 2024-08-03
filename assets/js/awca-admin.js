@@ -272,6 +272,41 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
     });
 
 
+    jQuery("#plugin_attribute_creation_form").on("submit", function (e) {
+      e.preventDefault();
+
+      var form = jQuery(this);
+
+      jQuery.ajax({
+        url: form.attr("action"),
+        type: "POST",
+        dataType: "json",
+        data: form.serialize(),
+        beforeSend: function () {
+          jQuery(".spinner-loading").show();
+          jQuery(".configuration_save_button").attr("disabled", "disabled");
+        },
+        success: function (response) {
+          if (response.success) {
+            awca_show_toast(response.message, "success");
+            awca_move_to_step(4)
+          }
+        },
+        error: function (xhr, status, err) {
+          awca_show_toast(xhr.responseText)
+          jQuery(".spinner-loading").hide();
+          jQuery(".configuration_save_button").removeAttr("disabled");
+
+        },
+        complete: function () {
+          jQuery(".spinner-loading").hide();
+          jQuery(".configuration_save_button").removeAttr("disabled");
+
+        },
+      });
+    });
+
+
 
     var productCreationInterval = null;
     var creatingProductsInProgress = false;

@@ -85,37 +85,17 @@ function awca_handle_pair_categories_ajax()
 
     update_option('categoryMap', $categoryMap);
 
-    $response = array(
-        'success' => true,
-        'anar' =>  get_transient('_anar_api_categories_transient'),
-        'woo' => get_transient('_anar_woocomerce_categories_transient'),
-        'message' => 'معادل سازی دسته بندی ها با موفقیت ذخیره شد'
-    );
-    wp_send_json($response);
-}
-
-add_action('wp_ajax_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
-add_action('wp_ajax_nopriv_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
-
-function awca_handle_product_creation_ajax($job_id) {
-    $anarCats = get_transient('_anar_api_categories_transient');
-    $wooCats = get_transient('_anar_woocomerce_categories_transient');
-    $attributeMap = isset($_POST['product_attributes']) ? $_POST['product_attributes'] : '';
-    $attributeMapFirstTime = isset($_POST['anar-atts']) ? $_POST['anar-atts'] : '';
-
-    $job_id = $job_id ?? $_GET['job_id'];
-
-    set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
-
-    awca_log('--------------- AJAX[Start]: handle_product_creation_ajax job ID: '.$job_id.' -----------------');
-
-    $catDic = [];
-    foreach($anarCats as $key => $anarCat) {
-        $catDic[$anarCat] = $wooCats[$key];
+    if ($anarCats !== false && $wooCats !== false) {
+        $combinedCategories = awca_combine_cats_arrays($anarCats, $wooCats);
+        update_option('combinedCategories', $combinedCategories);
+    } else {
+        $response = array(
+            'success' => false,
+            'message' => 'اطلاعات به درستی ارسال نشده است',
+        );
+        wp_send_json_error($response);
+        return;
     }
-
-    $categoryMap = $catDic;
-    update_option('categoryMap', $categoryMap);
 
     foreach($categoryMap as $key => $val) {
         if ($val == 'select') {
@@ -123,37 +103,78 @@ function awca_handle_product_creation_ajax($job_id) {
         }
     }
 
+    $response = array(
+        'success' => true,
+//        'anar' =>  get_transient('_anar_api_categories_transient'),
+//        'woo' => get_transient('_anar_woocomerce_categories_transient'),
+        'message' => 'معادل سازی دسته بندی ها با موفقیت ذخیره شد'
+    );
+    awca_log('categories saved successfully');
+    wp_send_json($response);
+}
+
+
+
+add_action('wp_ajax_awca_handle_pair_attributes_ajax', 'awca_handle_pair_attributes_ajax');
+add_action('wp_ajax_nopriv_awca_handle_pair_attributes_ajax', 'awca_handle_pair_attributes_ajax');
+
+function awca_handle_pair_attributes_ajax()
+{
+    $attributeMap = isset($_POST['product_attributes']) ? $_POST['product_attributes'] : '';
+    $attributeMapFirstTime = isset($_POST['anar-atts']) ? $_POST['anar-atts'] : '';
+
     if ($attributeMap == null || $attributeMap == '') {
         update_option('attributeMap', $attributeMapFirstTime);
     } else {
         update_option('attributeMap', $attributeMap);
     }
 
-    if ($anarCats !== false && $wooCats !== false) {
-        $combinedCategories = awca_combine_cats_arrays($anarCats, $wooCats);
-    } else {
-        $response = array(
-            'success' => false,
-            'message' => 'ابتدا نیاز هست دسته بندی ها را در تب قبلی معادل سازی کنید',
-        );
-        wp_send_json_error($response);
-        return;
-    }
+    $response = array(
+        'success' => true,
+        'message' => 'معادل سازی ویژگی ها ها با موفقیت ذخیره شد'
+    );
+    awca_log('attributes saved successfully');
+    wp_send_json($response);
+}
 
+
+add_action('wp_ajax_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
+add_action('wp_ajax_nopriv_awca_handle_product_creation_ajax', 'awca_handle_product_creation_ajax');
+
+function awca_handle_product_creation_ajax($job_id = null) {
+
+    /**
+     * Manage the job process
+     */
+    $job_id = $job_id ?? $_GET['job_id'];
+    $is_job_aborted = awca_is_job_aborted($job_id);
+    set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
+    awca_log('--------------- AJAX[Start]: handle_product_creation_ajax job ID: '.$job_id.' -----------------');
+
+
+    /**
+     * Get Categories & Attributes needed for product creation
+     */
+    $attributeMap = get_option('attributeMap');
+    $combinedCategories = get_option('combinedCategories');
+    $categoryMap = get_option('categoryMap');
+
+
+    /**
+     * Global variables
+     */
     $responses = [];
     $created_product_ids = [];
     $exist_product_ids = [];
     $serialized_products = [];
-    $product_creation = [];
-    $total_products = 0;
-
-    $api_url = 'https://api.anar360.com/api/360/products';
     $limit = 30; // Number of products per page
     $page = 1; // Starting page
-
     $has_more_pages = true;
-    $is_job_aborted = awca_is_job_aborted($job_id);
 
+
+    /**
+     * Loop throw products and create them
+     */
     while ($has_more_pages) {
         // Fetch products from API with retry mechanism
 //        $paged_url = add_query_arg(array('page' => $page, 'limit' => $limit), $api_url);
@@ -362,12 +383,19 @@ function awca_get_products_save_on_db_ajax() {
     $products_api = 'https://api.anar360.com/api/360/products';
 
     $result = awca_fetch_and_store_api_response('products', $products_api, true);
-
     if ($result) {
-        wp_send_json_success('Products fetched and stored successfully.');
+        $response = array(
+            'success' => true,
+            'message' => 'دریافت محصولات به طور کامل انجام شد. ساخت محصولات در پس زمینه انجام می شود. می توانید این صفحه را ببندید.'
+        );
     } else {
-        wp_send_json_error('Failed to fetch and store products.');
+        $response = array(
+            'success' => false,
+            'message' => 'دریافت محصولات با مشکل مواجه شد. برای تلاش مجدد می توانید دوباره دکمه ذخیره نهایی را کلیک کنید.'
+        );
     }
+
+    wp_send_json($response);
 }
 
 

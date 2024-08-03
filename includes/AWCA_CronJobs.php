@@ -22,7 +22,11 @@ class AWCA_CronJobs {
 //        }
 
         if (!wp_next_scheduled('awca_sync_products_cron')) {
-            wp_schedule_event(time(), 'every_five_min', 'awca_sync_products_cron');
+            wp_schedule_event(time(), 'every_two_min', 'awca_sync_products_cron');
+        }
+
+        if (!wp_next_scheduled('awca_create_products_cron')) {
+            wp_schedule_event(time(), 'every_three_min', 'awca_create_products_cron');
         }
 
 
@@ -35,6 +39,7 @@ class AWCA_CronJobs {
 //        add_action('awca_add_every_two_min', [$this, 'sync_all_products_job']);
 
         add_action('awca_sync_products_cron', [$this, 'sync_all_products_job']);
+        add_action('awca_create_products_cron', [$this, 'create_products_job']);
 
     }
 
@@ -49,9 +54,14 @@ class AWCA_CronJobs {
 //            'display'   => 'هر ۲ دقیقه'
 //        );
 
-        $schedules['every_five_min'] = array(
+        $schedules['every_two_min'] = array(
             'interval'  => 120,
             'display'   => 'هر دو دقیقه'
+        );
+
+        $schedules['every_three_min'] = array(
+            'interval'  => 180,
+            'display'   => 'هر سه دقیقه'
         );
 
 
@@ -70,6 +80,11 @@ class AWCA_CronJobs {
         awca_fetch_and_store_api_response('categories', $products_api);
     }
 
+
+    public function create_products_job() {
+        awca_log('Cron: create_products_job called');
+        awca_process_products_cron_function();
+    }
 
     public function sync_all_products_job() {
         awca_sync_all_products();

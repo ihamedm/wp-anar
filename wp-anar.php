@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://anar360.com/wordpress-plugin
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	2.9.2.3
+ * Version:          	2.9.2.4
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Copyright: 			(c) 2024 Anar360 Dev. Group, All rights reserved.
@@ -27,9 +27,16 @@ if (!defined('WPINC')) {
 	die;
 }
 
-// Define plugin constants.
+
+// Retrieve plugin metadata
+$plugin_file = plugin_dir_path(__FILE__) . basename(__FILE__); // Adjust the file name if different
+$plugin_data = get_file_data($plugin_file, array('Version' => 'Version'));
+
+// Define plugin version
+define('ANAR_WOOCOMERCE_API_VERSION', !empty($plugin_data['Version']) ? $plugin_data['Version'] : 'unknown');
+
+// Define other plugin constants
 define('ANAR_WC_API_PLUGIN_NAME', 'Anar WooCommerce API');
-define('ANAR_WOOCOMERCE_API_VERSION', '2.9.2');
 define('ANAR_WC_API_PLUGIN_FILE', __FILE__);
 define('ANAR_WC_API_PLUGIN_DIR', plugin_dir_path(ANAR_WC_API_PLUGIN_FILE));
 define('ANAR_WC_API_PLUGIN_URL', plugin_dir_url(ANAR_WC_API_PLUGIN_FILE));
@@ -38,6 +45,8 @@ define('ANAR_WC_API_FRONT', ANAR_WC_API_PLUGIN_DIR . 'public/');
 define('ANAR_WC_API_TEXT_DOMAIN', 'anar-woocommerce-api');
 define('ANAR_WC_API_LANG_DIR', trailingslashit(ANAR_WC_API_PLUGIN_DIR) . 'languages');
 define('AWCA_DB_VERSION', '1.7');
+
+
 
 require_once ANAR_WC_API_PLUGIN_DIR . '/vendor/autoload.php';
 

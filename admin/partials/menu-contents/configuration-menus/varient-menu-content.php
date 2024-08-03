@@ -1,6 +1,6 @@
 <?php
-$api_url = 'https://api.anar360.com/api/360/attributes?page=1&limit=20';
-$awca_attributes = awca_get_data_from_api($api_url);
+//$api_url = 'https://api.anar360.com/api/360/attributes?page=1&limit=20';
+//$awca_attributes = awca_get_data_from_api($api_url);
 //$awca_attributes = awca_get_mock_data('assets/mock-products-api.json');
 $awca_attributes_responses = awca_get_stored_response('attributes');
 ?>
@@ -67,10 +67,10 @@ $awca_attributes_responses = awca_get_stored_response('attributes');
         <h3>ویژگی انار</h3>
         <h3>ویژگی شما</h3>
       </div> -->
-    <form action="<?php echo admin_url('admin-ajax.php'); ?>" method="post" id="plugin_product_creation_form">
+    <form action="<?php echo admin_url('admin-ajax.php'); ?>" method="post" id="plugin_attribute_creation_form">
       <div class="property_select_container">
-        <input type="hidden" name="action" value="awca_handle_product_creation_ajax" />
-        <?php wp_nonce_field('awca_handle_product_creation_ajax_nonce', 'awca_handle_product_creation_ajax_field'); ?>
+        <input type="hidden" name="action" value="awca_handle_pair_attributes_ajax" />
+        <?php wp_nonce_field('awca_handle_pair_attributes_ajax_nonce', 'awca_handle_pair_attributes_ajax_field'); ?>
         <?php
           $attributeMap = get_option( 'attributeMap' );
           $woocommerce_attributes = wc_get_attribute_taxonomies();
@@ -151,14 +151,13 @@ $awca_attributes_responses = awca_get_stored_response('attributes');
         <a onclick="awca_move_to_step(2)" class="plugin_activation_button prev_stepper_btn" name="category_create_submit">
           مرحله قبل
         </a>
-        <button type="submit" class="plugin_activation_button stepper_btn configuration_save_button" name="category_create_submit"
-        <?php $in_progress = get_transient('awca_product_creation_progress');
-        echo ($in_progress) ? ' ' : '';?> >
-          ذخیره نهایی
+        <button type="submit" class="plugin_activation_button stepper_btn configuration_save_button" name="category_create_submit">
+          مرحله بعد
           <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
             <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
           </svg>
         </button>
+
       </div>
 
 <!--        <a href="#" id="abort-ajax-link" style="display: none;color:red">متوقف کردن</a>-->
