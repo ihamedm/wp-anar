@@ -231,7 +231,7 @@ jQuery(document).ready(function($) {
                                 fetchProducts(page + 1); // Fetch the next page
                             } else {
                                 spinnerLoading.hide();
-                                getAndSaveProductsBtn.removeAttr("disabled");
+                                // getAndSaveProductsBtn.removeAttr("disabled");
                                 resultEl.append('<p style="font-weight:bold;">همه محصولات انار دریافت شد. ساخت محصولات در پس زمینه انجام می شود. می توانید این صفحه را ببندید.</p>');
                                 awca_show_toast('کل محصولات انار دریافت شد.', "success");
                                 isTaskRunning = false; // Task completed
@@ -259,7 +259,7 @@ jQuery(document).ready(function($) {
                     complete: function() {
                         if (!hasMorePages) {
                             spinnerLoading.hide();
-                            getAndSaveProductsBtn.removeAttr("disabled");
+                            // getAndSaveProductsBtn.removeAttr("disabled");
                         }
                     }
                 });

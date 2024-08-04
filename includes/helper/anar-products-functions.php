@@ -14,7 +14,6 @@ function awca_product_list_serializer($product)
     $prepared_product['sku'] = isset($product->id) ? $product->id : '';
     $prepared_product['description'] = isset($product->description) ? preg_replace('/<a.*>(.*)<\/a>/isU','$1',$product->description) : '';
     $prepared_product['regular_price'] = isset($product->variants[0]->price) ? $product->variants[0]->price : 0;
-    $prepared_product['stock_quantity'] = isset($product->variants[0]->stock) ? $product->variants[0]->stock : 0;
     $prepared_product['categories'] = isset($product->categories) ? $product->categories : '';
     $prepared_product['category'] = isset($product->categories) ? awca_find_best_match_category_from_categories($product->categories) : '';
     $prepared_product['formatted_price'] = awca_product_price_digits_seprator($product->variants[0]->priceForResell);
@@ -28,6 +27,12 @@ function awca_product_list_serializer($product)
             'shipmentsReferenceCity' => $product->shipmentsReferenceCity,
         );
 
+    }
+
+    if($product->resellStatus == 'editing-pending'){
+        $prepared_product['stock_quantity'] = 0;
+    }else{
+        $prepared_product['stock_quantity'] = isset($product->variants[0]->stock) ? $product->variants[0]->stock : 0;
     }
 
 

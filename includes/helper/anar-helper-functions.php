@@ -242,8 +242,12 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
             $has_more_pages = false;
         }
 
-        $progress_message = 'انار - دریافت محصولات ' . ($page * $limit) . '/' . $data->total;
-        set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
+        $total_items = $data->total;
+
+        $max_limit = ($total_items < $limit) ? $total_items : $limit;
+
+        $progress_message = 'انار - دریافت محصولات ' . ($page * $max_limit) . '/' . $total_items;
+        set_transient('awca_product_creation_progress', $progress_message, 1 * MINUTE_IN_SECONDS);
 
         awca_log(count($data->items) . ' items in this page');
 
@@ -395,8 +399,11 @@ function awca_fetch_and_store_api_response_by_page($key, $api_url, $page, $limit
     $total_items = count($data_items);
     $total_products = $data->total; // Assuming the total number of products is included in the API response
 
-    $progress_message = 'انار - دریافت محصولات ' . ($page * $limit) . '/' . $total_products;
-    set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
+
+    $max_limit = ($total_items < $limit) ? $total_items : $limit;
+
+    $progress_message = 'انار - دریافت محصولات ' . ($page * $max_limit) . '/' . $total_products;
+    set_transient('awca_product_creation_progress', $progress_message, 1 * MINUTE_IN_SECONDS);
 
     awca_log($total_items . ' items in this page');
 
@@ -629,7 +636,7 @@ function awca_sync_all_products_depricated() {
                 $product_id = awca_get_product_variation_by_anar_sku( $sku );
                 if( $product_id ) {
 
-                    $variant_stock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
+                    $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
 
                     $product = wc_get_product( $product_id );
                     $product->set_stock_quantity($variant_stock);
@@ -707,7 +714,7 @@ function awca_sync_all_products() {
                         $product_id = awca_get_product_variation_by_anar_sku( $sku );
                         if( $product_id ) {
 
-                            $variant_stock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
+                            $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
 
                             $product = wc_get_product( $product_id );
                             $product->set_stock_quantity($variant_stock);
@@ -792,10 +799,10 @@ function awca_process_products_cron_function() {
             foreach ($awca_products->items as $item) {
                 $prepared_product = awca_product_list_serializer($item);
                 $items_count_in_current_row = count($awca_products->items);
-                $serialized_products[] = $prepared_product;
-
-                $product_attributes = [];
-                $prepared_product['attributes'] = $product_attributes;
+//                $serialized_products[] = $prepared_product;
+//
+//                $product_attributes = [];
+//                $prepared_product['attributes'] = $product_attributes;
 
                 $product_creation_data = array(
                     'name' => $prepared_product['name'],
