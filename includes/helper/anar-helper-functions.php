@@ -791,6 +791,7 @@ function awca_process_products_cron_function() {
             // Loop through products and create them in WooCommerce
             foreach ($awca_products->items as $item) {
                 $prepared_product = awca_product_list_serializer($item);
+                $items_count_in_current_row = count($awca_products->items);
                 $serialized_products[] = $prepared_product;
 
                 $product_attributes = [];
@@ -843,6 +844,14 @@ function awca_process_products_cron_function() {
 
             }
 
+            $proceed_products = get_option('awca_proceed_products');
+            if(!$proceed_products)
+                $proceed_products = 0;
+
+            $proceed_products = ($page == 1) ?  $items_count_in_current_row : ($proceed_products + $items_count_in_current_row);
+            awca_log('$proceed_products : ' . $proceed_products );
+            update_option('awca_proceed_products', $proceed_products);
+
             // Mark the page as processed
             $wpdb->update(
                 $table_name,
@@ -852,13 +861,15 @@ function awca_process_products_cron_function() {
                 array('%d')
             );
 
-            $progress_message = 'انار - افزودن محصول ' . ($page * count($awca_products->items)) . '/' . $total_products;
-            set_transient('awca_product_creation_progress', $progress_message, 4 * MINUTE_IN_SECONDS);
+            $progress_message = 'انار - افزودن محصول ' . $proceed_products . '/' . $awca_products->total;
+            set_transient('awca_product_creation_progress', $progress_message, 10 * MINUTE_IN_SECONDS);
 
             awca_log("Page $page processed and marked as complete.");
         } else {
             awca_log('No unprocessed product pages found.');
             delete_transient('awca_product_creation_lock');
+            delete_transient('awca_product_creation_progress');
+            update_option('awca_proceed_products', 0);
         }
     } catch (Exception $e) {
         awca_log('Error processing products: ' . $e->getMessage());
