@@ -5,7 +5,7 @@
 
 
 
-add_action( 'woocommerce_checkout_before_order_review', 'action_woocommerce_cart_totals_before_shipping' );
+//add_action( 'woocommerce_checkout_before_order_review', 'action_woocommerce_cart_totals_before_shipping' );
 function action_woocommerce_cart_totals_before_shipping() {
     global $woocommerce;
     $items = $woocommerce->cart->get_cart();
