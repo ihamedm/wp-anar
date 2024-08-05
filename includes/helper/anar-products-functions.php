@@ -17,7 +17,7 @@ function awca_product_list_serializer($product)
     $prepared_product['categories'] = isset($product->categories) ? $product->categories : '';
     $prepared_product['category'] = isset($product->categories) ? awca_find_best_match_category_from_categories($product->categories) : '';
     $prepared_product['formatted_price'] = awca_product_price_digits_seprator($product->variants[0]->priceForResell);
-    $prepared_product['shipments'] = isset($product->shipments) ? json_encode($product->shipments) : '';
+    $prepared_product['shipments'] = isset($product->shipments) ? json_encode($product->shipments, JSON_UNESCAPED_UNICODE) : '';
 
     if(isset($product->shipmentsReferenceId) && isset($product->shipmentsReferenceState) && isset($product->shipmentsReferenceCity)){
 
