@@ -782,13 +782,13 @@ function awca_process_products_cron_function() {
     $table_name = $wpdb->prefix . 'awca_large_api_responses';
 
     // Check if the lock is already set
-    if (get_option('awca_product_creation_lock')) {
+    if (get_transient('awca_product_creation_lock')) {
         awca_log('Cron job skipped because lock is set.');
         return; // Exit if lock is set
     }
 
     // Set the lock
-    update_option('awca_product_creation_lock', true); // Lock the process
+    set_transient('awca_product_creation_lock', true, 180); // Lock the process
 
     try {
         // Fetch the next unprocessed page of products
@@ -881,7 +881,7 @@ function awca_process_products_cron_function() {
             awca_log("Page $page processed and marked as complete.");
         } else {
             awca_log('No unprocessed product pages found.');
-            delete_option('awca_product_creation_lock'); // Clear the lock
+            delete_transient('awca_product_creation_lock'); // Clear the lock
             delete_option('awca_proceed_products'); // Reset the proceed products
             delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
 
@@ -890,7 +890,7 @@ function awca_process_products_cron_function() {
         awca_log('Error processing products: ' . $e->getMessage());
     } finally {
         // Remove the lock
-        delete_option('awca_product_creation_lock');
+        delete_transient('awca_product_creation_lock');
     }
 }
 
