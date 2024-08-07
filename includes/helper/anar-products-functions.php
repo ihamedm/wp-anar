@@ -84,20 +84,20 @@ function awca_product_list_serializer($product)
     return $prepared_product;
 }
 
+
 function awca_create_woocommerce_product($product_data, $combinedCategories, $attributeMap, $categoryMap)
 {
-
     set_time_limit(300);
 
     try {
         if (!function_exists('wc_get_product')) {
             return false;
         }
-        
-//        $existing_product_id = wc_get_product_id_by_sku($product_data['sku']);
+
         $existing_product_id = awca_get_product_variation_by_anar_sku($product_data['sku']);
         $product_id = 0;
         $product_created = true;
+
         if ($existing_product_id) {
             $product = wc_get_product($existing_product_id);
             $product_id = $product->save();
@@ -108,13 +108,13 @@ function awca_create_woocommerce_product($product_data, $combinedCategories, $at
             } else {
                 $product = new WC_Product_Simple();
             }
+
             $product->set_name($product_data['name']);
             $product->set_status('draft'); // Set the product status to draft
             $product->set_description($product_data['description']);
-//            $product->set_sku($product_data['sku']);
             $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
             $product->set_category_ids(awca_map_product_categories($product_data['categories'], $combinedCategories, $categoryMap));
-            
+
             $product_id = $product->save();
 
             update_post_meta($product_id, '_anar_sku', $product_data['sku']);
@@ -122,9 +122,9 @@ function awca_create_woocommerce_product($product_data, $combinedCategories, $at
             if (isset($product_data['attributes']) && !empty($product_data['attributes'])) {
                 $attrsObject = awca_set_product_attributes($product, $product_data['attributes'], $product_data['category'], $attributeMap);
                 $product->set_props(array(
-                    'attributes'        => $attrsObject,
+                    'attributes' => $attrsObject,
                 ));
-                
+
                 $product_id = $product->save();
                 awca_create_product_variations($product, $product_data['variants'], $product_data['attributes'], $product_data['category'], $attributeMap);
             } else {
@@ -149,14 +149,17 @@ function awca_create_woocommerce_product($product_data, $combinedCategories, $at
             update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
             update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
 
-            awca_log('------- Product Created ----------------' . print_r($product_id, true) . '-----');
+            // Update the progress in the option
+            awca_log('------- Product Created ----------------#' . print_r($product_id, true) . '-----');
         }
-        return ['product_id' => $product_id , 'created' => $product_created];
+
+        return ['product_id' => $product_id, 'created' => $product_created];
     } catch (\Throwable $th) {
         awca_log('Error in awca_create_woocommerce_product: ' . $th->getMessage());
         return false;
     }
 }
+
 
 function awca_set_product_attributes($product, $attributes, $category, $attributeMap) {
     $attributeMap = get_option('attributeMap');

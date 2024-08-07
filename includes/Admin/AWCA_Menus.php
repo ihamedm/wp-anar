@@ -177,13 +177,18 @@ class AWCA_Menus{
 
     public function awca_add_product_creation_progress_to_toolbar($wp_admin_bar) {
         // Get the value of the transient
-        $progress = get_transient('awca_product_creation_progress');
+        $proceed_products = get_option('awca_proceed_products');
+        $total_products = get_option('awca_total_products');
+
 
         // Only add the menu item if the transient exists
-        if ($progress !== false) {
+        if ($proceed_products && $total_products) {
+
+            $message = sprintf('انار - ساخت محصول %s از %s', $proceed_products, $total_products);
+
             $args = array(
                 'id' => 'awca_product_creation_progress',
-                'title' => '<div class="wrap"><span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($progress) . '</span></div>', // The content of the menu item
+                'title' => '<div class="wrap"><span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message) . '</span></div>', // The content of the menu item
                 'href' => false, // No link
                 'meta' => array(
                     'class' => 'awca-progress-bar-menu-bar-item' // Add a custom class for styling

@@ -242,12 +242,8 @@ function awca_fetch_and_store_api_response($key, $api_url, $record_per_page = fa
             $has_more_pages = false;
         }
 
-        $total_items = $data->total;
-
-        $max_limit = ($total_items < $limit) ? $total_items : $limit;
-
-        $progress_message = 'انار - دریافت محصولات ' . ($page * $max_limit) . '/' . $total_items;
-        set_transient('awca_product_creation_progress', $progress_message, 1 * MINUTE_IN_SECONDS);
+        $progress_message = 'انار - دریافت محصولات ' . ($page * $limit) . '/' . $data->total;
+        set_transient('awca_product_creation_progress', $progress_message, 3 * MINUTE_IN_SECONDS);
 
         awca_log(count($data->items) . ' items in this page');
 
@@ -399,11 +395,10 @@ function awca_fetch_and_store_api_response_by_page($key, $api_url, $page, $limit
     $total_items = count($data_items);
     $total_products = $data->total; // Assuming the total number of products is included in the API response
 
-
     $max_limit = ($total_items < $limit) ? $total_items : $limit;
 
-    $progress_message = 'انار - دریافت محصولات ' . ($page * $max_limit) . '/' . $total_products;
-    set_transient('awca_product_creation_progress', $progress_message, 1 * MINUTE_IN_SECONDS);
+//    $progress_message = 'انار - دریافت محصولات ' . ($page * $max_limit) . '/' . $total_products;
+//    set_transient('awca_product_creation_progress', $progress_message, 1 * MINUTE_IN_SECONDS);
 
     awca_log($total_items . ' items in this page');
 
@@ -597,64 +592,8 @@ function awca_get_final_attribute_name_from_attribute_and_category($attributeNam
 
 /**
  * Sync all products from external API and update WooCommerce products.
- * @TODO keep sync report simple & variable products, success and errors, the log it
  */
 function awca_sync_all_products_depricated() {
-    $api_url = 'https://api.anar360.com/api/360/products';
-    $awca_products = awca_get_data_from_api($api_url);
-
-    awca_log('------- sync start --------');
-    if (!$awca_products) {
-        awca_log('Failed to fetch products from API: ' . $awca_products->get_error_message());
-        return;
-    }
-
-    foreach ($awca_products->items as $index => $updateProduct) {
-
-        if(count($updateProduct->variants) == 1){
-            // simple wc product
-
-            $variant = $updateProduct->variants[0];
-            $sku = $updateProduct->id;
-            $product_id = awca_get_simple_product_by_anar_sku( $sku );
-            if( $product_id ) {
-
-                $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
-
-                $product = wc_get_product( $product_id );
-                $product->set_stock_quantity($variant_stock);
-                $product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
-                $product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
-                $product->save();
-            }
-        }else{
-            // variable wc product
-
-            foreach ($updateProduct->variants as $variant) {
-                $sku = $variant->_id;
-//            $product_id = wc_get_product_id_by_sku( $sku );
-                $product_id = awca_get_product_variation_by_anar_sku( $sku );
-                if( $product_id ) {
-
-                    $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
-
-                    $product = wc_get_product( $product_id );
-                    $product->set_stock_quantity($variant_stock);
-                    $product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
-                    $product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
-                    $product->save();
-                }
-            }
-        }
-
-
-    }
-
-    awca_log('------- sync end --------');
-}
-
-
-function awca_sync_all_products() {
 
     if (get_transient('awca_sync_all_products_lock')) {
         awca_log('Sync already in progress, exiting to prevent overlap.');
@@ -704,6 +643,7 @@ function awca_sync_all_products() {
                         $product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
                         $product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
                         $product->save();
+
                     }
                 }else{
                     // variable wc product
@@ -714,7 +654,7 @@ function awca_sync_all_products() {
                         $product_id = awca_get_product_variation_by_anar_sku( $sku );
                         if( $product_id ) {
 
-                            $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
+                            $variant_stock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
 
                             $product = wc_get_product( $product_id );
                             $product->set_stock_quantity($variant_stock);
@@ -748,6 +688,94 @@ function awca_sync_all_products() {
 
     awca_log('------- sync end --------');
 }
+function awca_sync_all_products() {
+    if (get_transient('awca_sync_all_products_lock')) {
+        awca_log('Sync already in progress, exiting to prevent overlap.');
+        return;
+    }
+
+    // Set a transient to lock the function
+    set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
+
+    $base_api_url = 'https://api.anar360.com/api/360/products';
+    $limit = 10; // Number of products per page
+    $page = 1; // Starting page
+    $synced_counter = 0;
+
+    awca_log('------- Sync Start --------');
+    $start_time = microtime(true); // Start time
+
+    try {
+        while (true) {
+            $api_url = add_query_arg(array('page' => $page, 'limit' => $limit), $base_api_url);
+            $awca_products = awca_get_data_from_api($api_url);
+
+            if (is_wp_error($awca_products)) {
+                awca_log('Failed to fetch products from API: ' . $awca_products->get_error_message());
+                return;
+            }
+
+            if (empty($awca_products->items)) {
+                // No more products to fetch
+                break;
+            }
+
+            foreach ($awca_products->items as $updateProduct) {
+                if (count($updateProduct->variants) == 1) {
+                    // Simple WC product
+                    $variant = $updateProduct->variants[0];
+                    $sku = $updateProduct->id;
+                    $product_id = awca_get_simple_product_by_anar_sku($sku);
+                    if ($product_id) {
+                        $variant_stock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
+                        $product = wc_get_product($product_id);
+                        $product->set_stock_quantity($variant_stock);
+                        $product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
+                        $product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
+                        $product->save();
+                    }
+                } else {
+                    // Variable WC product
+                    foreach ($updateProduct->variants as $variant) {
+                        $sku = $variant->_id;
+                        $product_id = awca_get_product_variation_by_anar_sku($sku);
+                        if ($product_id) {
+                            $variant_stock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
+                            $product = wc_get_product($product_id);
+                            $product->set_stock_quantity($variant_stock);
+                            $product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
+                            $product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
+                            $product->save();
+                        }
+                    }
+                }
+            }
+
+            $synced_counter += count($awca_products->items);
+
+            // Check if we've fetched less than the limit, which means this is the last page
+            if (count($awca_products->items) < $limit) {
+                break;
+            }
+
+            // Increment the page number for the next iteration
+            $page++;
+        }
+
+        update_option('awca_last_sync_time', current_time('mysql'));
+
+    } finally {
+        // Release the lock
+        delete_transient('awca_sync_all_products_lock');
+    }
+
+    // Log the summary of the sync process
+    $end_time = microtime(true); // End time
+    $duration = round($end_time - $start_time, 2); // Calculate duration
+    awca_log('------- Sync End --------');
+    awca_log("Total Products Synced: $synced_counter | Time Taken: {$duration} seconds");
+}
+
 
 
 function awca_process_products_cron_function() {
@@ -755,13 +783,13 @@ function awca_process_products_cron_function() {
     $table_name = $wpdb->prefix . 'awca_large_api_responses';
 
     // Check if the lock is already set
-    if (get_transient('awca_product_creation_lock')) {
+    if (get_option('awca_product_creation_lock')) {
         awca_log('Cron job skipped because lock is set.');
         return; // Exit if lock is set
     }
 
     // Set the lock
-    set_transient('awca_product_creation_lock', true, 3600); // Lock for 1 hour
+    update_option('awca_product_creation_lock', true); // Lock the process
 
     try {
         // Fetch the next unprocessed page of products
@@ -792,17 +820,15 @@ function awca_process_products_cron_function() {
             $responses = [];
             $created_product_ids = [];
             $exist_product_ids = [];
-            $serialized_products = [];
             $total_products = $awca_products->total;
+            update_option('awca_total_products', $awca_products->total);
+
+            // Initialize the proceed products count for this run
+            $proceed_products = get_option('awca_proceed_products', 0);
 
             // Loop through products and create them in WooCommerce
             foreach ($awca_products->items as $item) {
                 $prepared_product = awca_product_list_serializer($item);
-                $items_count_in_current_row = count($awca_products->items);
-//                $serialized_products[] = $prepared_product;
-//
-//                $product_attributes = [];
-//                $prepared_product['attributes'] = $product_attributes;
 
                 $product_creation_data = array(
                     'name' => $prepared_product['name'],
@@ -825,39 +851,24 @@ function awca_process_products_cron_function() {
                 $product_id = $product_creation_result['product_id'];
                 if ($product_creation_result['created']) {
                     $created_product_ids[] = $product_id;
-
                     awca_set_product_image_from_url($product_id, $prepared_product['image']);
                 } else {
                     $exist_product_ids[] = $product_id;
                 }
 
-                if ($product_id) {
-                    $responses[] = array(
-                        'success' => true,
-                        'message' => "Product with ID $product_id created",
-                        'data' => $product_creation_data,
-                    );
-                } else {
-                    $responses[] = array(
-                        'success' => false,
-                        'message' => "A product was not created",
-                        'data' => $product_creation_data,
-                    );
-                }
+                $proceed_products++; // Increment the product is proceeded [if created or exist]
+                update_option('awca_proceed_products', $proceed_products);
 
-                // Save the progress in a transient
-                $creation_progress_data = ['created' => count($created_product_ids) , 'exist' => count($exist_product_ids)];
-                awca_log('Product create progress - Created: ' . $creation_progress_data['created'] . ', Exist: ' . $creation_progress_data['exist']);
+                // Log the product creation response
+                $responses[] = array(
+                    'success' => $product_creation_result['created'],
+                    'message' => $product_creation_result['created'] ? "Product with ID $product_id created" : "A product was not created",
+                    'data' => $product_creation_data,
+                );
 
+                awca_log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
             }
 
-            $proceed_products = get_option('awca_proceed_products');
-            if(!$proceed_products)
-                $proceed_products = 0;
-
-            $proceed_products = ($page == 1) ?  $items_count_in_current_row : ($proceed_products + $items_count_in_current_row);
-            awca_log('$proceed_products : ' . $proceed_products );
-            update_option('awca_proceed_products', $proceed_products);
 
             // Mark the page as processed
             $wpdb->update(
@@ -868,21 +879,19 @@ function awca_process_products_cron_function() {
                 array('%d')
             );
 
-            $progress_message = 'انار - افزودن محصول ' . $proceed_products . '/' . $awca_products->total;
-            set_transient('awca_product_creation_progress', $progress_message, 10 * MINUTE_IN_SECONDS);
-
             awca_log("Page $page processed and marked as complete.");
         } else {
             awca_log('No unprocessed product pages found.');
-            delete_transient('awca_product_creation_lock');
-            delete_transient('awca_product_creation_progress');
-            update_option('awca_proceed_products', 0);
+            delete_option('awca_product_creation_lock'); // Clear the lock
+            delete_option('awca_proceed_products'); // Reset the proceed products
+            delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
+
         }
     } catch (Exception $e) {
         awca_log('Error processing products: ' . $e->getMessage());
     } finally {
         // Remove the lock
-        delete_transient('awca_product_creation_lock');
+        delete_option('awca_product_creation_lock');
     }
 }
 
@@ -1108,7 +1117,7 @@ function awca_is_job_aborted($job_id) {
 }
 
 
-function print_anar($title='', $var){
+function print_anar( $var, $title=''){
 
     echo '<div style="background:#efefef; padding:24px; clear:both; width:100%"><pre style="direction:ltr; text-align:left">';
     echo $title ? '<h2>'.$title.'</h2>' : '';

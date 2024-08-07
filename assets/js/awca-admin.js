@@ -450,7 +450,6 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
             $(this).attr("disabled", "disabled");
           },
           success: function (response) {
-            console.log(response)
             if (response.success) {
               location.reload();
               msgType = 'success'
@@ -458,7 +457,7 @@ function awca_complete_desc(desc, title = 'توضیحات کامل محصول') 
             awca_show_toast(response.data.message, msgType);
           },
           error: function (xhr, status, err) {
-            awca_show_toast(xhr.responseText)
+            awca_show_toast('حطایی در برقراری ارتباط پیش آمده است.')
             loadingIcon.hide();
             $(this).removeAttr("disabled");
 
