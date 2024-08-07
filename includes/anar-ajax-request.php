@@ -386,7 +386,13 @@ function awca_get_products_save_on_db_ajax() {
 
     $result = awca_fetch_and_store_api_response_by_page('products', $products_api, $page);
     if ($result !== false) {
-        update_option('awca_product_save_lock', true);
+        if($page == 1){
+            // lock to prevent run again until all product created , after that we unset this lock
+            update_option('awca_product_save_lock', true);
+
+            // reset counter
+            update_option('awca_proceed_products', 0);
+        }
         $total_items = $result['total_items'];
         $total_products = $result['total_products']; // Assuming the API response includes total products count
 

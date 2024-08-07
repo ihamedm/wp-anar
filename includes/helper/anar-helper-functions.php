@@ -771,9 +771,8 @@ function awca_sync_all_products() {
 
     // Log the summary of the sync process
     $end_time = microtime(true); // End time
-    $duration = round($end_time - $start_time, 2); // Calculate duration
-    awca_log('------- Sync End --------');
-    awca_log("Total Products Synced: $synced_counter | Time Taken: {$duration} seconds");
+    $duration = round(($end_time - $start_time) / 60, 2) ; // Calculate duration
+    awca_log("------- Sync End : Total Products Synced: $synced_counter | Time Taken: {$duration} min");
 }
 
 
