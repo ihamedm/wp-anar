@@ -1,0 +1,16 @@
+{
+    "require": {
+      "ext-mbstring": "*",
+      "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Anar\\": "includes/",
+            "Anar\\Admin\\" : "includes/admin/",
+            "Anar\\Lib\\": "includes/lib/",
+            "Anar\\Init\\": "includes/init/",
+            "Anar\\Core\\": "includes/core/",
+            "Anar\\Wizard\\": "includes/wizard/"
+        }
+    }
+}
