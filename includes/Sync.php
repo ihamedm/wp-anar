@@ -3,6 +3,7 @@
 namespace Anar;
 
 use Anar\Core\Activation;
+use Anar\Core\Logger;
 
 class Sync {
     private $baseApiUrl;
@@ -10,6 +11,8 @@ class Sync {
     private $page;
     private $syncedCounter;
     private $startTime;
+
+    private $logger;
 
     /**
      * time in milliseconds
@@ -23,6 +26,8 @@ class Sync {
         $this->limit = 10;
         $this->page = 1;
         $this->syncedCounter = 0;
+
+        $this->logger = new Logger();
 
         // query for products that updated since 10 min ago
         $this->updatedSince = 10 * 60000;
@@ -148,7 +153,7 @@ class Sync {
     }
 
     private function log($message) {
-        awca_log($message);
+        $this->logger->log($message, 'sync');
     }
 
     private function updateLastSyncTime() {

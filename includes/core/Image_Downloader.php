@@ -119,6 +119,8 @@ class Image_Downloader{
         // Check if there was an error in downloading and inserting the image
         if (is_wp_error($attachment_id)) {
             awca_log("Failed to download and insert attachment for product ID: $product_id. Error: " . $attachment_id->get_error_message());
+            // Clean this meta to skip from cron job check
+            delete_post_meta($product_id, '_product_image_url', false);
             return $attachment_id;
         }
 
@@ -127,6 +129,8 @@ class Image_Downloader{
 
         if (!$thumbnail_result) {
             awca_log("Failed to set product thumbnail for product ID: $product_id");
+            // Clean this meta to skip from cron job check
+            delete_post_meta($product_id, '_product_image_url', false);
             return new WP_Error('thumbnail_set_failed', __('Failed to set product thumbnail.'));
         }
 

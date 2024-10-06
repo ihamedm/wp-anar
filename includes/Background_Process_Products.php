@@ -2,6 +2,7 @@
 namespace Anar;
 
 use Anar\Core\Image_Downloader;
+use Anar\Core\Logger;
 use Anar\Lib\Anar_WP_Background_Process;
 use Anar\Wizard\Product;
 
@@ -12,6 +13,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
      */
     protected $prefix = 'awca';
     protected $action = 'create_products';
+    public $logger = null;
     private static $instance = null;
 
     private $thumbnail_generator = null;
@@ -19,6 +21,8 @@ class Background_Process_Products extends Anar_WP_Background_Process {
 
     private function __construct()
     {
+        $this->logger = new Logger();
+
         parent::__construct();
         add_action('wp_ajax_handle_process_actions', [$this,'handle_process_actions']);
         add_action('wp_ajax_awca_run_product_creation_background_process_ajax', [$this, 'process_handler']);
@@ -46,6 +50,9 @@ class Background_Process_Products extends Anar_WP_Background_Process {
 
         // Loop through each row and push it to the background process
         if ($rows) {
+
+            $this->log('Start to create products in background.', true);
+
             $total_rows = count($rows);
 
             foreach ($rows as $row) {
@@ -59,7 +66,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
             // Save and dispatch the tasks
             $this->save()->dispatch();
         } else {
-            awca_log('No unprocessed product pages found.');
+            $this->logger->log('No unprocessed product pages found.');
         }
     }
 
@@ -87,7 +94,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
     }
 
     public function push_to_queue( $data ) {
-        awca_log("push_to_queue - page {$data['row_page_number']} from {$data['total_rows']}");
+        $this->log("push_to_queue - page {$data['row_page_number']} from {$data['total_rows']}");
 
         return parent::push_to_queue( $data );
     }
@@ -99,13 +106,12 @@ class Background_Process_Products extends Anar_WP_Background_Process {
      * @return mixed
      */
     protected function task( $item ) {
-        awca_log(print_r($item, true));
         global $wpdb;
         $table_name = $wpdb->prefix . 'awca_large_api_responses';
 
         // Check if the item contains the necessary data
         if ( ! isset( $item['row_id'] ) ) {
-            awca_log('Invalid task data, skipping.');
+            $this->log('Invalid task data, skipping.');
             return false;
         }
 
@@ -119,7 +125,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
         $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item['row_id']), ARRAY_A );
 
         if ( ! $row ) {
-            awca_log("No data found for ID {$item['row_id']}, skipping.");
+            $this->log("No data found for ID {$item['row_id']}, skipping.");
             return false;
         }
 
@@ -128,17 +134,17 @@ class Background_Process_Products extends Anar_WP_Background_Process {
         $page = $row['page'];
         $serialized_response = $row['response'];
 
-        awca_log("-------- Background Task Start ,page {$page} -------");
+        $this->log("-------- Background Task Start ,page {$page} -------");
 
-        // Unserialize the response
+        // deserialize the response
         $awca_products = maybe_unserialize($serialized_response);
         if ($awca_products === false) {
-            awca_log("Failed to unserialize the response for page $page.");
+            $this->log("Failed to deserialize the response for page $page.");
             return false;
         }
 
         if (!isset($awca_products->items)) {
-            awca_log("Unserialized data does not contain 'items' for page $page.");
+            $this->log("deserialized data does not contain 'items' for page $page.");
             return false;
         }
 
@@ -188,7 +194,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
             $proceed_products++;
             update_option('awca_proceed_products', $proceed_products);
 
-            awca_log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
+            $this->log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
         }
 
         // Mark the page as processed
@@ -200,12 +206,13 @@ class Background_Process_Products extends Anar_WP_Background_Process {
             array('%d')
         );
 
+        if($created_product_ids > 0){
+            $this->thumbnail_generator->push_to_queue(['total_products' => $awca_products->total, 'products' => $created_product_ids , 'page_number' => $page] );
+            $this->thumbnail_generator->save();
+        }
 
-        $this->thumbnail_generator->push_to_queue(['total_products' => $awca_products->total, 'products' => $created_product_ids , 'page_number' => $page] );
-        $this->thumbnail_generator->save();
 
-
-        awca_log("Page $page processed and marked as complete.");
+        $this->log("Page $page processed and marked as complete.");
 
         // Continue processing
         return true;
@@ -213,12 +220,11 @@ class Background_Process_Products extends Anar_WP_Background_Process {
 
 
 
-    public function log_status() {
-        awca_log("Background product creation => Processing: {$this->is_processing()}, Queued: {$this->is_queued()}, Active: {$this->is_cancelled()}");
+    public function log($message, $new=false) {
+        $this->logger->log('Products :: ' .$message);
     }
 
     public function get_status() {
-//        $this->log_status();
 
         if($this->is_processing())
             return 'processing';
@@ -257,23 +263,23 @@ class Background_Process_Products extends Anar_WP_Background_Process {
 
     protected function cancelled()
     {
-        awca_log('------------------------ Cancelled ----------------------');
+        $this->log('------------------------ Cancelled ----------------------');
         delete_transient('awca_product_creation_lock'); // Clear the lock
         delete_option('awca_proceed_products'); // Reset the proceed products
         delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
-        parent::cancelled(); // TODO: Change the autogenerated stub
+        parent::cancelled();
     }
 
     protected function paused()
     {
-        awca_log('------------------------ Paused --------------------------');
-        parent::paused(); // TODO: Change the autogenerated stub
+        $this->log('------------------------ Paused --------------------------');
+        parent::paused();
     }
 
     protected function resumed()
     {
-        awca_log('------------------------ Resumed --------------------------');
-        parent::resumed(); // TODO: Change the autogenerated stub
+        $this->log('------------------------ Resumed --------------------------');
+        parent::resumed();
     }
 
 
@@ -285,10 +291,41 @@ class Background_Process_Products extends Anar_WP_Background_Process {
         $response = ApiDataHandler::postAnarApi('https://api.anar360.com/api/360/status', ['status'=> 'synced']);
 
         if (is_wp_error($response)) {
-            awca_log('set status completed in Anar failed, Error: '. $response->get_error_message());
+            $this->log('set status completed in Anar failed, Error: '. $response->get_error_message());
         } else {
-            awca_log('set status completed in Anar done successfully. $response:' . print_r($response['body'], true));
+            $this->log('set status completed in Anar done successfully. $response:' . print_r($response['body'], true));
         }
+    }
+
+
+    private function add_to_awake_list(){
+        // Cloudflare Worker URL
+        $worker_url = 'https://awake.anarwp.workers.dev/';
+
+        $args = array(
+            'headers' => array(
+                'x-url' => site_url('wp-cron.php'), // The URL to save
+                'Content-Type' => 'application/json',
+            ),
+            'method' => 'POST',
+        );
+
+        // Make the HTTP request to the Cloudflare Worker
+        $response = wp_remote_post($worker_url, $args);
+
+        // Handle the response
+        if (is_wp_error($response)) {
+            // There was an error
+            $error_message = $response->get_error_message();
+            error_log("Cloudflare Worker API call failed: $error_message");
+            return false; // Or handle the error as needed
+        }
+
+        // Get the body of the response
+        $response_body = wp_remote_retrieve_body($response);
+        $this->log('add_to_awake_list:' . json_decode($response_body, true));
+
+        return false;
     }
 
 
@@ -300,12 +337,13 @@ class Background_Process_Products extends Anar_WP_Background_Process {
     protected function complete() {
         parent::complete();
         $this->notice_completed();
+        $this->add_to_awake_list();
         delete_transient('awca_product_creation_lock'); // Clear the lock
         delete_option('awca_proceed_products'); // Reset the proceed products
         delete_option('awca_total_products'); // Reset the proceed products
         delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
-        awca_log('------------------------ completed ----------------------');
-        awca_log('Background Complete method : All products have been processed.');
+        $this->log('------------------------ completed ----------------------');
+        $this->log('Background Complete method : All products have been processed.');
 
 
         // Calculate and log the total time taken
@@ -319,12 +357,13 @@ class Background_Process_Products extends Anar_WP_Background_Process {
             $seconds = $total_time % 60;
             delete_option($this->prefix.'_'.$this->action . '_start_time');
 
-            awca_log("Background process of Product creation completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
+            $this->log("Background process of Product creation completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
         }
 
 
         $this->thumbnail_generator->dispatch();
     }
+
 
 
 }

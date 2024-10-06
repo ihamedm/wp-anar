@@ -1,6 +1,7 @@
 <?php
 namespace Anar;
 use Anar\Core\Image_Downloader;
+use Anar\Core\Logger;
 use Anar\Lib\Anar_WP_Background_Process;
 
 class Background_Process_Thumbnails extends Anar_WP_Background_Process {
@@ -11,11 +12,13 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
     protected $prefix = 'awca';
     protected $action = 'generate_product_thumbnails';
     private static $instance = null;
+    public $logger = null;
 
 
     private function __construct()
     {
         parent::__construct();
+        $this->logger = new Logger();
     }
 
 
@@ -52,7 +55,7 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
             // Perform the query
             $query = new \WP_Query($args);
             $queued_products = count($query->posts);
-            awca_log('////////////////////// process_handler - page ' . $paged . ' => ' . $queued_products);
+            $this->log('////////////////////// process_handler - page ' . $paged . ' => ' . $queued_products);
 
             /**
              * Save processed data on options to show on front end via ajax
@@ -84,13 +87,13 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
 
                 $this->save();
 
-                awca_log("push to queue => {$queued_products} products");
+                $this->log("push to queue => {$queued_products} products");
                 wp_reset_postdata();
 
 
             } else {
                 // not found any products
-                awca_log('No more products found with non-empty _product_image_url on page ' . $paged);
+                $this->log('No more products found with non-empty _product_image_url on page ' . $paged);
 
             }
             $paged++; // Move to the next page
@@ -102,7 +105,7 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
 
 
     public function push_to_queue( $data ) {
-        awca_log('pushed to queue: $data[paged] => '. $data['page_number']);
+        $this->log('pushed to queue: $data[paged] => '. $data['page_number']);
         return parent::push_to_queue( $data );
     }
 
@@ -114,7 +117,7 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
      */
     protected function task( $item ) {
         if(!isset($item['products'])){
-            awca_log('Invalid task data, skipping.');
+            $this->log('Invalid task data, skipping.');
             return false;
         }
 
@@ -127,15 +130,22 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
             $this->update_process_data(['total_products' => $item['total_products']]);
         }
 
-        foreach ($item['products'] as $product_id){
+        foreach ($item['products'] as $index => $product_id){
 
             $thumbnail_url = get_post_meta($product_id, '_product_image_url', true);
 
             // If gallery images exist, set the product gallery
             if ($thumbnail_url) {
                 $image_downloader = new Image_Downloader();
-                $image_downloader->set_product_thumbnail($product_id, $thumbnail_url);
+                $attachment_id = $image_downloader->set_product_thumbnail($product_id, $thumbnail_url);
+
+                if(is_wp_error($attachment_id)){
+                    $this->log('Thumbnail of Product #'.$product_id.' set error: '.$attachment_id->get_error_message());
+                }
+
+                $this->log('Thumbnail #'.$attachment_id. ' of Product #'.$product_id . ' is set.');
             }
+
         }
 
 
@@ -144,7 +154,7 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
             'processed_products' => count($item['products']),
         ]);
 
-        awca_log("Task => Page {$item['page_number']} Processed");
+        $this->log("Task => Page {$item['page_number']} Processed");
 
         // Continue processing
         return true;
@@ -152,8 +162,8 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
 
 
 
-    public function log_status() {
-        awca_log("Product Thumbnails : Processing: {$this->is_processing()}, Queued: {$this->is_queued()}, Active: {$this->is_cancelled()}");
+    public function log($message, $new = false) {
+        $this->logger->log('Thumbnail :: '.$message);
     }
 
     public function get_status() {
@@ -244,19 +254,19 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
     protected function cancelled()
     {
         $this->reset_process_data();
-        awca_log('------------------------ Cancelled ----------------------');
+        $this->log('------------------------ Cancelled ----------------------');
         parent::cancelled();
     }
 
     protected function paused()
     {
-        awca_log('------------------------ Paused --------------------------');
+        $this->log('------------------------ Paused --------------------------');
         parent::paused();
     }
 
     protected function resumed()
     {
-        awca_log('------------------------ Resumed --------------------------');
+        $this->log('------------------------ Resumed --------------------------');
         parent::resumed();
     }
 
@@ -280,13 +290,13 @@ class Background_Process_Thumbnails extends Anar_WP_Background_Process {
             $seconds = $total_time % 60;
             delete_option($this->prefix.'_'.$this->action . '_start_time');
 
-            awca_log("Background process of Thumbnail generation completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
+            $this->log("Background process of Thumbnail generation completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
         }
 
 
         $this->reset_process_data();
-        awca_log('------------------------ completed ----------------------');
-        awca_log('Background Complete method : All products have been processed.');
+        $this->log('------------------------ completed ----------------------');
+        $this->log('Background Complete method : All products have been processed.');
     }
 
 

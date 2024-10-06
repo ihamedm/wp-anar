@@ -107,7 +107,9 @@ abstract class Anar_WP_Background_Process extends Anar_WP_Async_Request {
 	 * @return array|\Anar\WP_Error|false HTTP Response array, WP_Error on failure, or false if not attempted.
 	 */
 	public function dispatch() {
-		if ( $this->is_processing() ) {
+        awca_log('dispatch() called');
+
+        if ( $this->is_processing() ) {
 			// Process already running.
 			return false;
 		}
@@ -704,18 +706,24 @@ abstract class Anar_WP_Background_Process extends Anar_WP_Async_Request {
 	 * and data exists in the queue.
 	 */
 	public function handle_cron_healthcheck() {
+        awca_log('handle_cron_healthcheck runs');
 		if ( $this->is_processing() ) {
+            awca_log('handle_cron_healthcheck runs :  processing, no action');
 			// Background process already running.
 			exit;
 		}
 
 		if ( $this->is_queue_empty() ) {
-			// No data to process.
+            awca_log('handle_cron_healthcheck runs :  queue is empty, clear ');
+
+            // No data to process.
 			$this->clear_scheduled_event();
 			exit;
 		}
 
-		$this->dispatch();
+        awca_log('handle_cron_healthcheck runs :  stoped, run dispatch');
+
+        $this->dispatch();
 	}
 
 	/**
