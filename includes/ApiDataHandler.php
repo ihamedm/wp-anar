@@ -31,7 +31,7 @@ class ApiDataHandler
         $this->key = $key;
         $this->api_url = $api_url;
         $this->wpdb = $wpdb;
-        $this->table_name = $wpdb->prefix . 'awca_large_api_responses';
+        $this->table_name = $wpdb->prefix . ANAR_DB_NAME;
     }
 
 

@@ -19,7 +19,7 @@ class Checkout {
 
 
         // process and Create order
-        add_action( 'woocommerce_checkout_update_order_review', [$this, 'save_checkout_delivery_choice_on_session'] );
+        add_action( 'woocommerce_checkout_update_order_review', [$this, 'save_checkout_delivery_choice_on_session_better'] );
         add_action( 'woocommerce_checkout_update_order_review', [$this, 'chosen_shipping_methods_when_no_standard_products'] );
         add_action( 'woocommerce_checkout_process', [$this, 'checkout_validations']);
         add_action( 'woocommerce_checkout_create_order', [$this, 'save_anar_data_on_order'], 20, 1 );
@@ -264,7 +264,7 @@ class Checkout {
                 if ($selected_option && !in_array($shipmentsReferenceId, $processed_references)) {
                     // If a shipping option is selected, add its price to the total
                     if (isset($shipments_data['delivery'][$selected_option])) {
-                        $total_shipping_fee += floatval($shipments_data['delivery'][$selected_option]['price']);
+                        $total_shipping_fee += awca_convert_price_to_woocommerce_currency(floatval($shipments_data['delivery'][$selected_option]['price']));
                     }
                     // Mark this shipment reference as processed
                     $processed_references[] = $shipmentsReferenceId;
@@ -339,14 +339,31 @@ class Checkout {
 
 
     public function save_checkout_delivery_choice_on_session( $posted_data ) {
+        awca_log('save_checkout_delivery_choice_on_session');
         parse_str( $posted_data, $output );
+        awca_log(print_r($output, true));
         $resShip = ProductData::get_all_products_shipments_ref();
+        awca_log('$resShip: ' . print_r($resShip, true));
         foreach ($resShip as $key => $v) {
             if ( isset( $output['anar_delivery_option_'.$key] ) ){
                 WC()->session->set( 'anar_delivery_option_'.$key, $output['anar_delivery_option_'.$key] );
             }
         }
+
+        awca_log('session: ' . print_r(WC()->session->get_session(get_current_user_id()), true));
     }
+
+    public function save_checkout_delivery_choice_on_session_better($posted_data ) {
+        parse_str( $posted_data, $output );
+        foreach ($output as $key => $value) {
+            // Check if the key starts with "anar_delivery_option_"
+            if (strpos($key, 'anar_delivery_option_') === 0) {
+                // Set the key-value pair in the session
+                WC()->session->set($key, $value);
+            }
+        }
+    }
+
 
 
     public function chosen_shipping_methods_when_no_standard_products()
@@ -417,7 +434,7 @@ class Checkout {
     }
 
 
-    function visually_hide_shipment_rates_no_standard_products() {
+    public function visually_hide_shipment_rates_no_standard_products() {
         if(is_checkout()) {
             $has_standard_product = WC()->session->get('has_standard_product');
 

@@ -45,7 +45,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
         global $wpdb;
 
         // Fetch all unprocessed rows from the database
-        $table_name = $wpdb->prefix . 'awca_large_api_responses';
+        $table_name = $wpdb->prefix . ANAR_DB_NAME;
         $rows = $wpdb->get_results("SELECT * FROM $table_name WHERE `key` = 'products' AND `processed` = 0 ORDER BY `page` ASC", ARRAY_A);
 
         // Loop through each row and push it to the background process
@@ -107,7 +107,7 @@ class Background_Process_Products extends Anar_WP_Background_Process {
      */
     protected function task( $item ) {
         global $wpdb;
-        $table_name = $wpdb->prefix . 'awca_large_api_responses';
+        $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
         // Check if the item contains the necessary data
         if ( ! isset( $item['row_id'] ) ) {

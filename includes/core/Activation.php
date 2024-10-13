@@ -3,6 +3,7 @@ namespace Anar\Core;
 
 
 use Anar\ApiDataHandler;
+use Anar\Payments;
 
 class Activation{
 
@@ -32,6 +33,10 @@ class Activation{
                 'success' => true,
                 'message' => 'توکن شما با موفقیت ثبت و تایید شد',
             ];
+
+            // update anar unpaid orders on wpdb to show alert
+            (new Payments())->count_unpaid_orders_count();
+
         } elseif ($activation_status) {
             $response = [
                 'success' => true,

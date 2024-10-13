@@ -50,7 +50,7 @@ class Payments{
                         $payment['orderNumber'],
                         $payment['groupId'],
                         awca_translator($payment['status']),
-                        number_format($payment['payable'],0,'', ',') . ' تومان',
+                        awca_get_formatted_price($payment['payable']),
                         $payment['description'],
                     );
                 }

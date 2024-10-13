@@ -11,7 +11,7 @@ class Db{
         awca_log('Current DB Version: ' . $installed_version);
         awca_log('New DB Version: ' . ANAR_DB_VERSION);
 
-        $table_name = $wpdb->prefix . 'awca_large_api_responses';
+        $table_name = $wpdb->prefix . ANAR_DB_NAME;
         $charset_collate = $wpdb->get_charset_collate();
 
         // Remove the unique constraint if it exists

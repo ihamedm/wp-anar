@@ -117,6 +117,17 @@ function awca_convert_price_to_woocommerce_currency($price_in_irt)
     }
 }
 
+function awca_get_formatted_price($anar_price){
+    $converted_price = awca_convert_price_to_woocommerce_currency($anar_price);
+    $currency_symbol = get_woocommerce_currency_symbol();
+    $thousand_separator = ',';
+    $decimal_separator = '.';
+
+    // Format the price
+    $formatted_price = number_format(floatval(preg_replace('/[^\d.]/', '', $converted_price)), 0, $decimal_separator, $thousand_separator);
+
+    return $formatted_price . ' ' . $currency_symbol;
+}
 
 
 /**

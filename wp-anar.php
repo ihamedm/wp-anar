@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://anar360.com/wordpress-plugin
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	3.5.1
+ * Version:          	3.5.2
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Copyright: 			(c) 2024 Anar360 Dev. Group, All rights reserved.
@@ -160,6 +160,7 @@ class Wp_Anar
         define('ANAR_PLUGIN_VERSION', self::$plugin_version);
         define('ANAR_PLUGIN_PATH', self::$plugin_path);
         define('ANAR_PLUGIN_URL', self::$plugin_url);
+        define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_VERSION', '1.7');
         define('ANAR_CRON_VERSION', '1.2');
 
@@ -272,7 +273,7 @@ class Wp_Anar
         $installed_version = get_option('awca_db_version');
 
         global $wpdb;
-        $table_name = $wpdb->prefix . 'awca_large_api_responses';
+        $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
         if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
             Init\Db::make_tables();

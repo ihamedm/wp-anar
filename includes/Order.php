@@ -128,6 +128,9 @@ class Order {
         $order->add_order_note('سفارش در پنل انار با موفقیت ایجاد شد. #' . $create_response['result'][0]['groupId']);
         $order->save();
 
+        // update anar unpaid orders on wpdb to show alert
+        (new Payments())->count_unpaid_orders_count();
+
         return true;
     }
 
@@ -285,11 +288,22 @@ class Order {
                          }
 
                      }
+                     $currency = get_woocommerce_currency_symbol(get_woocommerce_currency());
 
                      $output .= sprintf('<b style="color:red">مرسوله %d</b>', $package_number);
                      $output .= sprintf('<ul style="border-bottom:1px solid #ccc">
                             <li><b>شماره مرسوله: </b>%s</li>
                             <li><b>آیتم ها(%s): </b>%s</li>
+                            
+                            <li>
+                                <ul style="background:#eee; border-radius:5px; padding:8px;">
+                                    <li><b>جمع کالاها: </b>%s</li>
+                                    <li><b>سهم شما: </b>%s</li>
+                                    <li><b>هزینه ارسال: </b>%s</li>
+                                    <li><b>قابل پرداخت: </b>%s</li>    
+                                </ul>
+                           
+                            </li>
                             <li><b>وضعیت سفارش: </b>%s</li>
                             <li><b>وضعیت پرداخت: </b>%s</li>
                             <li><b>شیوه ارسال: </b>%s</li>
@@ -297,17 +311,25 @@ class Order {
                             <li><b>کد رهگیری: </b>%s</li>
                             <li><b>تاریخ ثبت: </b>%s</li>
                             <li><b>شناسه یکتای سفارش: </b>%s</li>
+                            <li><b>شناسه انار: </b>%s</li>
                         </ul>',
                              $package['orderNumber'],
-                             count($all_item_titles),
-                             implode(', ', $all_item_titles),
-                             awca_translator($package['status']),
+                            count($all_item_titles),
+                            implode(', ', $all_item_titles),
+
+                         awca_get_formatted_price($package['price']['items']),
+                         awca_get_formatted_price($package['price']['resellerShare']),
+                         awca_get_formatted_price($package['price']['delivery']),
+                         awca_get_formatted_price($package['price']['payable']),
+
+                            awca_translator($package['status']),
                              awca_translator($package['paymentStatus']),
                              awca_translator($package['delivery']['deliveryType']),
                              $package['delivery']['estimatedTime'],
                              $package['trackingNumber'],
                              date_i18n('j F Y ساعت H:i', strtotime($package['createdAt'])),
-                             $order_id
+                             $order_id,
+                            $package['_id']
                          );
 
                      $output .= '</ul>';
@@ -396,6 +418,16 @@ class Order {
                     $output .= sprintf('<ul class="package-data-list">
                             <li><b>شماره مرسوله: </b>%s</li>
                             <li>%s</li>
+                            
+                            <li>
+                                <ul style="background:#eee; border-radius:5px; padding:8px;list-style:none">
+                                    <li><b>جمع کالاها: </b>%s</li>
+                                    <li><b>هزینه ارسال: </b>%s</li>
+                                    <li><b>جمع کل: </b>%s</li>    
+                                </ul>
+                           
+                            </li>
+                            
                             <li><b>وضعیت سفارش: </b>%s</li>
                             <li><b>شیوه ارسال: </b>%s</li>
                             <li><b>زمان ارسال: </b>%s</li>
@@ -404,6 +436,11 @@ class Order {
                         </ul>',
                         $package['orderNumber'],
                         $product_list_markup,
+
+                        awca_get_formatted_price($package['price']['items']),
+                        awca_get_formatted_price($package['price']['delivery']),
+                        awca_get_formatted_price($package['price']['payable']),
+
                         awca_translator($package['status']),
                         awca_translator($package['delivery']['deliveryType']),
                         $package['delivery']['estimatedTime'],
