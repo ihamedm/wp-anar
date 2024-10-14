@@ -45,7 +45,7 @@ class Notifications {
 
     public function awca_fetch_notifications_ajax(){
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-        $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 10;
+        $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 30;
 
         $response = ApiDataHandler::callAnarApi("https://api.anar360.com/api/360/notifications?page=$page&limit=$limit");
 
@@ -58,9 +58,10 @@ class Notifications {
 
         if ($response_body['success']) {
 
-            $notifications = $response_body['data'];
+            $notifications = $response_body['data']['result'];
             $output = '';
-            if(count($notifications) > 0 ) {
+
+            if(is_array($notifications) ) {
                 foreach ($notifications as $index => $notification) {
 
                     $output .= sprintf('<tr class="item">
@@ -110,7 +111,7 @@ class Notifications {
 
     public function count_unread_notifications()
     {
-        $response = ApiDataHandler::callAnarApi("https://api.anar360.com/api/360/notifications");
+        $response = ApiDataHandler::callAnarApi("https://api.anar360.com/api/360/notifications?page=1&limit=1");
 
         if (is_wp_error($response)) {
             awca_log("count unread notifications error: " . print_r($response->get_error_message(), true));
@@ -120,19 +121,7 @@ class Notifications {
         $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
         if ($response_body['success']) {
-
-            $unreads = 0;
-            $notifications = $response_body['data'];
-
-            foreach ($notifications as $index => $notification) {
-
-                    if($notification['read'])
-                        $unreads++;
-
-            }
-
-            update_option('awca_unread_notifications', $unreads);
-
+            update_option('awca_unread_notifications', $response_body['data']['total']);
         } else {
             awca_log("count unread notifications error: " . print_r($response_body, true));
         }
