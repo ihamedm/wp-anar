@@ -4,19 +4,27 @@
  * Plugin URI:       	 https://anar360.com/wordpress-plugin
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.1.6
+ * Version:          	0.1.7
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
- * Copyright: 			(c) 2024 Anar360 Dev. Group, All rights reserved.
- * License: 			GPLv2 or later
- * License URI: 		https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       	awca
- * Tested up to: 		6.6.1
- * WC tested up to: 	9.1.4
- * Stable tag: 			2.9.2
- * Requires at least: 	5.0
+ * Tested up to: 		6.7.1
+ * WC tested up to: 	9.5.1
+ * Stable tag: 			0.1.6
  * Requires PHP: 		7.4
- * WC requires at least: 6.0
+ *
+ * Copyright:            (c) 2024 Anar360 Dev. Group, All rights reserved.
+ * License:            GPLv2 or later
+ * License URI:        https://www.gnu.org/licenses/gpl-2.0.html
+ * This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
  */
 
 namespace Anar;
@@ -29,13 +37,6 @@ use Anar\Init\Uninstall;
 
 if (!defined('ABSPATH')) {
 	exit;
-}
-
-if (!defined('AWCA_PLUGIN_LOADED')) {
-    define('AWCA_PLUGIN_LOADED', true);
-} else {
-    error_log('Warning: Plugin loaded multiple times!');
-    return;
 }
 
 class Wp_Anar
@@ -108,12 +109,9 @@ class Wp_Anar
 	public function __construct(){
         static $constructed = false;
         if ($constructed) {
-            error_log("[Wp_Anar] Warning: Constructor called multiple times!");
             return;
         }
         $constructed = true;
-
-        error_log("[Wp_Anar] Plugin initialization started at " . current_time('Y-m-d H:i:s'));
 
         $this->define_constants();
         $this->includes();
@@ -121,7 +119,6 @@ class Wp_Anar
         $this->hooks();
         $this->instances();
 
-        error_log("[Wp_Anar] Plugin initialization completed");
 
     }
 
@@ -176,6 +173,9 @@ class Wp_Anar
         define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_VERSION', '1.7');
         define('ANAR_CRON_VERSION', '1.2');
+
+        define('ANAR_IS_ENABLE_CREATE_ORDER', false);
+        define('ANAR_IS_ENABLE_PAYMENTS_PAGE', false);
 
 
         /**
@@ -240,7 +240,7 @@ class Wp_Anar
         new Wizard\Wizard();
         new Wizard\Category();
         new Wizard\Attributes();
-        new Wizard\Product();
+        Wizard\ProductManager::get_instance();
 
         new Woocommerce();
         new Sync();
@@ -251,11 +251,14 @@ class Wp_Anar
 
 
         new Notifications();
-//        new Payments();
-        new Checkout();
+        Checkout::get_instance();
         new Cart();
-//        new Orders_List();
-//        new Order();
+
+        if( ANAR_IS_ENABLE_PAYMENTS_PAGE )
+            Payments::get_instance();
+
+        Orders_List::get_instance();
+        Order::get_instance();
 
     }
 
@@ -304,15 +307,12 @@ class Wp_Anar
      */
     public function check_and_update_cron() {
         $installed_cron_version = get_option('awca_cron_version');
-        error_log("[Wp_Anar] Checking cron version - Installed: $installed_cron_version, Current: " . ANAR_CRON_VERSION);
 
         if ($installed_cron_version !== ANAR_CRON_VERSION) {
-            error_log("[Wp_Anar] Cron version mismatch - updating schedules");
             $cron_jobs = Core\CronJobs::get_instance();
             $cron_jobs->reschedule_events();
 
             update_option('awca_cron_version', ANAR_CRON_VERSION);
-            error_log("[Wp_Anar] Cron version updated to " . ANAR_CRON_VERSION);
         }
     }
 

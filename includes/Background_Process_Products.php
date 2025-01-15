@@ -4,7 +4,7 @@ namespace Anar;
 use Anar\Core\Image_Downloader;
 use Anar\Core\Logger;
 use Anar\Lib\BackgroundProcessing\WP_Background_Process;
-use Anar\Wizard\Product;
+use Anar\Wizard\ProductManager;
 
 class Background_Process_Products extends WP_Background_Process {
 
@@ -191,7 +191,7 @@ class Background_Process_Products extends WP_Background_Process {
 
         // Loop through products and create them in WooCommerce
         foreach ($awca_products->items as $product_item) {
-            $prepared_product = Product::product_serializer($product_item);
+            $prepared_product = ProductManager::product_serializer($product_item);
 
             $product_creation_data = array(
                 'name' => $prepared_product['name'],
@@ -210,7 +210,7 @@ class Background_Process_Products extends WP_Background_Process {
             );
 
             // Create or update the product
-            $product_creation_result = Product::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
+            $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
 
             $product_id = $product_creation_result['product_id'];
             if ($product_creation_result['created']) {

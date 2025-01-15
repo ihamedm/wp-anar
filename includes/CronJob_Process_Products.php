@@ -4,7 +4,7 @@ namespace Anar;
 use Anar\Core\CronJobs;
 use Anar\Core\Image_Downloader;
 use Anar\Core\Logger;
-use Anar\Wizard\Product;
+use Anar\Wizard\ProductManager;
 
 class CronJob_Process_Products {
 
@@ -90,6 +90,7 @@ class CronJob_Process_Products {
             $start_time = current_time('timestamp'); // Current timestamp
             update_option( 'awca_cron_create_products_start_time', $start_time);
             update_option( 'awca_proceed_products', 0);
+            $this->add_to_awake_list();
         }
 
 
@@ -134,7 +135,7 @@ class CronJob_Process_Products {
 
         // Loop through products and create them in WooCommerce
         foreach ($awca_products->items as $product_item) {
-            $prepared_product = Product::product_serializer($product_item);
+            $prepared_product = ProductManager::product_serializer($product_item);
 
             $product_creation_data = array(
                 'name' => $prepared_product['name'],
@@ -153,7 +154,7 @@ class CronJob_Process_Products {
             );
 
             // Create or update the product
-            $product_creation_result = Product::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
+            $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
 
             $product_id = $product_creation_result['product_id'];
             if ($product_creation_result['created']) {
@@ -228,7 +229,7 @@ class CronJob_Process_Products {
 
         $args = array(
             'headers' => array(
-                'x-url' => site_url('wp-cron.php'), // The URL to save
+                'x-url' => site_url('wp-cron.php'),
                 'Content-Type' => 'application/json',
             ),
             'method' => 'POST',
@@ -260,7 +261,7 @@ class CronJob_Process_Products {
     protected function complete() {
         $this->notice_completed();
         $this::lock_create_products_cron();
-        $this->add_to_awake_list();
+
         delete_option('awca_proceed_products'); // Reset the proceed products
         delete_option('awca_total_products'); // Reset the proceed products
         delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
@@ -290,20 +291,20 @@ class CronJob_Process_Products {
      * @return void
      */
     public static function lock_create_products_cron(){
-        update_option('awca_create_product_cron_lock', 1);
+        update_option('awca_create_product_cron_lock', 'lock');
         awca_log('create products locked.');
         CronJobs::get_instance()->reschedule_events();
     }
 
 
     public static function unlock_create_products_cron(){
-        delete_option('awca_create_product_cron_lock');
+        update_option('awca_create_product_cron_lock', 'unlock');
         awca_log('create products unlocked.');
         CronJobs::get_instance()->reschedule_events();
     }
 
     public static function is_create_products_cron_locked(){
-        return get_option('awca_create_product_cron_lock');
+        return get_option('awca_create_product_cron_lock') === 'lock';
     }
 
 

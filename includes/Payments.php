@@ -4,6 +4,15 @@ namespace Anar;
 
 class Payments{
 
+    protected static $instance = null;
+
+    public static function get_instance(){
+        if( null === self::$instance ){
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
 
     public function __construct()
     {

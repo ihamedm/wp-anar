@@ -4,10 +4,23 @@ namespace Anar;
 
 class Orders_List {
 
+    protected static $instance = null;
+
+    public static function get_instance() {
+        if ( null === self::$instance ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
     public function __construct() {
         // orders list actions
+
+        // add a column to show anar data
         add_filter('manage_edit-shop_order_columns', [$this, 'add_anar_order_column']);
         add_filter('manage_woocommerce_page_wc-orders_columns', [$this, 'add_anar_order_column']);
+
+        // show anar order data
         add_action('manage_shop_order_posts_custom_column', [$this, 'anar_column_content'], 10, 2);
         add_action('manage_woocommerce_page_wc-orders_custom_column', [$this, 'anar_column_content'], 10, 2);
 
@@ -121,7 +134,7 @@ class Orders_List {
 
         // Add the custom filter link
         $views['is_anar_order'] = sprintf(
-            '<a href="%s"%s>سفارش انار (%d)</a>',
+            '<a href="%s"%s>سفارش انار <span class="count">(%d)</span></a>',
             admin_url('admin.php?page=wc-orders&is_anar_order=1'),
             $current,
             $count

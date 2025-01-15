@@ -7,7 +7,16 @@ use WC_Product_Simple;
 use WC_Product_Variable;
 use WC_Product_Variation;
 
-class Product{
+class ProductManager{
+
+    protected static $instance;
+
+    public static function get_instance() {
+        if ( ! isset( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
     public function __construct(){
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
@@ -59,9 +68,7 @@ class Product{
     }
 
 
-    public static function create_wc_product($product_data, $attributeMap, $categoryMap)
-    {
-
+    public static function create_wc_product($product_data, $attributeMap, $categoryMap) {
         set_time_limit(300);
 
         try {
@@ -72,64 +79,120 @@ class Product{
             $existing_product_id = ProductData::get_product_variation_by_anar_sku($product_data['sku']);
             $product_id = 0;
             $product_created = true;
+
             if ($existing_product_id) {
                 $product = wc_get_product($existing_product_id);
-                $product_id = $product->save();
+                self::update_existing_product($product, $product_data, $attributeMap);
                 $product_created = false;
-                awca_log('------- Product Exist: Name: '. $product->get_name() . ' ID: #' . $product_id . ' SKU: ' . $product_data['sku']);
             } else {
-                if (!empty($product_data['attributes'])) {
-                    $product = new WC_Product_Variable();
-                } else {
-                    $product = new WC_Product_Simple();
-                }
-                $product->set_name($product_data['name']);
-                $product->set_status('draft'); // Set the product status to draft
-                $product->set_description($product_data['description']);
-                $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
-                $product->set_category_ids(\Anar\wizard\Category::map_anar_product_cats_with_saved_cats($product_data['categories'], $categoryMap));
-
-                $product_id = $product->save();
-
-                update_post_meta($product_id, '_anar_sku', $product_data['sku']);
-                update_post_meta($product_id, '_anar_variant_id', $product_data['variants'][0]->_id);
-
-                if (isset($product_data['attributes']) && !empty($product_data['attributes'])) {
-                    $attrsObject = Attributes::create_attributes($product_data['attributes']);
-                    $product->set_props(array(
-                        'attributes'        => $attrsObject,
-                    ));
-
-                    $product_id = $product->save();
-                    self::create_product_variations($product, $product_data['variants'], $product_data['attributes'], $attributeMap);
-                } else {
-                    $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
-                    $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
-                    $product->set_stock_quantity($product_data['stock_quantity']);
-                    $product->set_manage_stock(true);
-                    $product->save();
-                }
-
-                if (!empty($product_data['image'])) {
-                    $image_url = $product_data['image'];
-                    update_post_meta($product_id, '_product_image_url', $image_url);
-                }
-
-                if (isset($product_data['gallery_images']) && is_array($product_data['gallery_images'])) {
-                    update_post_meta($product_id, '_anar_gallery_images', $product_data['gallery_images']);
-                }
-                update_post_meta($product_id, '_anar_products', 'true');
-
-                // shipments data
-                update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
-                update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
-
-                awca_log('------- Product Created ----------------' . print_r($product_id, true) . '-----');
+                $product = self::initialize_new_product($product_data);
+                self::setup_new_product($product, $product_data, $attributeMap, $categoryMap);
             }
-            return ['product_id' => $product_id , 'created' => $product_created];
+
+            $product_id = $product->get_id();
+            self::update_common_meta_data($product_id, $product_data);
+
+            return ['product_id' => $product_id, 'created' => $product_created];
+
         } catch (\Throwable $th) {
             awca_log('Error in awca_create_woocommerce_product: ' . $th->getMessage());
             return false;
+        }
+    }
+
+    private static function update_existing_product($product, $product_data, $attributeMap) {
+        $product_type = $product->get_type();
+
+        if ($product_type == 'simple') {
+            self::update_simple_product($product, $product_data);
+        } elseif ($product_type == 'variable') {
+            self::update_variable_product($product, $product_data, $attributeMap);
+        }
+
+        if (!empty($product_data['image'])) {
+            update_post_meta($product->get_id(), '_product_image_url', $product_data['image']);
+        }
+
+        $product->save();
+        awca_log('Product Exist: Type[' . $product->get_type() . '], Name: ' . $product->get_name() .
+            ' ID: #' . $product->get_id() . ' SKU: ' . $product_data['sku']);
+    }
+
+    private static function update_simple_product($product, $product_data) {
+        $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
+        $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
+        $product->set_stock_quantity($product_data['stock_quantity']);
+        $product->set_manage_stock(true);
+    }
+
+    private static function update_variable_product($product, $product_data, $attributeMap) {
+        // Delete variations
+        $variations = $product->get_children();
+        foreach ($variations as $variation_id) {
+            wp_delete_post($variation_id, true);
+        }
+
+        // Reset and recreate attributes and variations
+        $product->set_attributes(array());
+        $product->save();
+
+        self::setup_attributes_and_variations($product, $product_data, $attributeMap);
+    }
+
+    private static function initialize_new_product($product_data) {
+        return !empty($product_data['attributes'])
+            ? new WC_Product_Variable()
+            : new WC_Product_Simple();
+    }
+
+    private static function setup_new_product($product, $product_data, $attributeMap, $categoryMap) {
+        $product->set_name($product_data['name']);
+        $product->set_status('draft');
+        $product->set_description($product_data['description']);
+        $product->set_category_ids(
+            \Anar\wizard\Category::map_anar_product_cats_with_saved_cats($product_data['categories'], $categoryMap)
+        );
+
+        $product_id = $product->save();
+
+        update_post_meta($product_id, '_anar_sku', $product_data['sku']);
+        update_post_meta($product_id, '_anar_variant_id', $product_data['variants'][0]->_id);
+
+        if (isset($product_data['attributes']) && !empty($product_data['attributes'])) {
+            self::setup_attributes_and_variations($product, $product_data, $attributeMap);
+        } else {
+            self::setup_simple_product_data($product, $product_data);
+        }
+    }
+
+    private static function setup_attributes_and_variations($product, $product_data, $attributeMap) {
+        $attrsObject = Attributes::create_attributes($product_data['attributes']);
+        $product->set_props(['attributes' => $attrsObject]);
+        $product->save();
+        self::create_product_variations($product, $product_data['variants'], $product_data['attributes'], $attributeMap);
+    }
+
+    private static function setup_simple_product_data($product, $product_data) {
+        $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
+        $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
+        $product->set_stock_quantity($product_data['stock_quantity']);
+        $product->set_manage_stock(true);
+        $product->save();
+    }
+
+    private static function update_common_meta_data($product_id, $product_data) {
+        // Shipments data
+        update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
+        update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
+        update_post_meta($product_id, '_anar_products', 'true');
+
+        // Image and gallery
+        if (!empty($product_data['image'])) {
+            update_post_meta($product_id, '_product_image_url', $product_data['image']);
+        }
+
+        if (isset($product_data['gallery_images']) && is_array($product_data['gallery_images'])) {
+            update_post_meta($product_id, '_anar_gallery_images', $product_data['gallery_images']);
         }
     }
 

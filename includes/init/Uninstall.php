@@ -45,7 +45,7 @@ class Uninstall
 	 */
 	private static function awca_remove_plugin_options()
 	{
-        delete_option('_awca_activation_key');
+//        delete_option('_awca_activation_key');
         delete_option('awca_db_version');
         delete_option('awca_cron_version');
         delete_option('_awca_unpaid_orders');

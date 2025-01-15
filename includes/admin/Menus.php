@@ -54,14 +54,15 @@ class Menus{
             [$this, 'create_products_page_content']
         );
 
-//        add_submenu_page(
-//            'wp-anar',
-//            'تسویه حساب',
-//            'تسویه حساب',
-//            'manage_options',
-//            'payments',
-//            [$this, 'payments_page_content']
-//        );
+        if( ANAR_IS_ENABLE_PAYMENTS_PAGE )
+            add_submenu_page(
+                'wp-anar',
+                'تسویه حساب',
+                'تسویه حساب',
+                'manage_options',
+                'payments',
+                [$this, 'payments_page_content']
+            );
 
 
         
@@ -180,22 +181,25 @@ class Menus{
 
     }
 
-    public function product_creation_cron_progress_to_toolbar($wp_admin_bar) {
+    public function product_creation_cron_progress_to_toolbar($wp_admin_bar)
+    {
         $productData = new ProductData();
 
         // Only add the menu item if the transient exists
         if (!CronJob_Process_Products::is_create_products_cron_locked()) {
             $total_products = get_option('awca_total_products');
-//            $proceed_products = $productData->count_anar_products();
-            $proceed_products = get_option('awca_proceed_products');
-            if($total_products == 0 || $proceed_products == 0)
+            $proceed_products = $productData->count_anar_products();
+            $proceed_products_increment = get_option('awca_proceed_products');
+            if ($total_products == 0 || $proceed_products == 0)
                 return;
 
             $progress_width_percent = $proceed_products * 100 / $total_products;
-            $message2 = sprintf('انار - پردازش محصول %s', round($progress_width_percent).'%');
+            $progress_width_percent = 100;
+//            $message2 = sprintf('انار - پردازش محصولات انار %s', round($progress_width_percent) . '%');
+            $message2 = 'پردازش محصولات انار';
             $args = array(
                 'id' => 'awca_product_creation_progress',
-                'title' => '<div class="wrap"><span class="bgprogress" style="width:'.$progress_width_percent.'%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
+                'title' => '<div class="wrap"><span class="bgprogress" style="width:' . $progress_width_percent . '%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
                 'href' => false,
                 'meta' => array(
                     'class' => 'awca-progress-bar-menu-bar-item'
@@ -205,19 +209,22 @@ class Menus{
             $wp_admin_bar->add_node($args);
 
             $start_time = wp_date('j F Y ساعت H:i', get_option('awca_cron_create_products_start_time'));
-            $estimate_finish = round(($total_products - $proceed_products) / 30) + 2;
+            $estimate_finish = round(($total_products - $proceed_products_increment) / 30) + 2;
 
             $dropdown_items = array(
                 array('id' => 'awca_progress_detail_1', 'title' => 'هر دقیقه ۳۰ محصول پردازش می شود', 'href' => false),
-//                array('id' => 'awca_progress_detail_2',
-//                    'title' => "شروع : {$start_time}",
-//                    'href' => false
-//                ),
-                array('id' => 'awca_progress_detail_3',
-                    'title' => "حدودا {$estimate_finish} دقیقه تا پایان پردازش",
+                array('id' => 'awca_progress_detail_2',
+                    'title' => "{$proceed_products_increment} محصول از {$total_products} پردازش شده",
                     'href' => false
                 ),
             );
+
+            if($estimate_finish > 0){
+                $dropdown_items[] = array('id' => 'awca_progress_detail_3',
+                    'title' => "حدودا {$estimate_finish} دقیقه تا پایان پردازش",
+                    'href' => false
+                );
+            }
 
             foreach ($dropdown_items as $item) {
                 $item_args = array(
@@ -234,13 +241,7 @@ class Menus{
             }
 
         }
-
-
-
-
-
     }
-
     public function thumbnail_download_progress_to_toolbar($wp_admin_bar){
         $ThumbnailProcessing = Background_Process_Thumbnails::get_instance();
         if (in_array($ThumbnailProcessing->get_status(), ['processing']) ) {

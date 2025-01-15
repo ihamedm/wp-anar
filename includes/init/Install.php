@@ -35,6 +35,8 @@ class Install
     {
         self::check_wc_activation();
         add_action('plugins_loaded', array(__CLASS__, 'awca_update_plugin_version'));
+
+        $this->set_options();
     }
 
 	/**
@@ -63,6 +65,12 @@ class Install
 			update_option('anar_woocommerce_api_version', ANAR_PLUGIN_VERSION);
 		}
 	}
+
+    public function set_options(){
+        if(!get_option('awca_create_product_cron_lock')){
+            update_option('awca_create_product_cron_lock', 'lock');
+        }
+    }
 
 
 }

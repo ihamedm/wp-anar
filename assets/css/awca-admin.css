@@ -1132,6 +1132,25 @@ select::-ms-expand {
   padding: 8px;
 }
 
+.anar-package-data .order-items{
+  display: flex;
+  flex-direction: column;
+  gap:8px;
+}
+.anar-package-data .order-items .product-info{
+  display: flex;
+  flex-direction: row;
+  gap:8px;
+}
+.anar-package-data .order-items .product-info .product-image{
+  max-width: 128px;
+}
+.anar-package-data .order-items .product-info .product-image img{
+  max-width: 100%;
+}
+
+
+
 
 .ripple-dot {
   display:block;
