@@ -7,57 +7,7 @@ $awca_attributes_responses = $api_data_handler->getStoredApiResponse();
     <h1 class='awca_plugin_titles'><?php echo esc_html__('معادل سازی دسته‌بندی‌ها', 'anar-360'); ?></h1>
 
 
-    <?php  if(!isset($categories_response['response'])):
-
-        $categories_alert_classes = '';
-
-        ?>
-
-        <div class="get-categories-alert <?php echo $categories_alert_classes;?>">
-
-            <p class="awca_plugin_subTitles">
-                هنوز دسته بندی های انار دریافت نشده است . لازم است ابتدا دسته بندی ها را با کلیک روی دکمه زیر دریافت کنید. چندین ثانیه طول می‌کشد.
-            </p>
-
-            <button id="get-save-categories-btn" class="awca_sync_btn">
-                دریافت دسته بندی های انار
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
-            </button>
-
-            <p class="awca_plugin_subTitles">
-                <p style="color:#E11C47FF; margin-bottom: 32px">بعد از کلیک میتوانید صفحه را ببندید و بعدا مراجعه کنید. دریافت اطلاعات در پس زمینه انجام می شود.</p>
-            </p>
-
-        </div>
-
-
-
-    <?php else:
-        $categories_alert_classes = 'categories-outdated';
-        ?>
-
-        <div class="get-categories-alert <?php echo $categories_alert_classes;?>">
-            <button id="get-save-categories-btn" class="awca_sync_btn">
-                دریافت دسته بندی های انار
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
-            </button>
-
-            <?php
-            $formatted_date = mysql2date('j F Y' . ' ساعت ' . 'H:i', $categories_response['created_at']);
-
-            printf('<p>دسته بندی ها <strong>%s</strong> بروزرسانی شده اند.</p>', awca_time_ago($categories_response['created_at']));
-            printf('<span>%s</span>', $formatted_date);
-            ?>
-
-            <p>می توانید مجددا دسته بندی ها را بروزرسانی کنید. چندین ثانیه طول می کشد</p>
-        </div>
-
-
-
+    <?php if(isset($categories_response['response'])):?>
 
     <p class="awca_plugin_subTitles">
 

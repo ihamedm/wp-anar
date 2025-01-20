@@ -93,6 +93,15 @@ class Menus{
             [$this, 'activation_page_content'] // Callback function
         );
 
+        add_submenu_page(
+            'wp-anar', // Parent slug
+            'راهنما و مستندات انار۳۶۰', // Submenu title (this will be displayed in the menu)
+            'راهنما', // Submenu page title (this will be displayed in the page title)
+            'manage_options', // Capability
+            'docs', // Submenu slug (same as main menu)
+            [$this, 'docs_page_content'] // Callback function
+        );
+
     }
 
 
@@ -123,6 +132,26 @@ class Menus{
     {
         $this->force_activation();
         include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools.php';
+    }
+
+    public function docs_page_content()
+    {
+        $active_tab = $_GET['tab'] ?? 'tuts';
+        ?>
+        <div class="wrap awca-wrap">
+            <h2>راهنما و مستندات انار۳۶۰</h2>
+
+            <h2 class="nav-tab-wrapper">
+                <a href="?page=docs&tab=tuts" class="nav-tab <?php echo $active_tab === 'tuts' ? 'nav-tab-active' : ''; ?>">آموزش افزودن محصولات</a>
+                <a href="?page=docs&tab=faq" class="nav-tab <?php echo $active_tab === 'faq' ? 'nav-tab-active' : ''; ?>">سوالات متداول</a>
+                <a href="?page=docs&tab=changelogs" class="nav-tab <?php echo $active_tab === 'changelogs' ? 'nav-tab-active' : ''; ?>">تاریخچه تغییرات</a>
+            </h2>
+
+            <?php include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/doc/'.$active_tab.'.php';?>
+
+
+        </div>
+        <?php
     }
 
 

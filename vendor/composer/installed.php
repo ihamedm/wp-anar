@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => '__root__',
-        'pretty_version' => 'dev-develop',
-        'version' => 'dev-develop',
-        'reference' => 'b53e153014db62d0f0ccbd4cc27ac8334e4cb0b3',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'c6ebab819909d4d24bfd0b407155d6a41d7d00d2',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,28 +11,22 @@
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => 'dev-develop',
-            'version' => 'dev-develop',
-            'reference' => 'b53e153014db62d0f0ccbd4cc27ac8334e4cb0b3',
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'c6ebab819909d4d24bfd0b407155d6a41d7d00d2',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'johnpbloch/wordpress-core' => array(
-            'pretty_version' => '6.7.1',
-            'version' => '6.7.1.0',
-            'reference' => '1975a1deaef23914b391f37314cc0e6a23ae16d7',
-            'type' => 'wordpress-core',
-            'install_path' => __DIR__ . '/../johnpbloch/wordpress-core',
+        'erusev/parsedown' => array(
+            'pretty_version' => '1.7.4',
+            'version' => '1.7.4.0',
+            'reference' => 'cb17b6477dfff935958ba01325f2e8a2bfa6dab3',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../erusev/parsedown',
             'aliases' => array(),
             'dev_requirement' => false,
-        ),
-        'wordpress/core-implementation' => array(
-            'dev_requirement' => false,
-            'provided' => array(
-                0 => '6.7.1',
-            ),
         ),
     ),
 );

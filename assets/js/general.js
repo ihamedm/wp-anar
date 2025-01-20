@@ -549,12 +549,30 @@ import {paginateLinks} from "./functions";
           AnarHandler.move_to_step($(this).data('next-step'))
         })
 
+        $('.awca-faq').on('click', '.faq-question', function(e){
+          e.preventDefault()
+          var faqItem = $(this).parents('.faq-item')
+          faqItem.toggleClass('active')
+        });
+
+
+        $('.toggle_show_hide').on('click', function(e){
+          e.preventDefault()
+          var elementID = $(this).data('id')
+          $('#' + elementID).toggle()
+        })
+
         AnarHandler.fetchNotifications(1, 10);
         AnarHandler.fetchPendingPayments(1, 10)
         AnarHandler.refreshData()
         AnarHandler.moveToProperStep()
 
+
+
+
   })
+
+
 
 })(jQuery);
 

@@ -7,55 +7,11 @@ $awca_attributes_responses = $api_data_handler->getStoredApiResponse();
   <h1 class='awca_plugin_titles'><?php echo esc_html__('معادل سازی ویژگی‌ها', 'anar-360'); ?></h1>
 
 
-    <?php  if(!isset($awca_attributes_responses['response'])):
-
-        $attributes_alert_classes = '';
-
-        ?>
-
-        <div class="get-categories-alert <?php echo $attributes_alert_classes;?>">
-
-            <p class="awca_plugin_subTitles">
-                هنوز ویژگی های انار دریافت نشده است . لازم است ابتدا ویژگی ها را با کلیک روی دکمه زیر دریافت کنید. ممکن است چند دقیقه طول بکشد.
-            </p>
-
-            <button id="get-save-attributes-btn" class="awca_sync_btn">
-                دریافت ویژگی های انار
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
-            </button>
-
-            <p class="awca_plugin_subTitles">
-            <p style="color:#E11C47FF; margin-bottom: 32px">بعد از کلیک میتوانید صفحه را ببندید و بعدا مراجعه کنید. دریافت اطلاعات در پس زمینه انجام می شود.</p>
-            </p>
-
-        </div>
 
 
-
-    <?php else:
-    $attributes_alert_classes = 'categories-outdated';
+    <?php if(isset($awca_attributes_responses['response'])):
         $awca_attributes = $awca_attributes_responses['response'];
     ?>
-
-    <div class="get-categories-alert <?php echo $attributes_alert_classes;?>">
-        <button id="get-save-attributes-btn" class="awca_sync_btn">
-            دریافت ویژگی های انار
-            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-            </svg>
-        </button>
-
-
-        <?php
-        $formatted_date = mysql2date('j F Y' . ' ساعت ' . 'H:i', $awca_attributes_responses['created_at']);
-
-        printf('<p>ویژگی ها <strong>%s</strong> بروزرسانی شده اند.</p>', awca_time_ago($awca_attributes_responses['created_at']));
-        printf('<span>%s</span>', $formatted_date);
-        ?>
-        <p>می توانید مجددا ویژگی ها را بروزرسانی کنید. حدودا یک دقیقه طول می کشد</p>
-    </div>
 
 
       <p class="awca_plugin_subTitles">
@@ -159,21 +115,8 @@ $awca_attributes_responses = $api_data_handler->getStoredApiResponse();
 
       </div>
 
-<!--        <a href="#" id="abort-ajax-link" style="display: none;color:red">متوقف کردن</a>-->
 
-<!--        <p style="text-align:center;color:#E11C47FF;">ساخت محصولات و دانلود تصاویر در پس زمینه انجام می شود. می توانید این پنجره را ببندید.</p>-->
 
-        <div id="product-counter">
-
-        </div>
-
-        <?php
-
-//        if ($in_progress) {
-//            echo('<p style="text-align:center;color:#E11C47FF;">افزودن محصولات در پس زمینه در حال اجرا است، صبر کنید تا تمام شود.</p>');
-//        }
-
-        ?>
 
     <?php else : ?>
       بازیابی اطلاعات ویژگی ها با مشکل مواجه شد لطفا صفحه را بروزرسانی نمایید

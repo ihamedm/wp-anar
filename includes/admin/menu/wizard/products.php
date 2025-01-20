@@ -3,9 +3,6 @@
 <div class="stepContent active" id="stepContent2">
 
     <?php
-
-
-
     if(!isset($categories_response) || awca_check_expiration_by_db_time($categories_response['created_at'] ?? null)):?>
 
     <div id="refresh_anar_data">

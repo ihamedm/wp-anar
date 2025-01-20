@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://anar360.com/wordpress-plugin
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.1.8
+ * Version:          	0.1.9
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -33,6 +33,7 @@ namespace Anar;
 // If this file is called directly, abort.
 
 use Anar\Init\Install;
+use Anar\Init\Reset;
 use Anar\Init\Uninstall;
 
 if (!defined('ABSPATH')) {
@@ -237,6 +238,7 @@ class Wp_Anar
 
         new Admin\Menus();
         Admin\Product_Status_Changer::get_instance();
+        Reset::get_instance();
 
         new Wizard\Wizard();
         new Wizard\Category();
@@ -295,7 +297,7 @@ class Wp_Anar
         global $wpdb;
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
-        if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") !== $table_name) {
             Init\Db::make_tables();
         }
     }

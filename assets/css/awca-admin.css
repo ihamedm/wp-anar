@@ -1151,6 +1151,111 @@ select::-ms-expand {
 
 
 
+/*changelogs*/
+
+.changelog-content{
+  font-family: KalamehWeb, serif !important;
+  background: white;
+  padding: 32px;
+  max-width: 480px;
+  margin: 32px 0;
+  border-radius: 8px;
+}
+.changelog-content h1{
+  font-family: KalamehWeb, serif !important;
+}
+.changelog-content h2{
+  font-family: KalamehWeb, serif !important;
+  margin-top: 64px;
+  border-top: 1px solid #eee;
+  padding: 16px 0 0;
+}
+.changelog-content h2:first-child{
+  border-top: none !important; ;
+}
+.changelog-content h2 a{
+  font-weight: lighter;
+  font-size: 14px;
+  background: var(--line-border-fill);
+  padding: 2px 4px;
+  border-radius: 2px;
+  color: #fff;
+  text-decoration: none;
+}
+.changelog-content ul{
+  list-style-type: disc;
+  padding-right: 16px;
+}
+
+/*faq*/
+.awca-faq {
+  font-family: KalamehWeb, serif !important;
+  max-width: 800px;
+  margin: 32px 0;
+  background: #fff;
+  padding: 32px;
+  border-radius: 8px;
+}
+
+.awca-faq header {
+  margin-bottom: 32px;
+}
+.awca-faq h1 {
+  font-family: KalamehWeb, serif !important;
+  color: #333;
+}
+
+.awca-faq .faq-item {
+  margin-bottom: 10px;
+}
+
+.awca-faq .faq-question {
+  width: 100%;
+  text-align: right;
+  padding: 15px;
+  font-weight: bold;
+  color: #333;
+  background: #f1f1f1;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.awca-faq .faq-question:hover {
+  background: #ddd;
+}
+
+.awca-faq .faq-answer {
+  padding: 15px;
+  display: none;
+  background: #f9f9f9;
+  border-right: 3px solid var(--line-border-fill);
+  margin-top: 5px;
+  border-radius: 4px;
+}
+
+.awca-faq .faq-answer p {
+  margin: 0;
+  color: #555;
+}
+
+.awca-faq .faq-item.active .faq-answer {
+  display: block;
+}
+
+
+/*forms*/
+.awca-form-control{
+  display:flex;
+  flex-direction: row;
+  gap:4px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/*Animations*/
 
 .ripple-dot {
   display:block;
@@ -1175,7 +1280,6 @@ select::-ms-expand {
   border: 1px solid #ff4343;
   border-radius: 50%;
 }
-
 
 .ripple-dot:before {
   animation: ripple 2s linear infinite;

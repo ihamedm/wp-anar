@@ -39,6 +39,6 @@
 
 
 
-<?php //include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools-images.php';?>
+<?php include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/reset.php';?>
 
 <?php include ANAR_PLUGIN_PATH . 'includes/admin/menu/footer.php';?>

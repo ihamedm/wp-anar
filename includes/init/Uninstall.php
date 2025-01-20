@@ -31,11 +31,18 @@ class Uninstall
 	 */
 	public function run_uninstall()
 	{
-		self::awca_remove_plugin_options();
-
-        $uninstaller = new self();
-        $uninstaller->clear_scheduled();
+		self::remove_options();
+        self::clear_scheduled();
 	}
+
+    public static function reset_options(){
+        update_option('awca_create_product_cron_lock', 'lock');
+
+        self::truncate_table();
+        self::remove_options();
+        self::clear_scheduled();
+
+    }
 
 
 	/**
@@ -43,24 +50,39 @@ class Uninstall
 	 *
 	 * @since    1.0.0
 	 */
-	private static function awca_remove_plugin_options()
+	public static function remove_options()
 	{
-//        delete_option('_awca_activation_key');
         delete_option('awca_db_version');
         delete_option('awca_cron_version');
         delete_option('_awca_unpaid_orders');
         delete_option('awca_unread_notifications');
         delete_option('awca_last_sync_time');
         delete_option('awca_total_products');
+        delete_option('awca_proceed_products');
+        delete_option('awca_product_save_lock');
+        delete_transient('awca_sync_all_products_lock');
+    }
+
+
+    public static function remove_map_data(){
+        // make a backup
+        update_option('awca_categoryMap_backup', get_option('categoryMap'));
+        update_option('awca_attributeMap_backup', get_option('attributeMap'));
+
         delete_option('categoryMap');
         delete_option('attributeMap');
 
-        delete_transient('awca_sync_all_products_lock');
-
-	}
+    }
 
 
-    public function clear_scheduled(){
+
+    public static function truncate_table(){
+        Db::truncate_table();
+    }
+
+
+
+    public static function clear_scheduled(){
         $cron_jobs = CronJobs::get_instance();
         $cron_jobs->deactivate();
     }

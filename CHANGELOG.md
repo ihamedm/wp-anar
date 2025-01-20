@@ -1,6 +1,13 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.1.9] - 1403/11/01
+### جدید
+- بهبود تجربه کاربری مراحل ۴ گانه افزودن محصول
+- افزودن بخش راهنما و سوالات متداول
+- افزودن امکان ریست تنظیمات در بخش ابزارها
+
+
 
 ## [0.1.8] - 1403/10/29
 ### جدید
@@ -35,3 +42,4 @@
 [0.1.6]: https://github.com/ihamedm/wp-anar/releases/tag/v0.1.6
 [0.1.7]: https://github.com/ihamedm/wp-anar/releases/tag/v0.1.7
 [0.1.8]: https://github.com/ihamedm/wp-anar/releases/tag/v0.1.8
+[0.1.9]: https://github.com/ihamedm/wp-anar/releases/tag/v0.1.9

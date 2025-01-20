@@ -60,8 +60,6 @@ function awca_time_ago($db_time): string
     }
 }
 
-
-
 /**
  * This function only compare input time that passed as argument with current time
  * @param $db_time
@@ -76,7 +74,7 @@ function awca_check_expiration_by_db_time($db_time): bool
     $current_time = current_time('timestamp');
     $time_difference = $current_time - $db_time_unix;
 
-    return ($time_difference > 60) ?? false;
+    return ($time_difference > 300) ?? false;
 }
 
 
