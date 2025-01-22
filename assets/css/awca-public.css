@@ -11,12 +11,14 @@
     justify-content: space-between;
 }
 .anar-shipments-checkout th{
-    flex-grow:1 !important;
-    padding-bottom:0 !important;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 .anar-shipments-checkout td{
-    padding:0 !important;
-    flex-grow: 0 !important;
+    margin: 0;
+    padding: 0;
+    width: 100%;
 }
 .anar-shipments-checkout .package{
     width : 100%;
@@ -39,41 +41,48 @@
 }
 .anar-shipments-checkout .form-row{
     display: flex;
-    flex-direction: row;
-    gap:8px;
-    align-items:center;
+    flex-direction: column;
+    gap: 8px;
+    align-items: start;
     justify-content: start;
-    margin-bottom:0 !important;
+    margin-bottom: 0 !important;
 }
 
 .anar-shipments-checkout {
     display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border:1px dashed #ccc;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 8px 0;
 }
 .anar-shipments-checkout .anar-delivery-option{
-    border:1px solid #f0f0f1;
-    background:#fff;
-    border-radius:8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .anar-shipments-checkout .anar-delivery-option:hover {
     border-color:#ccc;
 }
 .anar-shipments-checkout .anar-delivery-option label {
     display: flex;
-    flex-direction:column;
-    gap:8px;
-    text-align:center;
-    justify-content: space-between;
-    max-width:100px;
-    width:100px;
-    align-items:stretch;
-    margin:0 !important;
-    padding:8px !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    justify-content: start;
+    align-items: stretch;
+    margin: 0 !important;
+    padding: 8px !important;
+    text-align: right;
 }
+
+
 .anar-shipments-checkout .anar-delivery-option label:hover {
     cursor:pointer;
 }
 .anar-shipments-checkout .anar-delivery-option input[type="radio"] {
-    display: none;
+
 }
 
 .anar-shipments-checkout .anar-delivery-option.selected {
@@ -88,6 +97,7 @@
     font-size:12px;
     color:#666;
     display:block;
+    order: 3;
 }
 .anar-shipments-checkout .anar-delivery-option .price{
     display:block;
@@ -149,6 +159,7 @@
     padding:0;
     margin:12px 0 0 0;
     display: flex;
+    flex-wrap: wrap;
     flex-direction:row;
     gap:8px;
     align-items: stretch;
@@ -157,11 +168,9 @@
 .anar-package-items-list ul.package-items li{
     height: auto;
     margin:0;
-    border-left:1px solid #ccc;
-    padding: 0 16px;
+    padding: 0;
 }
 .anar-package-items-list ul.package-items li:last-child{
-    border-left:none;
 }
 .anar-package-items-list ul.package-items li a{
     display:block;
@@ -169,6 +178,8 @@
     border-radius:4px;
     overflow:hidden;
     transition: all 300ms;
+    border:1px solid #ccc;
+    padding:2px;
 }
 .anar-package-items-list ul.package-items li a:hover{
     border-color:#000;

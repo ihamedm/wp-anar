@@ -41,7 +41,7 @@ class Menus{
             'manage_options',
             'wp-anar',
             [$this, 'create_products_page_content'],
-            ANAR_PLUGIN_URL . '/assets/images/icon.png',
+            ANAR_PLUGIN_URL . '/assets/images/anar360-icon.svg',
             10
         );
 
@@ -136,13 +136,13 @@ class Menus{
 
     public function docs_page_content()
     {
-        $active_tab = $_GET['tab'] ?? 'tuts';
+        $active_tab = $_GET['tab'] ?? 'help';
         ?>
         <div class="wrap awca-wrap">
             <h2>راهنما و مستندات انار۳۶۰</h2>
 
             <h2 class="nav-tab-wrapper">
-                <a href="?page=docs&tab=tuts" class="nav-tab <?php echo $active_tab === 'tuts' ? 'nav-tab-active' : ''; ?>">آموزش افزودن محصولات</a>
+                <a href="?page=docs&tab=help" class="nav-tab <?php echo $active_tab === 'help' ? 'nav-tab-active' : ''; ?>">آموزش افزودن محصولات</a>
                 <a href="?page=docs&tab=faq" class="nav-tab <?php echo $active_tab === 'faq' ? 'nav-tab-active' : ''; ?>">سوالات متداول</a>
                 <a href="?page=docs&tab=changelogs" class="nav-tab <?php echo $active_tab === 'changelogs' ? 'nav-tab-active' : ''; ?>">تاریخچه تغییرات</a>
             </h2>

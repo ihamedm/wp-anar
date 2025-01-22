@@ -1,6 +1,6 @@
 <?php
 // Define the path to the changelog.md file
-$help_file_path = ANAR_PLUGIN_PATH . 'help.md';
+$help_file_path = ANAR_PLUGIN_PATH . 'HELP.md';
 
 // Check if the file exists
 if (file_exists($help_file_path)) {
