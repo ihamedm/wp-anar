@@ -6,6 +6,7 @@ use Anar\Core\Activation;
 use Anar\Core\Logger;
 
 class Sync {
+    private static $instance;
     private $baseApiUrl;
     private $limit;
     private $page;
@@ -19,6 +20,13 @@ class Sync {
      * @var
      */
     private $updatedSince;
+
+    public static function get_instance() {
+        if ( ! isset( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
 
     public function __construct() {
@@ -177,6 +185,27 @@ class Sync {
             'message' => 'همگام سازی با موفقیت انجام شد'
         );
         wp_send_json($response);
+    }
+
+
+    /**
+     * periodically call products api, check total
+     * and compare with saved total_products on last time get products
+     *
+     * @return void
+     */
+    public function get_api_total_products_number() {
+        $apiUrl = add_query_arg(
+            array('page' => 1, 'limit' => 1),
+            $this->baseApiUrl
+        );
+        $awcaProducts = $this->callAnarApi($apiUrl);
+
+        if (is_wp_error($awcaProducts)) {
+            return;
+        }
+
+        update_option('awca_api_total_products', $awcaProducts->total);
     }
 }
 

@@ -262,8 +262,8 @@ class CronJob_Process_Products {
         $this->notice_completed();
         $this::lock_create_products_cron();
 
-        delete_option('awca_proceed_products'); // Reset the proceed products
-        delete_option('awca_total_products'); // Reset the proceed products
+        delete_option('awca_proceed_products');
+//        delete_option('awca_total_products');
         delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
         $this->log('------------------------ completed ----------------------');
         $this->log('Background Complete method : All products have been processed.');

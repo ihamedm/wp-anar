@@ -101,8 +101,9 @@ class CronJobs {
 
     public function sync_all_products_job() {
 
-        $sync = new Sync();
+        $sync = Sync::get_instance();
         $sync->syncAllProducts();
+        $sync->get_api_total_products_number();
 
 
     }
@@ -110,7 +111,8 @@ class CronJobs {
 
     public function fetch_updated_data_from_anar_job() {
         (new Notifications)->count_unread_notifications();
-        (new Payments())->count_unpaid_orders_count();
+        //(new Payments())->count_unpaid_orders_count();
+
     }
 
 

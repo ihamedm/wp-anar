@@ -17,9 +17,7 @@ class Menus{
         $this->is_activated = Activation::validate_saved_activation_key_from_anar();
         
         add_action('admin_menu', [$this, 'add_menu_pages']);
-        //add_action('admin_bar_menu', [$this, 'product_creation_bg_progress_to_toolbar'], 999);
         add_action('admin_bar_menu', [$this, 'product_creation_cron_progress_to_toolbar'], 999);
-        //add_action('admin_bar_menu', [$this, 'thumbnail_download_progress_to_toolbar'], 999);
 
     }
 
@@ -47,8 +45,8 @@ class Menus{
 
         add_submenu_page(
             'wp-anar',
-            'اضافه کردن محصولات',
-            'اضافه کردن محصولات',
+            'همگام سازی محصولات',
+            'همگام سازی محصولات',
             'manage_options',
             'wp-anar',
             [$this, 'create_products_page_content']
@@ -225,7 +223,7 @@ class Menus{
             $progress_width_percent = $proceed_products * 100 / $total_products;
             $progress_width_percent = 100;
 //            $message2 = sprintf('انار - پردازش محصولات انار %s', round($progress_width_percent) . '%');
-            $message2 = 'پردازش محصولات انار';
+            $message2 = 'همگام سازی محصولات انار';
             $args = array(
                 'id' => 'awca_product_creation_progress',
                 'title' => '<div class="wrap"><span class="bgprogress" style="width:' . $progress_width_percent . '%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
@@ -241,7 +239,7 @@ class Menus{
             $estimate_finish = round(($total_products - $proceed_products_increment) / 30) + 2;
 
             $dropdown_items = array(
-                array('id' => 'awca_progress_detail_1', 'title' => 'هر دقیقه ۳۰ محصول پردازش می شود', 'href' => false),
+                array('id' => 'awca_progress_detail_1', 'title' => 'هر دقیقه ۳۰ محصول همگام سازی می شود', 'href' => false),
                 array('id' => 'awca_progress_detail_2',
                     'title' => "{$proceed_products_increment} محصول از {$total_products} پردازش شده",
                     'href' => false

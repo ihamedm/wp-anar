@@ -17,6 +17,7 @@ class Checkout {
         // Checkout Customization
         add_action( 'woocommerce_review_order_before_shipping', [$this, 'display_anar_products_shipping'] , 99);
         add_filter( 'woocommerce_shipping_package_name', [$this, 'prefix_shipping_package_name_other_products'] );
+
         add_action( 'woocommerce_cart_calculate_fees', [$this, 'calculate_total_shipping_fee'] );
         add_action( 'woocommerce_before_calculate_totals', [$this, 'check_for_cart_products_types']);
 
@@ -26,7 +27,6 @@ class Checkout {
             return '';
         } ) ;
 
-
         // process and Create order
         add_action( 'woocommerce_checkout_update_order_review', [$this, 'save_checkout_delivery_choice_on_session_better'] );
         add_action( 'woocommerce_checkout_update_order_review', [$this, 'chosen_shipping_methods_when_no_standard_products'] );
@@ -34,133 +34,135 @@ class Checkout {
         add_action( 'woocommerce_checkout_create_order', [$this, 'save_anar_data_on_order'], 20, 1 );
 
 
+        // Add action to handle autofill events
+        add_action('woocommerce_checkout_update_order_review', [$this, 'handle_autofill_update'], 5);
+        // Ensure shipping calculation runs after session update
+        add_action('woocommerce_after_checkout_form', [$this, 'add_autofill_handler']);
     }
 
 
     public function display_anar_products_shipping() {
-        // Check if the billing city and state are filled
-        $billing_country = WC()->customer->get_billing_country();
-        $billing_state = WC()->customer->get_billing_state();
-        $billing_state_name = WC()->countries->states[$billing_country][$billing_state] ?? '';
-        $billing_city = WC()->customer->get_billing_city();
+
+        try {
+            // Check if the billing city and state are filled
+            $billing_country = WC()->customer->get_billing_country();
+            $billing_state = WC()->customer->get_billing_state();
+            $billing_state_name = WC()->countries->states[$billing_country][$billing_state] ?? '';
+            $billing_city = WC()->customer->get_billing_city();
 
 
-        // Check if city or state is empty
-        if (empty($billing_city) || empty($billing_state_name)) {
-            return;
-        }
+            // Check if city or state is empty
+            if (empty($billing_city) || empty($billing_state_name)) {
+                return;
+            }
 
 
-        global $woocommerce;
-        $cart_items = $woocommerce->cart->get_cart();
-        $ship = [];
+            global $woocommerce;
+            $cart_items = $woocommerce->cart->get_cart();
+            $ship = [];
 
-        // Retrieve the has_standard_product and has_anar_product values from the session
-        $has_standard_product = WC()->session->get('has_standard_product');
-        $has_anar_product = WC()->session->get('has_anar_product');
+            // Retrieve the has_standard_product and has_anar_product values from the session
+            $has_standard_product = WC()->session->get('has_standard_product');
+            $has_anar_product = WC()->session->get('has_anar_product');
 
-        foreach ($cart_items as $item => $values) {
-            $_product = wc_get_product($values['data']->get_id());
-            $product_parent_id = $_product->get_parent_id();
+            foreach ($cart_items as $item => $values) {
+                $_product = wc_get_product($values['data']->get_id());
+                $product_parent_id = $_product->get_parent_id();
 
-            // Retrieve the meta values for both the product and its parent
-            $anar_meta = $product_parent_id == 0
-                ? get_post_meta($_product->get_id(), '_anar_products', true)
-                : get_post_meta($product_parent_id, '_anar_products', true);
+                // Retrieve the meta values for both the product and its parent
+                $anar_meta = $product_parent_id == 0
+                    ? get_post_meta($_product->get_id(), '_anar_products', true)
+                    : get_post_meta($product_parent_id, '_anar_products', true);
 
-            // If it's an Anar product, process its shipping data
-            if ($anar_meta) {
-                // Anar product
+                // If it's an Anar product, process its shipping data
+                if ($anar_meta) {
+                    // Anar product
 
-                if($_product->is_type('simple')){
-                    $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_id());
-                }else{
-                    $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_parent_id());
-                }
-
-                if ($anar_shipment_data && count($anar_shipment_data) > 0) {
-                    $shipment_types_to_display = [];
-
-                    // Check if the customer is in the same city and state as the dropshipper
-                    if (
-                        $billing_state_name === $anar_shipment_data['shipmentsReferenceState'] &&
-                        $billing_city === $anar_shipment_data['shipmentsReferenceCity']
-                    ) {
-                        $shipment_types_to_display = ['insideShopCity'];
-                    } elseif ($billing_state_name === $anar_shipment_data['shipmentsReferenceState']) {
-                        $shipment_types_to_display = ['insideShopState'];
-                    } else {
-                        $shipment_types_to_display = ['otherStates'];
+                    if($_product->is_type('simple')){
+                        $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_id());
+                    }else{
+                        $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_parent_id());
                     }
 
-                    // Convert shipmentsReferenceId to string if it's an array
-                    $shipmentsReferenceId = is_array($anar_shipment_data['shipmentsReferenceId'])
-                        ? implode('-', $anar_shipment_data['shipmentsReferenceId'])
-                        : $anar_shipment_data['shipmentsReferenceId'];
+                    if ($anar_shipment_data && count($anar_shipment_data) > 0) {
+                        $shipment_types_to_display = [];
 
-                    // Filter the shipments based on the types to display
-                    foreach ($anar_shipment_data['shipments'] as $shipment) {
-                        if (in_array($shipment->type, $shipment_types_to_display)) {
-                            foreach ($shipment->delivery as $delivery) {
-                                if ($delivery->active) { // Check if the delivery method is active
+                        // Check if the customer is in the same city and state as the dropshipper
+                        if (
+                            $billing_state_name === $anar_shipment_data['shipmentsReferenceState'] &&
+                            $billing_city === $anar_shipment_data['shipmentsReferenceCity']
+                        ) {
+                            $shipment_types_to_display = ['insideShopCity'];
+                        } elseif ($billing_state_name === $anar_shipment_data['shipmentsReferenceState']) {
+                            $shipment_types_to_display = ['insideShopState'];
+                        } else {
+                            $shipment_types_to_display = ['otherStates'];
+                        }
 
-                                    if (isset($ship[$shipmentsReferenceId])) {
-                                        $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
-                                    } else {
-                                        $ship[$shipmentsReferenceId] = [
-                                            'delivery' => [],
-                                            'names' => [],
-                                        ];
-                                        $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
+                        // Convert shipmentsReferenceId to string if it's an array
+                        $shipmentsReferenceId = is_array($anar_shipment_data['shipmentsReferenceId'])
+                            ? implode('-', $anar_shipment_data['shipmentsReferenceId'])
+                            : $anar_shipment_data['shipmentsReferenceId'];
+
+                        // Filter the shipments based on the types to display
+                        foreach ($anar_shipment_data['shipments'] as $shipment) {
+                            if (in_array($shipment->type, $shipment_types_to_display)) {
+                                foreach ($shipment->delivery as $delivery) {
+                                    if ($delivery->active) { // Check if the delivery method is active
+
+                                        if (isset($ship[$shipmentsReferenceId])) {
+                                            $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
+                                        } else {
+                                            $ship[$shipmentsReferenceId] = [
+                                                'delivery' => [],
+                                                'names' => [],
+                                            ];
+                                            $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
+                                        }
+
+                                        // Add unique delivery to the list
+                                        $delivery_key = $delivery->_id;
+                                        if (!isset($ship[$shipmentsReferenceId]['delivery'][$delivery_key])) {
+                                            $ship[$shipmentsReferenceId]['delivery'][$delivery_key] = [
+                                                'name' => $delivery->deliveryType,
+                                                'estimatedTime' => $delivery->estimatedTime,
+                                                'price' => $delivery->price,
+                                            ];
+
+                                            // Save relevant shipment data to the session
+                                            $shipment_data[] = [
+                                                'shipmentId' => $shipment->_id, // Correctly save the shipment ID
+                                                'deliveryId' => $delivery->_id, // Use the delivery ID from the active delivery
+                                                'shipmentsReferenceId' => $shipmentsReferenceId,
+                                            ];
+
+                                        }
+
+
+
                                     }
-
-                                    // Add unique delivery to the list
-                                    $delivery_key = $delivery->_id;
-                                    if (!isset($ship[$shipmentsReferenceId]['delivery'][$delivery_key])) {
-                                        $ship[$shipmentsReferenceId]['delivery'][$delivery_key] = [
-                                            'name' => $delivery->deliveryType,
-                                            'estimatedTime' => $delivery->estimatedTime,
-                                            'price' => $delivery->price,
-                                        ];
-
-                                        // Save relevant shipment data to the session
-                                        $shipment_data[] = [
-                                            'shipmentId' => $shipment->_id, // Correctly save the shipment ID
-                                            'deliveryId' => $delivery->_id, // Use the delivery ID from the active delivery
-                                            'shipmentsReferenceId' => $shipmentsReferenceId,
-                                        ];
-
-                                    }
-
-
-
                                 }
                             }
                         }
+
+
+
                     }
-
-
-
                 }
             }
-        }
 
-        // Store shipment data in session for later use [save on order meta, need for call anar order create API]
-        if(isset($shipment_data))
-            WC()->session->set('anar_shipment_data', $shipment_data);
+            // Store shipment data in session for later use [save on order meta, need for call anar order create API]
+            if(isset($shipment_data))
+                WC()->session->set('anar_shipment_data', $shipment_data);
 
-//        awca_log('$shipment_data' . print_r($shipment_data, true));
-//        awca_log('$ship' . print_r($ship, true));
+            // Display Anar shipping methods if Anar products are present
+            if ($has_anar_product) {
+                $pack_index = 0;
+                foreach ($ship as $key => $v) {
+                    $pack_index++;
+                    $product_uniques = array_unique($v['names']);
 
-
-        // Display Anar shipping methods if Anar products are present
-        if ($has_anar_product) {
-            $pack_index = 0;
-            foreach ($ship as $key => $v) {
-                $pack_index++;
-                $product_uniques = array_unique($v['names']);
-
-                $product_list_markup = sprintf('<div class="package-title">
+                    $product_list_markup = sprintf('<div class="package-title">
                             <div class="icon">
                                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M5 17h-2v-4m-1 -8h11v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5" /><path d="M3 9l4 0" /></svg>
                             </div>
@@ -168,96 +170,111 @@ class Checkout {
                                 <div>مرسوله %d <span class="chip">%s کالا</span></div>
                             </div>
                         </div>',
-                    $pack_index,
-                    count($product_uniques)
-                );
-                // collect package images
-                $product_list_markup .= '<ul class="package-items">';
-                foreach ($product_uniques as $item) {
-                    $product_title = get_the_title($item);
+                        $pack_index,
+                        count($product_uniques)
+                    );
+                    // collect package images
+                    $product_list_markup .= '<ul class="package-items">';
+                    foreach ($product_uniques as $item) {
+                        $product_title = get_the_title($item);
 
-                    if ($item) {
-                        $product = wc_get_product($item);
+                        if ($item) {
+                            $product = wc_get_product($item);
 
-                        // Check if the product is a variation
-                        if ($product && $product->is_type('variation')) {
-                            $parent_id = $product->get_parent_id(); // Get the parent product ID
-                            $thumbnail_url = get_the_post_thumbnail_url($parent_id); // Get the parent product thumbnail
+                            // Check if the product is a variation
+                            if ($product && $product->is_type('variation')) {
+                                $parent_id = $product->get_parent_id(); // Get the parent product ID
+                                $thumbnail_url = get_the_post_thumbnail_url($parent_id); // Get the parent product thumbnail
+                            } else {
+                                $thumbnail_url = get_the_post_thumbnail_url($item); // Get the thumbnail for the current product
+                            }
+
+                            $product_list_markup .= sprintf('<li><a class="awca-tooltip-on" href="%s" title="%s"><img src="%s" alt="%s"></a></li>',
+                                get_permalink($item),
+                                $product_title,
+                                $thumbnail_url,
+                                $product_title,
+                            );
                         } else {
-                            $thumbnail_url = get_the_post_thumbnail_url($item); // Get the thumbnail for the current product
+                            // If the product ID is not valid, just use the title without a link
+                            $product_list_markup .= esc_html(get_the_title($item)) . ' , ';
                         }
-
-                        $product_list_markup .= sprintf('<li><a class="awca-tooltip-on" href="%s" title="%s"><img src="%s" alt="%s"></a></li>',
-                            get_permalink($item),
-                            $product_title,
-                            $thumbnail_url,
-                            $product_title,
-                        );
-                    } else {
-                        // If the product ID is not valid, just use the title without a link
-                        $product_list_markup .= esc_html(get_the_title($item)) . ' , ';
                     }
-                }
-                $product_list_markup .= '</ul>';
+                    $product_list_markup .= '</ul>';
 
 
 
-                $names = [];
-                $radio_data = [];
-                foreach ($v['delivery'] as $delivery_key => $delivery) {
-                    $estimate_time_str = $delivery['estimatedTime'] ? ' (' . $delivery['estimatedTime'] . ')' : '';
-                    $names[$delivery_key] = awca_translator($delivery['name']) . $estimate_time_str .' : ' . $delivery['price'] . ' ' . get_woocommerce_currency_symbol() ;
-                    $radio_data[$delivery_key] = [
-                        'label' => awca_translator($delivery['name']),
-                        'estimated_time' => $delivery['estimatedTime'] ?? '',
-                        'price' => awca_convert_price_to_woocommerce_currency($delivery['price']) . ' ' . get_woocommerce_currency_symbol(),
-                    ];
-                }
+                    $names = [];
+                    $radio_data = [];
+                    foreach ($v['delivery'] as $delivery_key => $delivery) {
+                        $estimate_time_str = $delivery['estimatedTime'] ? ' (' . $delivery['estimatedTime'] . ')' : '';
+                        $names[$delivery_key] = awca_translator($delivery['name']) . $estimate_time_str .' : ' . $delivery['price'] . ' ' . get_woocommerce_currency_symbol() ;
+                        $radio_data[$delivery_key] = [
+                            'label' => awca_translator($delivery['name']),
+                            'estimated_time' => $delivery['estimatedTime'] ?? '',
+                            'price' => awca_convert_price_to_woocommerce_currency($delivery['price']) . ' ' . get_woocommerce_currency_symbol(),
+                        ];
+                    }
 
-                // Get the chosen delivery option from the session or checkout value
-                $chosen = WC()->session->get('anar_delivery_option_' . $key);
-                $chosen = empty($chosen) ? WC()->checkout->get_value('anar_delivery_option_' . $key) : $chosen;
+                    // Get the chosen delivery option from the session or checkout value
+                    $chosen = WC()->session->get('anar_delivery_option_' . $key);
+                    $chosen = empty($chosen) ? WC()->checkout->get_value('anar_delivery_option_' . $key) : $chosen;
 
-                // If no option is chosen, set the first one as default
-                if (empty($chosen) && !empty($names)) {
-                    $chosen = key($names); // Get the first key of the $names array
-                }
+                    // If no option is chosen, set the first one as default
+                    if (empty($chosen) && !empty($names)) {
+                        $chosen = key($names); // Get the first key of the $names array
+                    }
 
-                ?>
-                <tr class="anar-shipments-checkout">
-                    <th>
-                        <div class="anar-package-items-list">
-                            <?php
+                    ?>
+                    <tr class="anar-shipments-checkout">
+                        <th>
+                            <div class="anar-package-items-list">
+                                <?php
                                 echo $product_list_markup;
+                                ?>
+                            </div>
+                        </th>
+                        <td>
+                            <?php
+                            //                        woocommerce_form_field('anar_delivery_option_' . $key, array(
+                            //                            'type' => 'radio',
+                            //                            'required' => true,
+                            //                            'class' => array('form-row-wide', 'update_totals_on_change'),
+                            //                            'options' => $names,
+                            //                        ), $chosen);
+
                             ?>
-                        </div>
-                    </th>
-                    <td>
-                        <?php
-//                        woocommerce_form_field('anar_delivery_option_' . $key, array(
-//                            'type' => 'radio',
-//                            'required' => true,
-//                            'class' => array('form-row-wide', 'update_totals_on_change'),
-//                            'options' => $names,
-//                        ), $chosen);
 
-                        ?>
-
-                        <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
-                    </td>
-                </tr>
-                <?php
+                            <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
+                        </td>
+                    </tr>
+                    <?php
+                }
             }
+        } finally {
+            $this->calculate_total_shipping_fee();
         }
+
+
 
     }
 
 
     public function calculate_total_shipping_fee() {
+
+        // 1. First, ensure we have valid session data
+        if (!WC()->session) {
+            return;
+        }
         $cart_items = WC()->cart->get_cart();
         $total_shipping_fee = 0;
         $processed_references = []; // Array to keep track of processed shipment references
         $has_standard_product = WC()->session->get('has_standard_product');
+
+        // 2. Add validation for cart items
+        if (empty($cart_items)) {
+            return;
+        }
 
         foreach ($cart_items as $cart_item_key => $cart_item) {
             $product_id = $cart_item['product_id'];
@@ -265,7 +282,9 @@ class Checkout {
 
             if ($shipments_data) {
                 $shipmentsReferenceId = $shipments_data['shipmentsReferenceId'];
-                $selected_option = WC()->session->get('anar_delivery_option_' . $shipmentsReferenceId);
+                // 3. Get selected option with fallback
+                $selected_option = $this->get_selected_shipping_option($shipmentsReferenceId);
+                //$selected_option = WC()->session->get('anar_delivery_option_' . $shipmentsReferenceId);
 
                 // Check if this shipment reference has already been processed
                 if ($selected_option && !in_array($shipmentsReferenceId, $processed_references)) {
@@ -279,19 +298,51 @@ class Checkout {
             }
         }
 
-        // Add the total shipping fee to the cart
+        // 4. Add the shipping fee with proper validation
         if ($total_shipping_fee > 0) {
+            $label = $has_standard_product
+                ? 'مجموع حمل نقل سایر محصولات'
+                : 'مجموع حمل نقل';
 
-            if($has_standard_product){
-                $label = 'مجموع حمل نقل سایر محصولات';
-            }else{
-                $label = 'مجموع حمل نقل';
-            }
+            // Remove existing shipping fees before adding new one
+            //$this->remove_existing_shipping_fees();
 
             WC()->cart->add_fee($label, $total_shipping_fee);
+        } else {
+            awca_log('No shipping fee to add');
         }
     }
 
+
+
+    /**
+     * New method to get selected shipping option with fallback
+     */
+    private function get_selected_shipping_option($shipmentsReferenceId) {
+        // First try session
+        $selected_option = WC()->session->get('anar_delivery_option_' . $shipmentsReferenceId);
+
+        // Then try POST data
+        if (empty($selected_option) && isset($_POST['anar_delivery_option_' . $shipmentsReferenceId])) {
+            $selected_option = sanitize_text_field($_POST['anar_delivery_option_' . $shipmentsReferenceId]);
+            // Update session
+            WC()->session->set('anar_delivery_option_' . $shipmentsReferenceId, $selected_option);
+        }
+
+        return $selected_option;
+    }
+
+    /**
+     * New method to remove existing shipping fees
+     */
+    private function remove_existing_shipping_fees() {
+        $fees = WC()->cart->get_fees();
+        foreach ($fees as $fee_key => $fee) {
+            if (strpos($fee->name, 'مجموع حمل نقل') !== false) {
+                WC()->cart->remove_fee($fee_key);
+            }
+        }
+    }
 
 
     public function check_for_cart_products_types() {
@@ -346,29 +397,26 @@ class Checkout {
 
 
     public function save_checkout_delivery_choice_on_session( $posted_data ) {
-        awca_log('save_checkout_delivery_choice_on_session');
         parse_str( $posted_data, $output );
-        awca_log(print_r($output, true));
         $resShip = ProductData::get_all_products_shipments_ref();
-        awca_log('$resShip: ' . print_r($resShip, true));
         foreach ($resShip as $key => $v) {
             if ( isset( $output['anar_delivery_option_'.$key] ) ){
                 WC()->session->set( 'anar_delivery_option_'.$key, $output['anar_delivery_option_'.$key] );
             }
         }
 
-        awca_log('session: ' . print_r(WC()->session->get_session(get_current_user_id()), true));
     }
 
     public function save_checkout_delivery_choice_on_session_better($posted_data ) {
-        parse_str( $posted_data, $output );
+        parse_str($posted_data, $output);
         foreach ($output as $key => $value) {
-            // Check if the key starts with "anar_delivery_option_"
             if (strpos($key, 'anar_delivery_option_') === 0) {
-                // Set the key-value pair in the session
                 WC()->session->set($key, $value);
             }
         }
+
+        // Force recalculation after updating session
+        WC()->cart->calculate_totals();
     }
 
 
@@ -485,8 +533,6 @@ class Checkout {
             $order->update_meta_data('_is_anar_order', 'anar');
         }
 
-//        awca_log('filtered by chosen $shipping_data' . print_r($shipping_data, true)); // Log the final shipping data for debugging
-
         $order->save();
     }
 
@@ -544,6 +590,34 @@ class Checkout {
 
         $output .= '</div>'; // Close form-row div
         echo $output;
+    }
+
+
+    /**
+     * Add JavaScript to handle autofill events
+     */
+    public function add_autofill_handler() {
+        ?>
+        <script type="text/javascript">
+            jQuery(function($) {
+                // Handle Chrome autofill
+                $('form.checkout').on('change', 'input, select', function() {
+                    // Small delay to ensure autofill is complete
+                    setTimeout(function() {
+                        $('body').trigger('update_checkout');
+                    }, 2000);
+                });
+            });
+        </script>
+        <?php
+    }
+
+    /**
+     * Handle autofill updates
+     */
+    public function handle_autofill_update() {
+        // Force recalculation of totals
+        WC()->cart->calculate_totals();
     }
 
 }
