@@ -18,6 +18,7 @@ class Menus{
         
         add_action('admin_menu', [$this, 'add_menu_pages']);
         add_action('admin_bar_menu', [$this, 'product_creation_cron_progress_to_toolbar'], 999);
+        add_filter('plugin_action_links', [$this, 'add_settings_link'], 10, 2);
 
     }
 
@@ -45,8 +46,8 @@ class Menus{
 
         add_submenu_page(
             'wp-anar',
-            'همگام سازی محصولات',
-            'همگام سازی محصولات',
+            'درون ریزی محصولات',
+            'درون ریزی محصولات',
             'manage_options',
             'wp-anar',
             [$this, 'create_products_page_content']
@@ -103,6 +104,16 @@ class Menus{
     }
 
 
+    public function add_settings_link($links, $plugin_file){
+        if (ANAR_PLUGIN_BASENAME == $plugin_file) {
+            $settings_link = '<a href="admin.php?page=wp-anar">همگام سازی محصولات</a>';
+            $links[ANAR_PLUGIN_TEXTDOMAIN] = $settings_link;
+        }
+
+        return $links;
+    }
+
+
     public function activation_page_content()
     {
         include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/activation.php';
@@ -153,67 +164,12 @@ class Menus{
     }
 
 
-
-    public function product_creation_bg_progress_to_toolbar($wp_admin_bar) {
-        $productData = new ProductData();
-        $productProcessing = Background_Process_Products::get_instance();
-
-
-
-        // Only add the menu item if the transient exists
-        if (in_array($productProcessing->get_status(), ['processing', 'queued']) ) {
-            $total_products = get_option('awca_total_products');
-            $proceed_products = $productData->count_anar_products();
-            if($total_products == 0 || $proceed_products == 0)
-                return;
-
-            $message = sprintf('انار - ساخت محصول %s از %s', $proceed_products, $total_products);
-            $progress_width_percent = $proceed_products * 100 / $total_products;
-            $message2 = sprintf('انار - ساخت محصول %s', round($progress_width_percent).'%');
-            $args = array(
-                'id' => 'awca_product_creation_progress',
-                'title' => '<div class="wrap"><span class="bgprogress" style="width:'.$progress_width_percent.'%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
-                'href' => false, // No link
-                'meta' => array(
-                    'class' => 'awca-progress-bar-menu-bar-item' // Add a custom class for styling
-                )
-            );
-
-            $wp_admin_bar->add_node($args);
-
-            // Add the dropdown items
-            $dropdown_items = array(
-                array('id' => 'awca_progress_detail_1', 'title' => 'هر دقیقه ۳۰ محصول ساخته می شود', 'href' => false),
-                array('id' => 'awca_progress_detail_2', 'title' => 'شروع پردازش: سه شنبه ۱۸ دی  ساعت ۱۲:۰۱', 'href' => false),
-            );
-
-            foreach ($dropdown_items as $item) {
-                $item_args = array(
-                    'id' => $item['id'],
-                    'title' => $item['title'],
-                    'href' => $item['href'],
-                    'parent' => 'awca_product_creation_progress',
-                    'meta' => array(
-                        'class' => 'awca-progress-bar-dropdown-item'
-                    )
-                );
-
-                $wp_admin_bar->add_node($item_args);
-            }
-        }
-
-
-
-
-
-    }
-
     public function product_creation_cron_progress_to_toolbar($wp_admin_bar)
     {
         $productData = new ProductData();
 
         // Only add the menu item if the transient exists
-        if (!CronJob_Process_Products::is_create_products_cron_locked()) {
+        if (awca_is_import_products_running()) {
             $total_products = get_option('awca_total_products');
             $proceed_products = $productData->count_anar_products();
             $proceed_products_increment = get_option('awca_proceed_products');
@@ -266,29 +222,6 @@ class Menus{
 
                 $wp_admin_bar->add_node($item_args);
             }
-
-        }
-    }
-    public function thumbnail_download_progress_to_toolbar($wp_admin_bar){
-        $ThumbnailProcessing = Background_Process_Thumbnails::get_instance();
-        if (in_array($ThumbnailProcessing->get_status(), ['processing']) ) {
-
-            $thumbnail_processing_data = $ThumbnailProcessing->get_process_data();
-            if($thumbnail_processing_data['processed_products'] == 0 || $thumbnail_processing_data['total_products'] == 0)
-                return;
-
-            $progress_width_percent = $thumbnail_processing_data['processed_products'] * 100 / $thumbnail_processing_data['total_products'];
-            $message2 = sprintf('انار - دریافت تصاویر %s', round($progress_width_percent).'%');
-            $args = array(
-                'id' => 'awca_product_thumbnail_progress',
-                'title' => '<div class="wrap"><span class="bgprogress" style="width:'.$progress_width_percent.'%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
-                'href' => false, // No link
-                'meta' => array(
-                    'class' => 'awca-progress-bar-menu-bar-item' // Add a custom class for styling
-                )
-            );
-
-            $wp_admin_bar->add_node($args);
 
         }
     }

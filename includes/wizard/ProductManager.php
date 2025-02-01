@@ -185,6 +185,11 @@ class ProductManager{
         update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
         update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
         update_post_meta($product_id, '_anar_products', 'true');
+        update_post_meta($product_id, '_anar_last_sync_time', current_time('mysql'));
+
+        $import_job_id = get_option('awca_cron_create_products_job_id');
+        if($import_job_id)
+            update_post_meta($product_id, '_anar_import_job_id', $import_job_id);
 
         // Image and gallery
         if (!empty($product_data['image'])) {
@@ -354,5 +359,60 @@ class ProductManager{
     }
 
 
+    /**
+     * Deprecates a WooCommerce product from Anar integration
+     * Handles both simple and variable products
+     *
+     * @param int $product_id The product ID to deprecate
+     * @param string $job_id The job ID to mark as deprecated
+     * @return bool True if deprecation was successful, false otherwise
+     */
+    public static function deprecate_anar_product($product_id, $job_id) {
+        try {
+            $wc_product = wc_get_product($product_id);
+
+            if (!$wc_product) {
+                awca_log("Error: Product #{$product_id} not found");
+                return false;
+            }
+
+            awca_log("Depricating product #{$product_id} from Anar.");
+
+            // Update product meta
+            update_post_meta($product_id, '_anar_deprecated', $job_id);
+            delete_post_meta($product_id, '_anar_sku');
+            delete_post_meta($product_id, '_anar_products');
+
+            if ($wc_product->is_type('variable')) {
+                // Handle variable product variations
+                $variations = $wc_product->get_children();
+
+                foreach ($variations as $variation_id) {
+                    $variation = wc_get_product($variation_id);
+                    if ($variation) {
+                        // Update variation stock status
+                        $variation->set_stock_quantity(0);
+                        $variation->set_stock_status('outofstock');
+                        $variation->save();
+
+                        // Clean up variation meta
+                        delete_post_meta($variation_id, '_anar_sku');
+                        delete_post_meta($variation_id, '_anar_products');
+                    }
+                }
+            }
+
+            // Update parent product (works for both simple and variable)
+            $wc_product->set_stock_quantity(0);
+            $wc_product->set_stock_status('outofstock');
+            $wc_product->save();
+
+            return true;
+
+        } catch (\Exception $e) {
+            awca_log("Error depricating product #{$product_id}: " . $e->getMessage());
+            return false;
+        }
+    }
 
 }

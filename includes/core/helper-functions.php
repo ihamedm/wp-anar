@@ -217,3 +217,8 @@ function awca_call_anar_api($api_url)
     return false;
 }
 
+
+
+function awca_is_import_products_running(){
+    return !Anar\CronJob_Process_Products::is_create_products_cron_locked();
+}

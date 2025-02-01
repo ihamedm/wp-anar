@@ -5,6 +5,7 @@ use Anar\Core\CronJobs;
 use Anar\Core\Image_Downloader;
 use Anar\Core\Logger;
 use Anar\Wizard\ProductManager;
+use WP_Query;
 
 class CronJob_Process_Products {
 
@@ -21,7 +22,8 @@ class CronJob_Process_Products {
     {
         $this->logger = new Logger();
 
-        add_action( 'admin_notices', array( $this, 'admin_notice' ) );
+        //add_action( 'admin_notices', array( $this, 'admin_notice' ) );
+        add_action('admin_notices', [$this, 'show_removed_products_notice']);
 
         $this->thumbnail_generator = Background_Process_Thumbnails::get_instance();
     }
@@ -88,6 +90,7 @@ class CronJob_Process_Products {
 
         if ($item['row_page_number'] == 1) {
             $start_time = current_time('timestamp'); // Current timestamp
+            update_option('awca_cron_create_products_job_id', uniqid('awca_job_', true));
             update_option( 'awca_cron_create_products_start_time', $start_time);
             update_option( 'awca_proceed_products', 0);
             $this->add_to_awake_list();
@@ -253,6 +256,103 @@ class CronJob_Process_Products {
         return false;
     }
 
+    public function detect_removed_products_from_anar() {
+        global $wpdb;
+
+        $this->log('detect removed products from Anar.');
+
+        $job_id = get_option('awca_cron_create_products_job_id');
+
+        if(!$job_id) {
+            return;
+        }
+
+
+        $query_result = $wpdb->prepare(
+            "SELECT DISTINCT 
+            p.ID, 
+            p.post_title 
+                FROM {$wpdb->posts} AS p
+                INNER JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
+                INNER JOIN {$wpdb->postmeta} AS mt2 ON (p.ID = mt2.post_id)
+                WHERE 1=1 
+                AND p.post_type = 'product'
+                AND p.post_status != 'trash'
+                AND mt1.meta_key = '_anar_products'
+                AND mt2.meta_key = '_anar_import_job_id' 
+                AND mt2.meta_value != %s",
+            $job_id
+        );
+
+
+        $products = $wpdb->get_results($query_result);
+        $product_count = count($products);
+        $this->log("found $product_count products that removed from Anar.");
+
+        if (!empty($products)) {
+            // Store the count of removed products
+            update_option('awca_removed_products_count', count($products));
+            update_option('awca_removed_products_time', current_time('mysql', true)); // Store UTC time
+
+            foreach ($products as $product) {
+                ProductManager::deprecate_anar_product($product->ID, $job_id);
+            }
+        }
+    }
+
+    // Add the notice
+    public function show_removed_products_notice() {
+        // Handle the dismiss action
+        if (isset($_GET['awca_hide_notice']) && wp_verify_nonce($_GET['nonce'], 'awca_hide_notice')) {
+            delete_option('awca_removed_products_count', 0);
+            return;
+        }
+
+        // Only show to administrators
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $removed_count = get_option('awca_removed_products_count', 0);
+
+        if ($removed_count > 0) {
+            // Create query parameters for the products page
+            $query_args = array(
+                'post_type' => 'product',
+                'anar_deprecated' => 'true'
+            );
+
+            // Generate the URL for viewing deprecated products
+            $view_url = add_query_arg($query_args, admin_url('edit.php'));
+
+            // Generate the dismiss URL (redirect back to current page after dismissing)
+            $current_url = add_query_arg(null, null);
+            $dismiss_nonce = wp_create_nonce('awca_hide_notice');
+            $dismiss_url = add_query_arg([
+                'awca_hide_notice' => '1',
+                'nonce' => $dismiss_nonce
+            ], $current_url);
+
+            // Notice HTML
+            $notice = sprintf(
+                '<div class="notice notice-warning is-dismissible">
+            <p>
+                <strong>انار۳۶۰:</strong> 
+                 محصولاتی از پنل انار شما حذف شده‌اند که در وب‌سایت به حالت ناموجود تغییر وضعیت داده شدند. 
+                می‌توانید لیست آنها را برای تعیین تکلیف ببینید.
+                <a href="%s" class="button button-small" style="margin-right: 10px;">مشاهده محصولات غیر فعال شده</a>
+                <a href="%s" style="margin-right: 15px; color: #999; text-decoration: none;">دیگر نشان نده</a>
+            </p>
+        </div>',
+                esc_url($view_url),
+                esc_url($dismiss_url)
+            );
+
+            echo wp_kses_post($notice);
+        }
+    }
+
+
     /**
      * Complete
      *
@@ -261,6 +361,8 @@ class CronJob_Process_Products {
     protected function complete() {
         $this->notice_completed();
         $this::lock_create_products_cron();
+
+        $this->detect_removed_products_from_anar();
 
         delete_option('awca_proceed_products');
 //        delete_option('awca_total_products');

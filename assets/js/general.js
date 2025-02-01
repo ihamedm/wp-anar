@@ -315,7 +315,6 @@ import {paginateLinks} from "./functions";
               jQuery(".spinner-loading").show();
             },
             success: function (response) {
-              console.log(response)
               if (response.success) {
                 awca_toast(response.message, "success");
                 window.location.reload();
@@ -347,19 +346,23 @@ import {paginateLinks} from "./functions";
           jQuery.ajax({
             url: form.attr("action"),
             type: "POST",
-            dataType: "json",
+            // dataType: "json",
             data: form.serialize(),
             beforeSend: function () {
               jQuery(".spinner-loading").show();
               jQuery(".configuration_save_button").attr("disabled", "disabled");
             },
             success: function (response) {
+              console.log(response)
               if (response.success) {
                 awca_toast(response.message, "success");
                 AnarHandler.move_to_step(3)
               }
             },
             error: function (xhr, status, err) {
+              console.log(xhr)
+              console.log(status)
+              console.log(err)
               awca_toast(xhr.responseText)
               jQuery(".spinner-loading").hide();
               jQuery(".configuration_save_button").removeAttr("disabled");

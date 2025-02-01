@@ -26,6 +26,8 @@ class Woocommerce{
         add_action('pre_get_posts', [$this, 'filter_anar_products']);
         add_filter('post_row_actions', [$this, 'add_view_on_anar_action_link'], 10, 2);
 
+        add_action('pre_get_posts', [$this, 'filter_anar_deprecated_products']);
+
 
     }
 
@@ -51,8 +53,13 @@ class Woocommerce{
     public function anar_product_edit_page_meta_box_html($post) {
         $image_url = get_post_meta($post->ID, '_product_image_url', true);
         $gallery_image_urls = get_post_meta($post->ID, '_anar_gallery_images', true);
+        $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
         ?>
         <div id="awca-custom-meta-box-container">
+            <?php if($last_sync_time) {
+                printf('<div class="awca-product-last-sync-time"><span>آخرین همگام سازی با انار</span> <strong>%s</strong></div>',
+                    mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_sync_time));
+            }?>
 
             <button id="awca-dl-the-product-images" class="awca-primary-btn" data-product-id="<?php echo $post->ID;?>"
             <?php echo !$image_url && !$gallery_image_urls ? ' disabled' : '';?>
@@ -137,13 +144,16 @@ class Woocommerce{
         global $wpdb;
 
         $count = $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(DISTINCT p.ID)
-        FROM {$wpdb->posts} AS p
-        INNER JOIN {$wpdb->postmeta} AS pm ON p.ID = pm.post_id
-        WHERE p.post_type = 'product'
-        AND pm.meta_key = %s
-    ", '_anar_sku'));
+    SELECT COUNT(DISTINCT p.ID)
+    FROM {$wpdb->posts} AS p
+    INNER JOIN {$wpdb->postmeta} AS pm ON p.ID = pm.post_id
+    WHERE p.post_type = 'product'
+    AND p.post_status IN ('publish', 'draft', 'pending', 'private')
+    AND pm.meta_key = %s
+", '_anar_sku'));
 
+
+        update_option('awca_count_anar_products_on_db', $count);
         // Check if current filter is active
         $current = isset($_GET['is_anar_product']) ? ' class="current"' : '';
 
@@ -173,6 +183,28 @@ class Woocommerce{
             ));
         }
 
+    }
+
+    // Add filter to modify products query to show deprecated products
+    public function filter_anar_deprecated_products($query) {
+        if (!is_admin()) {
+            return;
+        }
+
+        if (!$query->is_main_query() ||
+            !isset($_GET['post_type']) ||
+            $_GET['post_type'] !== 'product' ||
+            !isset($_GET['anar_deprecated'])) {
+            return;
+        }
+
+        // Add meta query to show only deprecated products
+        $query->set('meta_query', array(
+            array(
+                'key' => '_anar_deprecated',
+                'compare' => 'EXISTS'
+            )
+        ));
     }
 
     public function add_view_on_anar_action_link($actions, $post) {

@@ -1245,6 +1245,21 @@ select::-ms-expand {
 }
 
 
+.awca-product-last-sync-time{
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px dashed #0f834d;
+  border-radius: 8px;
+}
+
+.awca-product-last-sync-time span{
+  color: var(--line-border-fill);
+}
+.awca-product-last-sync-time strong{
+  display: block;
+  padding: 4px 0;
+}
+
 /*forms*/
 .awca-form-control{
   display:flex;

@@ -46,7 +46,7 @@ class Category{
 
         foreach($categoryMap as $key => $val) {
             if ($val == 'select') {
-                self::create_woocommerce_category($key);
+                $cat_id = self::create_woocommerce_category($key);
             }
         }
 

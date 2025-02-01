@@ -43,6 +43,10 @@ class Sync {
         // Hooking the method into AJAX actions
         add_action('wp_ajax_awca_sync_products_price_and_stocks', array($this, 'syncProductsPriceAndStocksAjax'));
         add_action('wp_ajax_nopriv_awca_sync_products_price_and_stocks', array($this, 'syncProductsPriceAndStocksAjax'));
+
+        // show total products changed notice
+        // this is accrued when user add/remove some product from anar panel
+        add_action('admin_notices', [$this, 'show_total_products_changed_notice']);
     }
 
     public function syncAllProducts() {
@@ -130,18 +134,21 @@ class Sync {
             $variantStock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
             $product = wc_get_product($productId);
             $this->updateProductStockAndPrice($product, $variantStock, $variant->price);
+            $this->updateProductMetadata($productId);
         }
     }
 
     private function processVariableProduct($updateProduct) {
+
+        // update variants
         foreach ($updateProduct->variants as $variant) {
             $sku = $variant->_id;
             $productId = ProductData::get_product_variation_by_anar_sku($sku);
-
             if ($productId) {
                 $variantStock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
                 $product = wc_get_product($productId);
                 $this->updateProductStockAndPrice($product, $variantStock, $variant->price);
+                $this->updateProductMetadata($product->get_parent_id());
             }
         }
     }
@@ -154,6 +161,10 @@ class Sync {
             $product->set_regular_price($convertedPrice);
             $product->save();
         }
+    }
+
+    private function updateProductMetadata($productId) {
+        update_post_meta($productId, '_anar_last_sync_time', current_time('mysql'));
     }
 
     private function callAnarApi($apiUrl) {
@@ -206,6 +217,48 @@ class Sync {
         }
 
         update_option('awca_api_total_products', $awcaProducts->total);
+    }
+
+    public function show_total_products_changed_notice() {
+        $awca_api_total_products = get_option('awca_api_total_products', 0);
+        $awca_last_sync_total_products = get_option('awca_count_anar_products_on_db', 0);
+
+        if($awca_api_total_products == 0 || $awca_last_sync_total_products == 0
+            || awca_is_import_products_running()) {
+            return;
+        }
+
+        // Calculate the absolute difference between the two values
+        $difference = abs($awca_api_total_products - $awca_last_sync_total_products);
+
+        // If difference is more than 10 products, show the notice
+        if ($difference >= 2) {
+            // Get the direction of change (increase or decrease)
+            $change_direction = ($awca_api_total_products > $awca_last_sync_total_products)
+                ? 'افزایش'
+                : 'کاهش';
+
+            // Create the notice message
+            $notice = sprintf(
+                '<div class="notice notice-warning is-dismissible">
+                <p>
+                    <strong>تغییر در تعداد محصولات انار:</strong> 
+                    تعداد %d محصول %s یافته است. 
+                    (تعداد فعلی: %d، تعداد قبلی: %d)
+                    
+                    <a href="%s">همگام‌سازی محصولات</a>
+                </p>
+            </div>',
+                $difference,
+                $change_direction,
+                $awca_api_total_products,
+                $awca_last_sync_total_products,
+                admin_url('admin.php?page=wp-anar')
+            );
+
+            // Echo the notice
+            echo wp_kses_post($notice);
+        }
     }
 }
 
