@@ -17,11 +17,11 @@
         </div>
 
         <div class="" style="display: flex; flex-direction: column; align-items: center">
-            <a href="#" class="toggle_show_hide" data-id="advanced_settings">تنظیمات پیشرفته</a>
+<!--            <a href="#" class="toggle_show_hide" data-id="advanced_settings">تنظیمات پیشرفته</a>-->
 
-            <div id="advanced_settings" style="display: none">
+            <div id="advanced_settings" style="display: block">
                 <p class="awca-form-control">
-                    <input type="checkbox" id="skipp_out_of_stocks" name="skipp_out_of_stocks">
+                    <input type="checkbox" id="skipp_out_of_stocks" name="skipp_out_of_stocks" checked>
                     <label for="skipp_out_of_stocks">محصولات ناموجود را منتشر نکن</label>
                 </p>
             </div>

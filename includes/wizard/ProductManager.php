@@ -417,70 +417,92 @@ class ProductManager{
     }
 
     public function publish_draft_products_ajax() {
-
-        if(!$_POST['security_nonce'] || !wp_verify_nonce($_POST['security_nonce'], 'publish_anar_products_ajax_nonce')) {
-            wp_send_json_error(
-                array(
-                    'message' => 'فرم نامعتبر است.'
-                )
-            );
+        // Verify nonce
+        if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'publish_anar_products_ajax_nonce')) {
+            wp_send_json_error(array(
+                'message' => 'فرم نامعتبر است.'
+            ));
         }
 
-        // Verify nonce and user capabilities first
+        // Check user capabilities
         if (!current_user_can('manage_woocommerce')) {
             wp_send_json_error(array(
                 'message' => 'شما مجوز این کار را ندارید!'
             ));
-            return;
         }
 
-        global $wpdb;
+        // Query arguments to get draft products
+        $args = array(
+            'post_type'      => 'product',
+            'post_status'    => 'draft',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'meta_query'     => array(
+                array(
+                    'key'     => '_anar_products',
+                    'compare' => 'EXISTS'
+                )
+            )
+        );
 
-        // Base query start
-        $query = "UPDATE {$wpdb->posts} p
-                 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id";
-
-        // Add join for stock status if needed
-        if($_POST['skipp_out_of_stocks'] == 'true'){
-            $query .= " INNER JOIN {$wpdb->postmeta} pm_stock ON p.ID = pm_stock.post_id 
-                       AND pm_stock.meta_key = '_stock_status'";
+        // Add stock status check if needed
+        if (isset($_POST['skipp_out_of_stocks']) && $_POST['skipp_out_of_stocks'] === 'true') {
+            $args['meta_query'][] = array(
+                'key'     => '_stock_status',
+                'value'   => 'instock',
+                'compare' => '='
+            );
         }
 
-        // Continue with the base query
-        $query .= " SET p.post_status = 'publish'
-                   WHERE p.post_type = 'product'
-                   AND p.post_status = 'draft'
-                   AND pm.meta_key = '_anar_products'";
+        // Get all draft products
+        $product_ids = get_posts($args);
 
-        // Add stock status condition if needed
-        if($_POST['skipp_out_of_stocks'] == 'true'){
-            $query .= " AND pm_stock.meta_value = 'instock'";
-        }
-
-        // Execute the update query
-        $result = $wpdb->query($query);
-
-        if ($result === false) {
-            wp_send_json_error(array(
-                'message' => 'خطایی در بروزرسانی محصولات پیش آمده. صفحه را دوباره بارگذاری و تست کنید.'
-            ));
-            return;
-        }
-
-        // If no products were updated
-        if ($result === 0) {
+        if (empty($product_ids)) {
             wp_send_json_success(array(
                 'message' => 'هیچ محصول پیش نویسی وجود ندارد.'
             ));
-            return;
         }
 
-        // Clear the product cache
+        $published_count = 0;
+
+        // Update each product
+        foreach ($product_ids as $product_id) {
+            // Get the product object
+            $product = wc_get_product($product_id);
+
+            if (!$product) {
+                continue;
+            }
+
+            // Update the product status
+            $product->set_status('publish');
+
+            // Save the product
+            if ($product->save()) {
+                $published_count++;
+
+                // Trigger action for other plugins
+                do_action('woocommerce_product_published', $product_id, $product);
+            }
+        }
+
+        if ($published_count === 0) {
+            wp_send_json_error(array(
+                'message' => 'خطایی در بروزرسانی محصولات پیش آمده. صفحه را دوباره بارگذاری و تست کنید.'
+            ));
+        }
+
+        // Clear cache
         wc_delete_product_transients();
 
-        // Send success response
+        // Clear product cache for each published product
+        foreach ($product_ids as $product_id) {
+            wp_cache_delete($product_id, 'post_meta');
+            wp_cache_delete('product-' . $product_id, 'products');
+        }
+
         wp_send_json_success(array(
-            'message' => sprintf('%d محصول منتشر شد.', $result)
+            'message' => sprintf('%d محصول منتشر شد.', $published_count)
         ));
     }
 }
