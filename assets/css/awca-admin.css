@@ -50,6 +50,12 @@
   font-family: "KalamehWeb";
 }
 
+.tools-wrapper{
+  max-width: 400px;
+  margin: 32px 0;
+}
+
+
 .anar-text {
   font-family: "KalamehWeb";
 }
@@ -194,7 +200,7 @@
   margin-bottom: 32px;
   margin-left: auto;
   margin-right: auto;
-  width: 55%;
+  width: 80%;
 }
 
 .awca_plugin_desc {
@@ -1094,7 +1100,7 @@ select::-ms-expand {
 
 .anar-package-data{
   border: 1px solid #efefef;
-  margin-bottom: 16px;
+  margin: 16px 0;
 }
 .anar-package-data header{
   display: flex;
@@ -1258,6 +1264,21 @@ select::-ms-expand {
 .awca-product-last-sync-time strong{
   display: block;
   padding: 4px 0;
+}
+
+.awca-hpos-enabled-sign{
+  position: absolute;
+  left: 0;
+  top: -50px;
+  font-size: 7px;
+  background: green;
+  color: #fff;
+  padding: 0 2px;
+}
+
+.awca-hpos-enabled-sign.off{
+  background: #efefef;
+  color: #ccc;
 }
 
 /*forms*/

@@ -3,7 +3,7 @@
 
 ?>
 
-<div class="wrapper" style="margin-top:32px">
+<div class="wrapper tools-wrapper" style="margin-top:32px">
     <h2 class="awca_plugin_titles">ریست تنظیمات و وضعیت های پلاگین انار</h2>
 
     <form method="post" id="awca-reset-all-settings">

@@ -232,7 +232,7 @@ class Sync {
         $difference = abs($awca_api_total_products - $awca_last_sync_total_products);
 
         // If difference is more than 10 products, show the notice
-        if ($difference >= 2) {
+        if ($difference >= 10) {
             // Get the direction of change (increase or decrease)
             $change_direction = ($awca_api_total_products > $awca_last_sync_total_products)
                 ? 'افزایش'

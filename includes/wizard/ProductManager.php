@@ -21,6 +21,7 @@ class ProductManager{
     public function __construct(){
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
+        add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
 
     }
 
@@ -415,4 +416,71 @@ class ProductManager{
         }
     }
 
+    public function publish_draft_products_ajax() {
+
+        if(!$_POST['security_nonce'] || !wp_verify_nonce($_POST['security_nonce'], 'publish_anar_products_ajax_nonce')) {
+            wp_send_json_error(
+                array(
+                    'message' => 'فرم نامعتبر است.'
+                )
+            );
+        }
+
+        // Verify nonce and user capabilities first
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array(
+                'message' => 'شما مجوز این کار را ندارید!'
+            ));
+            return;
+        }
+
+        global $wpdb;
+
+        // Base query start
+        $query = "UPDATE {$wpdb->posts} p
+                 INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id";
+
+        // Add join for stock status if needed
+        if($_POST['skipp_out_of_stocks'] == 'true'){
+            $query .= " INNER JOIN {$wpdb->postmeta} pm_stock ON p.ID = pm_stock.post_id 
+                       AND pm_stock.meta_key = '_stock_status'";
+        }
+
+        // Continue with the base query
+        $query .= " SET p.post_status = 'publish'
+                   WHERE p.post_type = 'product'
+                   AND p.post_status = 'draft'
+                   AND pm.meta_key = '_anar_products'";
+
+        // Add stock status condition if needed
+        if($_POST['skipp_out_of_stocks'] == 'true'){
+            $query .= " AND pm_stock.meta_value = 'instock'";
+        }
+
+        // Execute the update query
+        $result = $wpdb->query($query);
+
+        if ($result === false) {
+            wp_send_json_error(array(
+                'message' => 'خطایی در بروزرسانی محصولات پیش آمده. صفحه را دوباره بارگذاری و تست کنید.'
+            ));
+            return;
+        }
+
+        // If no products were updated
+        if ($result === 0) {
+            wp_send_json_success(array(
+                'message' => 'هیچ محصول پیش نویسی وجود ندارد.'
+            ));
+            return;
+        }
+
+        // Clear the product cache
+        wc_delete_product_transients();
+
+        // Send success response
+        wp_send_json_success(array(
+            'message' => sprintf('%d محصول منتشر شد.', $result)
+        ));
+    }
 }

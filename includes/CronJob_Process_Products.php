@@ -272,18 +272,19 @@ class CronJob_Process_Products {
             "SELECT DISTINCT 
             p.ID, 
             p.post_title 
-                FROM {$wpdb->posts} AS p
-                INNER JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
-                INNER JOIN {$wpdb->postmeta} AS mt2 ON (p.ID = mt2.post_id)
-                WHERE 1=1 
-                AND p.post_type = 'product'
-                AND p.post_status != 'trash'
-                AND mt1.meta_key = '_anar_products'
-                AND mt2.meta_key = '_anar_import_job_id' 
-                AND mt2.meta_value != %s",
+            FROM {$wpdb->posts} AS p
+            INNER JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
+            LEFT JOIN {$wpdb->postmeta} AS mt2 ON (
+                p.ID = mt2.post_id 
+                AND mt2.meta_key = '_anar_import_job_id'
+            )
+            WHERE 1=1 
+            AND p.post_type = 'product'
+            AND p.post_status != 'trash'
+            AND mt1.meta_key = '_anar_products'
+            AND (mt2.meta_value IS NULL OR mt2.meta_value != %s)",
             $job_id
         );
-
 
         $products = $wpdb->get_results($query_result);
         $product_count = count($products);

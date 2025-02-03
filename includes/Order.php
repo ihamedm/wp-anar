@@ -1,6 +1,8 @@
 <?php
 namespace Anar;
 
+use WP_Post;
+
 class Order {
 
     protected static $instance = null;
@@ -64,11 +66,12 @@ class Order {
         return $_is_anar_order ? $order_ID : false;
     }
 
-    public function get_order_anar_data($order) {
+    public function get_order_anar_data($order_id) {
         if(awca_is_hpos_enable()){
+            $order = wc_get_order($order_id);
             $_anar_order_data = $order->get_meta('_anar_order_data', true);
         }else{
-            $_anar_order_data = get_post_meta($order->ID, '_anar_order_data', true);
+            $_anar_order_data = get_post_meta($order_id, '_anar_order_data', true);
         }
         return $_anar_order_data;
     }
@@ -116,15 +119,14 @@ class Order {
 
         // Decode & Return the response data if everything is okay
         $prepare_response = json_decode(wp_remote_retrieve_body($prepare_response), true);
-
         if (isset($prepare_response['statusCode']) && $prepare_response['statusCode'] !== 200) {
             // Handle error
             $order->add_order_note('سفارش از سمت انار تایید نشد. خطا: ' . $prepare_response['message']);
-            awca_log(print_r($prepare_response, true));
+            //awca_log(print_r($prepare_response, true));
             return false;
         } else {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
-            awca_log('prepare success, total price is: ' . print_r($prepare_response['sum'], true));
+            //awca_log('prepare success, total price is: ' . print_r($prepare_response, true));
         }
 
         // Prepare data for the second API call
@@ -142,6 +144,7 @@ class Order {
             'shipments' => $this->prepare_shipments($order) // Prepare shipment data from response
         ];
 
+
         // Second API call to create the order
         $create_response = $this->call_api('https://api.anar360.com/wp/orders/', $create_data);
 
@@ -152,7 +155,6 @@ class Order {
 
         // Decode the response body
         $create_response = json_decode(wp_remote_retrieve_body($create_response), true);
-
 
         if (!isset($create_response['success']) || !$create_response['success']) {
             // Handle error
@@ -195,8 +197,13 @@ class Order {
 
 
     private function get_variation_id($item) {
+
         // Get the product object
         $product = $item->get_product();
+
+        if(!$product || is_wp_error($product)) {
+            return false;
+        }
 
         // Check if the product is a variation
         if ($product->is_type('variation')) {
@@ -275,11 +282,31 @@ class Order {
     }
 
 
-    public function anar_order_meta_box_html($order) {
+    public function get_order_ID($order)
+    {
+        if($order instanceof \WC_Order){
+            return $order->get_id();
+        }elseif($order instanceof \WP_Post){
+            return $order->ID;
+        }elseif (is_numeric($order)) {
+            return $order;
+        }else{
+            return false;
+        }
+    }
 
-        if(ANAR_IS_ENABLE_CREATE_ORDER)
-            if( $this->get_order_anar_data($order) ):?>
-            <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order->ID;?>">
+    public function anar_order_meta_box_html($order) {
+        $order_id = $this->get_order_ID($order);
+
+
+        printf( '<span class="awca-hpos-enabled-sign %s">HPOS</span>',
+            awca_is_hpos_enable() ? "on" : "off"
+        );
+
+
+        if(ANAR_IS_ENABLE_CREATE_ORDER):
+            if( $this->get_order_anar_data($order_id) ):?>
+            <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">
                 <div class="awca-loading-message-spinner">
                     در حال دریافت اطلاعات...
                     <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
@@ -292,7 +319,7 @@ class Order {
             <?php else:?>
             <div id="awca-custom-meta-box-container">
                 <p class="alert alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
-                <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order->ID;?>">
+                <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
                     ثبت این سفارش در پنل انار
                     <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                         <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
@@ -304,117 +331,14 @@ class Order {
             <?php
             endif;
 
-        // show shipping methods of user choices for each package
-        $this->display_packages_shipping_data($order);
-
+        else:
+            $this->display_packages_shipping_data($order_id);
+        endif;
 
     }
 
-    public function display_packages_shipping_data_old($order) {
-        $wc_order = wc_get_order($order->ID);
-        if (!$wc_order) {
-            return;
-        }
-
-        // Get the saved shipping data from order meta
-        $order_shipping_data = $wc_order->get_meta('_anar_shipping_data');
-        if (empty($order_shipping_data) || !is_array($order_shipping_data)) {
-            return;
-        }
-
-        // Build a map of all available delivery methods and products from order items
-        $delivery_methods_map = [];
-        $all_shipments = [];
-
-        foreach ($wc_order->get_items() as $item) {
-            $product = $item->get_product();
-            $product_id = $item->get_product_id();
-
-            if(!$product)
-                continue;
-
-            // Store product information
-            $products_info = [
-                'name' => $product->get_name(),
-                'image' => wp_get_attachment_image_url($product->get_image_id(), 'thumbnail'),
-                'link' => get_permalink($product_id),
-                'quantity' => $item->get_quantity()
-            ];
-
-            $product_shipments = ProductData::get_anar_product_shipments($product_id);
-            $all_shipments[] = $product_shipments;
-            if (isset($product_shipments['delivery']) && is_array($product_shipments['delivery'])) {
-                foreach ($product_shipments['delivery'] as $delivery_id => $delivery_info) {
-                    $delivery_methods_map[$delivery_id] = [
-                        'type' => $delivery_info['deliveryType'],
-                        'price' => $delivery_info['price'],
-                        'estimatedTime' => $delivery_info['estimatedTime'],
-                        'name' => $delivery_info['name'],
-                        'product' => $products_info,
-                    ];
-                }
-            }
-        }
-
-//        echo json_encode($all_shipments, JSON_PRETTY_PRINT);
-        echo json_encode($order_shipping_data, JSON_PRETTY_PRINT);
-
-        // Display the shipping information
-        echo '<div class="anar-shipping-info">';
-        echo '<h3>جزییات حمل و نقل محصولات انار</h3>';
-
-        foreach ($order_shipping_data as $i => $shipping_item) {
-            if (!isset($shipping_item['deliveryId']) || !isset($delivery_methods_map[$shipping_item['deliveryId']])) {
-                continue;
-            }
-
-            $delivery_info = $delivery_methods_map[$shipping_item['deliveryId']];
-            $product_info = $delivery_info['product'];
-
-            echo '<div class="anar-package-data open">';
-
-            printf('<header>
-                            <strong>مرسوله %s</strong>
-                            <spn class="toggle-handler"><span class="close">+</span><span class="open">-</span></span>
-                        </header>',
-            $i+1);
-echo '<ul>';
-            // Product information section
-            if ($product_info) {
-                echo '<div class="product-info">';
-                echo '<div class="product-image">';
-                if ($product_info['image']) {
-                    echo '<a href="' . esc_url($product_info['link']) . '">';
-                    echo '<img src="' . esc_url($product_info['image']) . '" alt="' . esc_attr($product_info['name']) . '">';
-                    echo '</a>';
-                }
-                echo '</div>';
-
-                echo '<div class="product-details">';
-                echo '<h4><a href="' . esc_url($product_info['link']) . '">' . esc_html($product_info['name']) . '</a></h4>';
-                echo '<p>تعداد: ' . esc_html($product_info['quantity']) . '</p>';
-                echo '</div>';
-                echo '</div>';
-            }
-
-            // Shipping information section
-            echo '<div class="shipping-details">';
-            echo '<p><strong>' . esc_html__('شیوه ارسال:', 'wp-anar') . '</strong> ' .
-                esc_html($delivery_info['name']) . '</p>';
-            echo '<p><strong>' . esc_html__('هزینه:', 'wp-anar') . '</strong> ' .
-                wc_price($delivery_info['price']) . '</p>';
-            echo '<p><strong>' . esc_html__('مدت زمان تحویل حدودی:', 'wp-anar') . '</strong> ' .
-                esc_html($delivery_info['estimatedTime']) . '</p>';
-            echo '</div>'; //shipping-details"
-
-            echo '</div>';
-        }
-
-        echo '</div>';
-    }
-
-    public function display_packages_shipping_data($order) {
-        $wc_order = wc_get_order($order->ID);
+    public function display_packages_shipping_data($order_id) {
+        $wc_order = wc_get_order($order_id);
         if (!$wc_order) {
             return;
         }
@@ -468,11 +392,29 @@ echo '<ul>';
 
             // prepare package delivery data
             $deliveryInfo = [];
-            foreach ($package_data[0]['product_shipments']['delivery'] as $deliveryID => $deliveryData) {
-                if ($deliveryID == $package_data[0]['selected_shipments']['deliveryId']){
-                    $deliveryInfo = $deliveryData;
-                    break;
+            try {
+                // Check if package_data exists and has the expected structure
+                if (!empty($package_data) &&
+                    isset($package_data[0]['product_shipments']['delivery']) &&
+                    is_array($package_data[0]['product_shipments']['delivery']) &&
+                    isset($package_data[0]['selected_shipments']['deliveryId'])
+                ) {
+                    foreach ($package_data[0]['product_shipments']['delivery'] as $deliveryID => $deliveryData) {
+                        if ($deliveryID == $package_data[0]['selected_shipments']['deliveryId']) {
+                            $deliveryInfo = $deliveryData;
+                            break;
+                        }
+                    }
+                } else {
+                    // Log the error or handle the case where data is not in expected format
+                    error_log('Package data is not in the expected format');
+                    echo '<div class="alert alert-warning">اطلاعات حمل و نقل به درستی ذخیره نشده است.</div>';
                 }
+            } catch (\Exception $e) {
+                // Log the error
+                error_log('Error processing delivery info: ' . $e->getMessage());
+                echo '<div class="alert alert-warning">مشکلی در دریافت اطلاعات حمل و نقل برخی مرسوله ها وجود دارد!</div>';
+
             }
 
             $order_items_markup = '';
@@ -487,7 +429,7 @@ echo '<ul>';
                         </div>
                     </div>
                     ',
-                    $package['products_info']['link'],
+                    $package['products_info']['link'] ,
                     $package['products_info']['image'],
                     $package['products_info']['link'],
                     $package['products_info']['name'],
@@ -522,9 +464,9 @@ echo '<ul>';
                 sprintf('<b style="color:red">مرسوله %d</b>', $package_number),
                 count($package_data),
                 $order_items_markup,
-                $deliveryInfo['name'],
-                $deliveryInfo['price'],
-                $deliveryInfo['estimatedTime']
+                $deliveryInfo['name'] ?? '--',
+                $deliveryInfo['price'] ?? '--',
+                $deliveryInfo['estimatedTime'] ?? '--'
             );
         }
 
@@ -781,16 +723,6 @@ echo '<ul>';
                     $output .= sprintf('<ul class="package-data-list">
                             <li><b>شماره مرسوله: </b>%s</li>
                             <li>%s</li>
-                            
-                            <li>
-                                <ul style="background:#eee; border-radius:5px; padding:8px;list-style:none">
-                                    <li><b>جمع کالاها: </b>%s</li>
-                                    <li><b>هزینه ارسال: </b>%s</li>
-                                    <li><b>جمع کل: </b>%s</li>    
-                                </ul>
-                           
-                            </li>
-                            
                             <li><b>وضعیت سفارش: </b>%s</li>
                             <li><b>شیوه ارسال: </b>%s</li>
                             <li><b>زمان ارسال: </b>%s</li>
@@ -799,10 +731,6 @@ echo '<ul>';
                         </ul>',
                         $package['orderNumber'],
                         $product_list_markup,
-
-                        awca_get_formatted_price($package['price']['items']),
-                        awca_get_formatted_price($package['price']['delivery']),
-                        awca_get_formatted_price($package['price']['payable']),
 
                         awca_translator($package['status']),
                         awca_translator($package['delivery']['deliveryType']),

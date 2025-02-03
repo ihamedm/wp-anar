@@ -140,7 +140,22 @@ class Menus{
     public function tools_page_content()
     {
         $this->force_activation();
-        include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools.php';
+        $active_tab = $_GET['tab'] ?? 'tools';
+
+        ?>
+        <div class="wrap awca-wrap">
+            <h2>ابزارهای انار</h2>
+
+            <h2 class="nav-tab-wrapper">
+                <a href="?page=tools&tab=tools" class="nav-tab <?php echo $active_tab === 'tools' ? 'nav-tab-active' : ''; ?>">ابزارها</a>
+                <a href="?page=tools&tab=features" class="nav-tab <?php echo $active_tab === 'features' ? 'nav-tab-active' : ''; ?>">امکانات</a>
+            </h2>
+
+            <?php include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/'.$active_tab.'.php';?>
+
+
+        </div>
+        <?php
     }
 
     public function docs_page_content()

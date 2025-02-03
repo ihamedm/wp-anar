@@ -235,16 +235,6 @@ class Checkout {
                             </div>
                         </th>
                         <td>
-                            <?php
-                            //                        woocommerce_form_field('anar_delivery_option_' . $key, array(
-                            //                            'type' => 'radio',
-                            //                            'required' => true,
-                            //                            'class' => array('form-row-wide', 'update_totals_on_change'),
-                            //                            'options' => $names,
-                            //                        ), $chosen);
-
-                            ?>
-
                             <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
                         </td>
                     </tr>
