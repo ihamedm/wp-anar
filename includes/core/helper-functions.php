@@ -222,3 +222,39 @@ function awca_call_anar_api($api_url)
 function awca_is_import_products_running(){
     return !Anar\CronJob_Process_Products::is_create_products_cron_locked();
 }
+
+function awca_get_dokan_vendors() {
+    if ( ! current_user_can( 'manage_woocommerce' ) ) {
+        return false;
+    }
+
+    $vendors = [];
+
+    $results = dokan()->vendor->all();
+
+    if ( ! empty( $results ) ) {
+        foreach ( $results as $vendor ) {
+            $vendors[] = [
+                'id'     => $vendor->get_id(),
+                'text'   => ! empty( $vendor->get_shop_name() ) ? $vendor->get_shop_name() : $vendor->get_name(),
+            ];
+        }
+    }
+
+    return $vendors;
+}
+
+function awca_get_first_admin_user_id() {
+    $admins = get_users(array(
+        'role'    => 'administrator',
+        'orderby' => 'ID',
+        'order'   => 'ASC',
+        'number'  => 1
+    ));
+
+    if (!empty($admins)) {
+        return $admins[0]->ID;
+    }
+
+    return 0; // Return 0 if no admin found
+}

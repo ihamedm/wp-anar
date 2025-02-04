@@ -22,6 +22,7 @@ class ProductManager{
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
+        add_action( 'wp_ajax_awca_set_vendor_for_anar_products_ajax', [$this, 'set_vendor_for_anar_products_ajax'] );
 
     }
 
@@ -91,7 +92,7 @@ class ProductManager{
             }
 
             $product_id = $product->get_id();
-            self::update_common_meta_data($product_id, $product_data);
+            self::update_common_meta_data($product, $product_data);
 
             return ['product_id' => $product_id, 'created' => $product_created];
 
@@ -181,16 +182,28 @@ class ProductManager{
         $product->save();
     }
 
-    private static function update_common_meta_data($product_id, $product_data) {
-        // Shipments data
-        update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
-        update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
+    private static function update_common_meta_data($product, $product_data) {
+        $product_id = $product->get_id();
+        $import_job_id = get_option('awca_cron_create_products_job_id');
+
+
         update_post_meta($product_id, '_anar_products', 'true');
         update_post_meta($product_id, '_anar_last_sync_time', current_time('mysql'));
+        update_post_meta($product_id, '_anar_shipments', $product_data['shipments']);
+        update_post_meta($product_id, '_anar_shipments_ref', $product_data['shipments_ref']);
 
-        $import_job_id = get_option('awca_cron_create_products_job_id');
+        // mark this product process on last job session (to find deprecated products)
         if($import_job_id)
             update_post_meta($product_id, '_anar_import_job_id', $import_job_id);
+
+
+        $author_id = awca_get_first_admin_user_id();
+        if($author_id){
+            wp_update_post(array(
+                'ID'          => $product_id,
+                'post_author' => $author_id,
+            ));
+        }
 
         // Image and gallery
         if (!empty($product_data['image'])) {
@@ -200,6 +213,9 @@ class ProductManager{
         if (isset($product_data['gallery_images']) && is_array($product_data['gallery_images'])) {
             update_post_meta($product_id, '_anar_gallery_images', $product_data['gallery_images']);
         }
+
+        $product->save();
+
     }
 
 
@@ -504,5 +520,81 @@ class ProductManager{
         wp_send_json_success(array(
             'message' => sprintf('%d محصول منتشر شد.', $published_count)
         ));
+    }
+
+    public function set_vendor_for_anar_products_ajax() {
+
+        if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'anar_set_vendor_ajax_nonce')) {
+            wp_send_json_error(array(
+                'message' => 'فرم نامعتبر است.'
+            ));
+        }
+
+
+        // Check dokan installation
+        if (!class_exists('WeDevs_Dokan')) {
+            wp_send_json_error(array(
+                'message' => 'پلاگین دکان غیر فعال است. نمی توانید از این ابزار استفاده کنید.'
+            ));
+        }
+
+
+        // Check user capabilities
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array(
+                'message' => 'شما مجوز این کار را ندارید!'
+            ));
+        }
+
+        if (empty($_POST['vendor_id'])) {
+            wp_send_json_error(array(
+                'message' => 'یک فروشنده انتخاب کنید.'
+            ));
+        }
+
+        $vendor_id = $_POST['vendor_id'];
+
+
+        // Get all products that have our custom meta key
+        $args = array(
+            'post_type'      => 'product',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'meta_query'     => array(
+                array(
+                    'key'     => '_anar_products',
+                    'compare' => 'EXISTS'
+                )
+            )
+        );
+
+        $products = get_posts($args);
+
+        if (empty($products)) {
+            wp_send_json_error(array(
+                'message' => 'هیچ محصولی پیدا نشد!'
+            ));
+        }
+
+        $updated_count = 0;
+
+        foreach ($products as $product) {
+            // Set the vendor ID using Dokan's method
+            $product = wc_get_product($product);
+            if($product){
+                dokan_override_product_author($product, $vendor_id);
+            }
+            $updated_count++;
+        }
+
+//        wp_send_json_success(array(
+//            'message' => print_r($products, true)
+//        ));
+
+        wp_send_json_success(array(
+            'message' => sprintf('%d محصول بروزرسانی شد.', $updated_count)
+        ));
+
+
     }
 }
