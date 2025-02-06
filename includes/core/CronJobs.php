@@ -45,6 +45,11 @@ class CronJobs {
         }
 
 
+        if (!wp_next_scheduled('awca_sync_products_full_cron')) {
+            wp_schedule_event(time(), 'hourly', 'awca_sync_products_full_cron');
+        }
+
+
         // Schedule the unread notifications count event
         if (!wp_next_scheduled('awca_fetch_updated_data_from_anar_cron')) {
             wp_schedule_event(time(), 'hourly', 'awca_fetch_updated_data_from_anar_cron');
@@ -55,13 +60,16 @@ class CronJobs {
             wp_schedule_event(time(), 'daily', 'awca_daily_log_cleanup_cron');
         }
 
+
     }
 
     public function assign_jobs() {
 
         add_action('awca_create_products', [$this, 'create_products_job']);
 
-        add_action('awca_sync_products_cron', [$this, 'sync_all_products_job']);
+        add_action('awca_sync_products_cron', [$this, 'sync_updated_products_job']);
+
+        add_action('awca_sync_products_full_cron', [$this, 'sync_all_products_job']);
 
         // Assign the action for counting unread notifications
         add_action('awca_fetch_updated_data_from_anar_cron', [$this, 'fetch_updated_data_from_anar_job']);
@@ -99,12 +107,19 @@ class CronJobs {
     }
 
 
+    public function sync_updated_products_job() {
+
+        $sync = Sync::get_instance();
+        $sync->syncProducts();
+
+    }
+
     public function sync_all_products_job() {
 
         $sync = Sync::get_instance();
-        $sync->syncAllProducts();
+        $sync->fullSync = true;
+        $sync->syncProducts();
         $sync->get_api_total_products_number();
-
 
     }
 

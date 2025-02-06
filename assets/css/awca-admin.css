@@ -1266,6 +1266,27 @@ select::-ms-expand {
   padding: 4px 0;
 }
 
+.wp-list-table th#product_label,
+.wp-list-table td.product_label {
+  width: 10%;
+  white-space: nowrap;
+}
+
+.awca-product-anar-prices{
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px dashed #0f834d;
+  border-radius: 8px;
+}
+.awca-product-anar-prices span{
+  display: block;
+  padding: 4px 0;
+}
+
+.awca-product-anar-prices span strong{
+  float: left;
+}
+
 .awca-hpos-enabled-sign{
   position: absolute;
   left: 0;

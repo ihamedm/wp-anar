@@ -25,11 +25,6 @@
                     <input type="checkbox" id="delete_map_data" name="delete_map_data">
                     <label for="delete_map_data">حذف اطلاعات متناظر سازی های دسته بندی ها و ویژگی ها</label>
                 </p>
-
-<!--                <p class="awca-form-control">-->
-<!--                    <input type="checkbox" id="skipp_generate_products" name="skipp_generate_products" checked>-->
-<!--                    <label for="skipp_generate_products">توقف پردازش محصولات (مشکلی ایجاد نمی‌شود، می توانید مجدد انجام دهید.)</label>-->
-<!--                </p>-->
             </div>
         </div>
     </form>

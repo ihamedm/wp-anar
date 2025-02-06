@@ -13,7 +13,15 @@ class Sync {
     private $syncedCounter;
     private $startTime;
 
+    private $jobID;
+
+    private $triggerDuration = 5 * 60000; // we run sync every (n) ms with cronjob
+
     private $logger;
+
+    public $triggerBy;
+
+    public $fullSync = false;
 
     /**
      * time in milliseconds
@@ -34,6 +42,7 @@ class Sync {
         $this->limit = 10;
         $this->page = 1;
         $this->syncedCounter = 0;
+        $this->triggerBy = 'Cronjob';
 
         $this->logger = new Logger();
 
@@ -49,7 +58,7 @@ class Sync {
         add_action('admin_notices', [$this, 'show_total_products_changed_notice']);
     }
 
-    public function syncAllProducts() {
+    public function syncProducts() {
 
         if(!Activation::validate_saved_activation_key_from_anar())
             return;
@@ -59,13 +68,35 @@ class Sync {
             return;
         }
 
+
+        // check for last sync time, it must be same with duration that we run sync
+        // we do this check to prevent lost some product updates from server
+        $lastSyncTime = get_option('awca_last_sync_time');
+        if ($lastSyncTime) {
+            $timeSinceLastSync = strtotime('now') - strtotime($lastSyncTime);
+            $timeSinceLastSyncMs = $timeSinceLastSync * 1000; // Convert to milliseconds
+
+            $this->updatedSince = 10 * 60000; // get updates of products since 10 min ago
+            // If it's been longer than trigger duration, increase the time window
+            // we look back for updates proportionally
+            if ($timeSinceLastSyncMs > $this->triggerDuration) {
+                $this->updatedSince = $timeSinceLastSyncMs;
+                $this->log('we lost some updates from Anar, so increase updatedSince value to ' . $this->updatedSince / 60000 . ' minutes ago.');
+            }
+
+        }
+
+        $this->jobID = uniqid('anar_sync_job_', true);
+
         $this->lockSync();
 
         // Capture the start time before beginning the sync process
         $this->startTime = microtime(true);
 
         try {
+            $this->log('-------------------------------- Start Sync '.$this->jobID.' --------------------------------');
             $this->log('## Sync products that changes since '.($this->updatedSince / 60000).' minutes ago ...');
+            $this->log('## Trigger by [ '.$this->triggerBy.' ] ' . ($this->fullSync ? ' [ full sync ]' : '') );
             $this->processPages();
             $this->updateLastSyncTime();
         } finally {
@@ -88,10 +119,12 @@ class Sync {
 
     private function processPages() {
         while (true) {
-            $apiUrl = add_query_arg(
-                array('page' => $this->page, 'limit' => $this->limit, 'since' => $this->updatedSince * -1),
-                $this->baseApiUrl
-            );
+            $api_args = array('page' => $this->page, 'limit' => $this->limit, 'since' => $this->updatedSince * -1);
+
+            if($this->fullSync)
+                unset($api_args['since']);
+
+            $apiUrl = add_query_arg($api_args, $this->baseApiUrl);
             $awcaProducts = $this->callAnarApi($apiUrl);
 
             if (is_wp_error($awcaProducts)) {
@@ -102,6 +135,11 @@ class Sync {
             if (empty($awcaProducts->items)) {
                 break;
             }
+
+            if($this->page == 1){
+                $this->log(sprintf('## Find %s products for update.' , $awcaProducts->total));
+            }
+
 
             $this->processProducts($awcaProducts->items);
 
@@ -122,6 +160,10 @@ class Sync {
             } else {
                 $this->processVariableProduct($updateProduct);
             }
+
+            if(!$this->fullSync)
+                $this->log("Sync Product [{$updateProduct->title}].");
+
         }
     }
 
@@ -134,7 +176,7 @@ class Sync {
             $variantStock = ($updateProduct->resellStatus == 'editing-pending') ? 0 : $variant->stock;
             $product = wc_get_product($productId);
             $this->updateProductStockAndPrice($product, $variantStock, $variant->price);
-            $this->updateProductMetadata($productId);
+            $this->updateProductMetadata($productId, $variant);
         }
     }
 
@@ -148,7 +190,7 @@ class Sync {
                 $variantStock = ($updateProduct->status == 'editing-pending') ? 0 : $variant->stock;
                 $product = wc_get_product($productId);
                 $this->updateProductStockAndPrice($product, $variantStock, $variant->price);
-                $this->updateProductMetadata($product->get_parent_id());
+                $this->updateProductMetadata($product->get_parent_id(), $variant);
             }
         }
     }
@@ -157,14 +199,26 @@ class Sync {
         if ($product) {
             $convertedPrice = awca_convert_price_to_woocommerce_currency($price);
             $product->set_stock_quantity($stock);
-            $product->set_price($convertedPrice);
-            $product->set_regular_price($convertedPrice);
+
+            if(get_option('anar_conf_feat__optional_price_sync', 'no') == 'no'){
+                $product->set_price($convertedPrice);
+                $product->set_regular_price($convertedPrice);
+            }
+
             $product->save();
         }
     }
 
-    private function updateProductMetadata($productId) {
+    private function updateProductMetadata($productId, $variant) {
         update_post_meta($productId, '_anar_last_sync_time', current_time('mysql'));
+        update_post_meta($productId, '_anar_prices',
+            [
+                'price' => $variant->price,
+                'priceForResell' => $variant->priceForResell,
+                'resellerProfit' => $variant->resellerProfit,
+                'sellerDiscount' => $variant->sellerDiscount,
+            ]
+        );
     }
 
     private function callAnarApi($apiUrl) {
@@ -185,15 +239,20 @@ class Sync {
         $elapsedTime = $endTime - $this->startTime;
         $minutes = round($elapsedTime / 60);
         $this->log("## Sync done. Total sync time: {$minutes} minute(s).");
+        $this->log('-------------------------------- End Sync '.$this->jobID.' --------------------------------');
     }
 
     // AJAX handler for syncing products price and stocks
     public function syncProductsPriceAndStocksAjax() {
-        $this->syncAllProducts();
+        $this->triggerBy = 'Manual';
+        if(isset($_POST['full_sync']) && $_POST['full_sync'] == 'on') {
+            $this->fullSync = true;
+        }
+        $this->syncProducts();
 
         $response = array(
             'success' => true,
-            'message' => 'همگام سازی با موفقیت انجام شد'
+            'message' => sprintf('همگام سازی %s محصول با موفقیت انجام شد', $this->syncedCounter),
         );
         wp_send_json($response);
     }

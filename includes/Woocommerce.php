@@ -54,11 +54,24 @@ class Woocommerce{
         $image_url = get_post_meta($post->ID, '_product_image_url', true);
         $gallery_image_urls = get_post_meta($post->ID, '_anar_gallery_images', true);
         $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
+        $anar_prices = get_post_meta($post->ID, '_anar_prices', true);
         ?>
         <div id="awca-custom-meta-box-container">
             <?php if($last_sync_time) {
-                printf('<div class="awca-product-last-sync-time"><span>آخرین همگام سازی با انار</span> <strong>%s</strong></div>',
-                    mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_sync_time));
+                printf('<div class="awca-product-last-sync-time"><span>آخرین همگام سازی با انار</span> <strong>%s</strong>%s</div>',
+                    mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_sync_time),
+                    ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes' ? 'همگام سازی قیمت غیر فعال است.' : ''
+                );
+            }?>
+
+            <?php if($anar_prices) {
+                printf('<div class="awca-product-anar-prices">
+                        <span>قیمت فروش در انار <strong>%s</strong></span>
+                        <span>قیمت همکار <strong>%s</strong></span>
+                        </div>',
+                    awca_get_formatted_price($anar_prices['price']) ?? '-',
+                    awca_get_formatted_price($anar_prices['priceForResell']) ?? '-',
+                );
             }?>
 
             <button id="awca-dl-the-product-images" class="awca-primary-btn" data-product-id="<?php echo $post->ID;?>"
@@ -132,9 +145,17 @@ class Woocommerce{
         if ($column === 'product_label') {
             $anar_products = get_post_meta($post_id, '_anar_sku', true);
             if (!empty($anar_products)) {
+                $anar_prices = get_post_meta($post_id, '_anar_prices', true);
+
                 $anar_url = "https://anar360.com/earning-income/product/{$anar_products}";
                 echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="مشاهده محصول در سایت انار۳۶۰"><img src="'.ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg"></a>';
-//                echo '<a class="anar-label" href="'.$anar_url.'" target="_blank" title="مشاهده محصول در سایت انار۳۶۰">انار</a>';
+
+                if($anar_prices && ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes') {
+                    echo '<br>';
+                    echo 'قیمت انار';
+                    echo '<br>';
+                    echo awca_get_formatted_price($anar_prices['price']) ?? '-';
+                }
             }
         }
     }

@@ -2,6 +2,7 @@
 // Get saved options
 
 $activate_anar_order_feat = get_option('anar_conf_feat__create_orders', 'no');
+$activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 
 // Handle form submission
 if (isset($_POST['save_anar_settings'])) {
@@ -13,6 +14,16 @@ if (isset($_POST['save_anar_settings'])) {
     // Success message
     echo '<div class="updated"><p>تنظیمات ذخیره شد.</p></div>';
 
+}
+
+// temporary these options not public so trigger only buy query params
+if(isset($_GET['anar_optional_price_sync'])){
+    update_option('anar_conf_feat__optional_price_sync', $_GET['anar_optional_price_sync']);
+
+    printf('<div class="updated"><p>تنظیمات ذخیره شد. همگام سازی قیمت های انار %s شد.</p></div>',
+
+    ($_GET['anar_optional_price_sync'] == 'yes') ? 'غیرفعال' : 'فعال'
+    );
 }
 ?>
 <br class="clear">

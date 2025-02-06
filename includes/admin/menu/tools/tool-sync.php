@@ -14,6 +14,17 @@
                     <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
                 </svg>
             </button>
+
+        </div>
+        <div class="" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 32px">
+            <a href="#" class="toggle_show_hide" data-id="advanced_settings">تنظیمات پیشرفته</a>
+
+            <div id="advanced_settings" style="display: none">
+                <p class="awca-form-control">
+                    <input type="checkbox" id="full_sync" name="full_sync">
+                    <label for="full_sync">همگام سازی برای کل محصولات انجام شود.</label>
+                </p>
+            </div>
         </div>
     </form>
 
@@ -33,5 +44,11 @@
         echo('<p style="text-align:center;color:#E11C47FF;">هر ۲ دقیقه یکبار بصورت اتوماتیک انجام می شود.</p>');
     }
 
-    ?>
+    if(ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes'){?>
+        <p style="text-align:center;color: #8e0ec7;background: #f0e6fe;padding: 11px 0;border-radius: 12px;">
+            همگام سازی قیمت ها غیر فعال شده است.
+            <a href="<?php echo admin_url('admin.php?page=tools&tab=features&anar_optional_price_sync=no');?>">فعال کن</a>
+        </p>
+    <?php } ?>
+
 </div>
