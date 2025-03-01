@@ -30,7 +30,6 @@ jQuery(document).ready(function($) {
                     $(this).attr("disabled", "disabled");
                 },
                 success: function (response) {
-                    console.log(response)
                     if (response.success) {
                         location.reload();
                         msgType = 'success'
@@ -72,7 +71,6 @@ jQuery(document).ready(function($) {
                     loadingIcon.show();
                 },
                 success: function (response) {
-                    console.log(response)
                     if (response.success) {
                         anarOrderDetails.html(response.data.output)
                         msgType = 'success'

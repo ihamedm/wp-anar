@@ -68,7 +68,7 @@ class Logger {
         // Ensure the log file is writable
         if (is_writable($log_file)) {
             // Append the message to the log file with a timestamp
-            $timestamp = date("Y-m-d H:i:s");
+            $timestamp = current_time("mysql");
             file_put_contents($log_file, "[$timestamp] $message" . PHP_EOL, FILE_APPEND);
         } else {
             // Log an error if the file is not writable

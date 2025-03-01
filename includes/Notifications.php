@@ -58,7 +58,7 @@ class Notifications {
 
         if ($response_body['success']) {
 
-            $notifications = $response_body['data']['result'];
+            $notifications = $response_body['result'];
             $output = '';
 
             if(is_array($notifications) ) {
@@ -71,7 +71,7 @@ class Notifications {
                         </tr>',
                         $index + 1,
                         $notification['read'] ? $notification['title'] : '<b>' . $notification['title'] . '</b>',
-                        $notification['read'] ? $notification['description'] : '<b>' . $notification['description'] . '</b>',
+                        $notification['read'] ? $notification['description'] : '<p>' . $notification['description'] . '</p>',
                     );
 
                     if(isset($notification['_id']))
@@ -120,8 +120,8 @@ class Notifications {
 
         $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
-        if ($response_body['success']) {
-            update_option('awca_unread_notifications', $response_body['data']['total']);
+        if ($response_body['success'] && isset($response_body['total'])) {
+            update_option('awca_unread_notifications', $response_body['total']);
         } else {
             awca_log("count unread notifications error: " . print_r($response_body, true));
         }

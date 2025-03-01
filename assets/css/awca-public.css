@@ -110,6 +110,25 @@
     margin:0;
 }
 
+.anar-delivery-option.free-shipping .price {
+    color: #4CAF50;
+}
+
+.anar-delivery-option.free-shipping .estimated-time {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.anar-shipments-user-notice p{
+    border: 1px solid blue;
+    border-radius: 8px;
+    background: rgba(0, 0, 255, 0.06);
+    color: blue;
+    padding: 10px;
+    text-align: center;
+    margin: 0;
+}
+
 
 /* ------------ Order ------------------*/
 

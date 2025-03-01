@@ -5,6 +5,8 @@
 
 <div class="wrapper tools-wrapper" style="margin-top:32px">
     <h2 class="awca_plugin_titles">ریست تنظیمات و وضعیت های پلاگین انار</h2>
+    <p class="awca_plugin_subTitles">هیچگونه اطلاعات مهمی پاک نمی شود. فقط تنظیمات موقت پلاگین ریست می شود.</p>
+    <p class="awca_plugin_subTitles">اگر مشکلی در عملگرد پلاگین هنگام همگام سازی محصولات مشاهده کردید می توانید از این گزینه استفاده کنید.</p>
 
     <form method="post" id="awca-reset-all-settings">
         <?php wp_nonce_field('reset_options_ajax_nonce', 'reset_options_ajax_field'); ?>
@@ -18,9 +20,8 @@
         </div>
 
         <div class="" style="display: flex; flex-direction: column; align-items: center">
-            <a href="#" class="toggle_show_hide" data-id="advanced_settings">تنظیمات پیشرفته</a>
-
-            <div id="advanced_settings" style="display: none">
+            <a href="#" class="toggle_show_hide" data-id="reset_advanced_settings">تنظیمات پیشرفته</a>
+           <div id="reset_advanced_settings" style="display: none">
                 <p class="awca-form-control">
                     <input type="checkbox" id="delete_map_data" name="delete_map_data">
                     <label for="delete_map_data">حذف اطلاعات متناظر سازی های دسته بندی ها و ویژگی ها</label>

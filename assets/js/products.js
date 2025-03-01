@@ -310,15 +310,9 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 awca_toast('ساخت محصولات در پس زمینه شروع شد.', "success");
-                console.log('Background process started successfully.');
-                console.log(response);
             },
             error: function(xhr, status, err) {
                 awca_toast('مشکلی در شروع فرآیند پس زمینه ایجاد شد.', "error");
-                console.log('Failed to start background process.');
-                console.log(err);
-                console.log(status);
-                console.log(xhr);
             }
         });
     }

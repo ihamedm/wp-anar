@@ -8,7 +8,7 @@
     <form method="post" id="publish-anar-products">
         <?php wp_nonce_field('publish_anar_products_ajax_nonce', 'security_nonce'); ?>
         <div class="stepper_button_container">
-            <button type="submit" class="plugin_activation_button stepper_btn" id="awca_publish_anar_products_btn">
+            <button type="submit" class="awca-primary-btn submit-button" id="awca_publish_anar_products_btn">
                 <span>انتشار همه محصولات انار</span>
                 <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                     <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
@@ -17,8 +17,6 @@
         </div>
 
         <div class="" style="display: flex; flex-direction: column; align-items: center">
-<!--            <a href="#" class="toggle_show_hide" data-id="advanced_settings">تنظیمات پیشرفته</a>-->
-
             <div id="advanced_settings" style="display: block">
                 <p class="awca-form-control">
                     <input type="checkbox" id="skipp_out_of_stocks" name="skipp_out_of_stocks" checked>
@@ -26,6 +24,9 @@
                 </p>
             </div>
         </div>
+
+        <div class="anar-batch-messages"></div>
+        <div class="anar-batch-progress"><span class="bar"></span></div>
     </form>
 
 </div>

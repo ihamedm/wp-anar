@@ -44,10 +44,16 @@ class Menus{
             10
         );
 
+
+        if (get_option(OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB, 0) == 0){
+            $menu_import_label = 'درون ریزی محصولات';
+        }else{
+            $menu_import_label = 'همگام سازی محصولات';
+        }
         add_submenu_page(
             'wp-anar',
-            'درون ریزی محصولات',
-            'درون ریزی محصولات',
+            $menu_import_label,
+            $menu_import_label,
             'manage_options',
             'wp-anar',
             [$this, 'create_products_page_content']
@@ -64,15 +70,15 @@ class Menus{
             );
 
 
-        
-        add_submenu_page(
-            'wp-anar',
-            'مرکز پیام',
-            'مرکز پیام',
-            'manage_options',
-            'notifications',
-            [$this, 'notifications_page_content']
-        );
+        if(ANAR_IS_ENABLE_NOTIF_PAGE)
+            add_submenu_page(
+                'wp-anar',
+                'مرکز پیام',
+                'مرکز پیام',
+                'manage_options',
+                'notifications',
+                [$this, 'notifications_page_content']
+            );
 
         add_submenu_page(
             'wp-anar',
@@ -186,12 +192,15 @@ class Menus{
         // Only add the menu item if the transient exists
         if (awca_is_import_products_running()) {
             $total_products = get_option('awca_total_products');
-            $proceed_products = $productData->count_anar_products();
+            $count_db_products = $productData->count_anar_products();
             $proceed_products_increment = get_option('awca_proceed_products');
-            if ($total_products == 0 || $proceed_products == 0)
+            if ($total_products == 0 || $count_db_products == 0)
                 return;
 
-            $progress_width_percent = $proceed_products * 100 / $total_products;
+            // sometimes we have bug on increment , so prevent show processed products number grater than total products
+            // @todo better counting processed products
+            $proceed_products_increment = $proceed_products_increment > $total_products ? $total_products : $proceed_products_increment;
+            $progress_width_percent = $count_db_products * 100 / $total_products;
             $progress_width_percent = 100;
 //            $message2 = sprintf('انار - پردازش محصولات انار %s', round($progress_width_percent) . '%');
             $message2 = 'همگام سازی محصولات انار';

@@ -5,3 +5,4 @@ import './products';
 import './reset-options';
 import './publish-drafts';
 import './tool-ajax-form';
+import './not-synced';

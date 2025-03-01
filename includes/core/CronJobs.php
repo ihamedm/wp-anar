@@ -4,7 +4,9 @@ namespace Anar\Core;
 use Anar\CronJob_Process_Products;
 use Anar\Notifications;
 use Anar\Payments;
+use Anar\ProductData;
 use Anar\Sync;
+use Anar\SyncTools;
 
 class CronJobs {
 
@@ -45,14 +47,14 @@ class CronJobs {
         }
 
 
-        if (!wp_next_scheduled('awca_sync_products_full_cron')) {
-            wp_schedule_event(time(), 'hourly', 'awca_sync_products_full_cron');
+        if (!wp_next_scheduled('awca_full_sync_products_cron')) {
+            wp_schedule_event(time(), 'every_two_min', 'awca_full_sync_products_cron');
         }
 
 
         // Schedule the unread notifications count event
         if (!wp_next_scheduled('awca_fetch_updated_data_from_anar_cron')) {
-            wp_schedule_event(time(), 'hourly', 'awca_fetch_updated_data_from_anar_cron');
+            wp_schedule_event(time(), 'every_one_min', 'awca_fetch_updated_data_from_anar_cron');
         }
 
         // Schedule the log cleanup job to run daily
@@ -69,7 +71,7 @@ class CronJobs {
 
         add_action('awca_sync_products_cron', [$this, 'sync_updated_products_job']);
 
-        add_action('awca_sync_products_full_cron', [$this, 'sync_all_products_job']);
+        add_action('awca_full_sync_products_cron', [$this, 'sync_all_products_job']);
 
         // Assign the action for counting unread notifications
         add_action('awca_fetch_updated_data_from_anar_cron', [$this, 'fetch_updated_data_from_anar_job']);
@@ -109,23 +111,26 @@ class CronJobs {
 
     public function sync_updated_products_job() {
 
-        $sync = Sync::get_instance();
+        $sync = new Sync();
         $sync->syncProducts();
 
     }
 
     public function sync_all_products_job() {
 
-        $sync = Sync::get_instance();
+        $sync = new Sync();
         $sync->fullSync = true;
         $sync->syncProducts();
-        $sync->get_api_total_products_number();
+
+        $sync_tools = SyncTools::get_instance();
+        $sync_tools->get_api_total_products_number();
 
     }
 
 
     public function fetch_updated_data_from_anar_job() {
         (new Notifications)->count_unread_notifications();
+        (new ProductData())->count_anar_products();
         //(new Payments())->count_unpaid_orders_count();
 
     }

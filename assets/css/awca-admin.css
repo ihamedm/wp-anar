@@ -556,6 +556,10 @@ input#plugin_activation_button {
   border-color:#cf667c !important;
 }
 
+.awca-primary-btn.loading .spinner-loading{
+  display: block;
+}
+
 .inline-btn{
   display: inline-flex !important;
 }
@@ -599,20 +603,29 @@ input#plugin_activation_button {
   margin-top: 5px;
   font-size: 0.8rem;
 }
+.anar-batch-messages,
 .awca_ajax-result,
 .awca_step-ajax-result{
   text-align: center;
   padding: 32px 0;
 }
+.anar-batch-messages.success,
 .awca_ajax-result.success,
 .awca_step-ajax-result.success{
   color: #0FA34C;
 }
+.anar-batch-messages.error,
 .awca_ajax-result.error,
 .awca_step-ajax-result.error{
   color:var(--line-border-fill);
+  background: none;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
 }
 
+.anar-batch-progress,
 .awca_ajax-result-progress,
 .awca_step-ajax-result-progress{
   height: 2px;
@@ -622,12 +635,14 @@ input#plugin_activation_button {
   display:none;
   margin: 0 auto;
 }
+.anar-batch-progress .bar,
 .awca_ajax-result-progress .bar,
 .awca_step-ajax-result-progress .bar{
   position: absolute;
   left: 0;
   top:0;
   width:0%;
+  max-width: 100%;
   height: 2px;
   background: #0a0a0a;
   display:block;

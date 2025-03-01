@@ -269,23 +269,28 @@ import {paginateLinks} from "./functions";
 
           var form = jQuery(this);
           var LoadingIcon = form.find('.spinner-loading')
+          const fullSync = form.find("#full_sync")
 
           jQuery.ajax({
             url: form.attr("action"),
             type: "POST",
             dataType: "json",
+            timeout: 2000000,
             data: form.serialize(),
             beforeSend: function () {
               LoadingIcon.show();
+
+              if(fullSync.is(':checked')) {
+                awca_toast('همگام سازی کل محصولات اندکی زمان بر خواهد بود و در پس زمینه انجام می شود.', "success");
+                LoadingIcon.hide();
+              }
             },
             success: function (response) {
+
               if (response.success) {
                 awca_toast(response.message, "success");
               } else {
                 awca_toast(response.message, "error");
-                if (response.activation_status) {
-                  awca_toast(response.message, "success");
-                }
               }
 
             },
@@ -353,16 +358,12 @@ import {paginateLinks} from "./functions";
               jQuery(".configuration_save_button").attr("disabled", "disabled");
             },
             success: function (response) {
-              console.log(response)
               if (response.success) {
                 awca_toast(response.message, "success");
                 AnarHandler.move_to_step(3)
               }
             },
             error: function (xhr, status, err) {
-              console.log(xhr)
-              console.log(status)
-              console.log(err)
               awca_toast(xhr.responseText)
               jQuery(".spinner-loading").hide();
               jQuery(".configuration_save_button").removeAttr("disabled");

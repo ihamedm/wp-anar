@@ -1,8 +1,8 @@
 <div class="wrapper tools-wrapper">
     <h2 class="awca_plugin_titles">همگام سازی <span>قیمت</span> و <span>موجودی</span> محصولات</h2>
-    <p class="awca_plugin_subTitles">
-        با استفاده از دکمه زیر میتوانید قیمت و موجودی محصولات رو به صورت دستی آپدیت کنید.
-        این کار به صورت خودکار هر پنج دقیقه یکبار انجام میشود.
+    <p class="awca_plugin_subTitles" style="text-align:center">
+        با استفاده از دکمه زیر میتوانید قیمت و موجودی محصولاتی که اخیرا (۱۰ دقیقه اخیر) در انار تغییر داشتن رو به صورت دستی آپدیت کنید.
+        این کار به صورت خودکار هر دو دقیقه یکبار انجام میشود.
     </p>
     <form method="post" action="<?php echo admin_url('admin-ajax.php'); ?>" class="plugin_sync_form" id="plugin_sync_form">
         <input type="hidden" name="action" value="awca_sync_products_price_and_stocks" />
@@ -30,10 +30,19 @@
 
 
     <?php
-    $last_sync_time = get_option('awca_last_sync_time');
+    $sync = new \Anar\Sync();
+    $last_sync_time = $sync->getLastSyncTime();
+    $sync->fullSync = true;
+    $last_full_sync_time = $sync->getLastSyncTime();
+
     if($last_sync_time){
-        printf('<p style="text-align:center">آخرین همگام سازی : %s</p>', mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_sync_time));
+        printf('<p style="text-align:center">آخرین همگام سازی قیمت و موجودی محصولاتی که طی ۱۰ دقیقه گذشته در انار تغییر قیمت یا موجودی داشته اند<br><strong>%s</strong></p>', mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_full_sync_time));
     }
+
+    if($last_full_sync_time){
+        printf('<hr><p style="text-align:center">آخرین همگام سازی قیمت و موجودی محصولاتی که طی ۱۰ دقیقه گذشته در انار تغییر قیمت یا موجودی داشته اند<br><strong>%s</strong></p>', mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_full_sync_time));
+    }
+
     ?>
 
     <?php

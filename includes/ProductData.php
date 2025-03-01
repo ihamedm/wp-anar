@@ -5,40 +5,188 @@ namespace Anar;
 class ProductData{
 
 
+    /**
+     * Get simple product ID by Anar SKU
+     *
+     * @param string $anar_sku The Anar SKU to search for
+     * @return \WP_Error|int Returns product ID on success, WP_Error on failure
+     */
     public static function get_simple_product_by_anar_sku($anar_sku) {
-        global $wpdb;
-        $sql = "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_anar_sku' AND meta_value = %s";
-
-
-        // Search for variations with the custom SKU
-        $variation_id = $wpdb->get_var($wpdb->prepare($sql, $anar_sku));
-
-        if ($variation_id) {
-            return $variation_id;
+        // Input validation
+        if (empty($anar_sku)) {
+            return new \WP_Error(
+                'invalid_anar_sku',
+                'Anar SKU cannot be empty',
+                array('status' => 400)
+            );
         }
 
-        // If not found, return false
-        return false;
+        // Sanitize the input
+        $anar_sku = sanitize_text_field($anar_sku);
+
+        // Use WP_Query to search for products
+        $args = array(
+            'post_type'      => array('product', 'product_variation'),
+            'post_status'    => ['publish', 'draft'],
+            'posts_per_page' => 1,
+            'meta_query'     => array(
+                array(
+                    'key'     => '_anar_sku',
+                    'value'   => $anar_sku,
+                    'compare' => '=',
+                ),
+            ),
+            'fields'         => 'ids',
+        );
+
+        $query = new \WP_Query($args);
+
+        // Check if we found any results
+        if ($query->have_posts()) {
+            return (int) $query->posts[0];
+        }
+
+        // If no product found, return WP_Error
+        return new \WP_Error(
+            'product_not_found',
+            sprintf(
+                'No product found with Anar SKU: %s',
+                $anar_sku
+            ),
+            array('status' => 404)
+        );
     }
 
 
+    /**
+     * Get product variation ID by Anar SKU
+     *
+     * @param string $anar_sku The Anar SKU to search for
+     * @return int|\WP_Error Returns variation ID on success, WP_Error on failure
+     */
     public static function get_product_variation_by_anar_sku($anar_sku) {
         global $wpdb;
 
-        // Search for variations with the custom SKU
-        $variation_id = $wpdb->get_var($wpdb->prepare("
-        SELECT post_id 
-        FROM {$wpdb->postmeta} 
-        WHERE meta_key = '_anar_sku' 
-        AND meta_value = %s
-    ", $anar_sku));
-
-        if ($variation_id) {
-            return $variation_id;
+        // Input validation
+        if (empty($anar_sku)) {
+            return new \WP_Error(
+                'invalid_anar_sku',
+                'Anar SKU cannot be empty',
+                array('status' => 400)
+            );
         }
 
-        // If not found, return false
-        return false;
+        // Sanitize the input
+        $anar_sku = sanitize_text_field($anar_sku);
+
+        // Prepare and execute the query
+        $sql = $wpdb->prepare("
+            SELECT post_id 
+            FROM {$wpdb->postmeta} 
+            WHERE meta_key = '_anar_sku' 
+            AND meta_value = %s
+        ", $anar_sku);
+
+        // Check for SQL errors before executing
+        if ($sql === false) {
+            return new \WP_Error(
+                'sql_prepare_failed',
+                'Failed to prepare SQL query',
+                array('status' => 500)
+            );
+        }
+
+        // Execute query
+        $variation_id = $wpdb->get_var($sql);
+
+        // Check for database errors
+        if ($wpdb->last_error) {
+            return new \WP_Error(
+                'database_error',
+                sprintf(
+                    'Database error: %s',
+                    $wpdb->last_error
+                ),
+                array('status' => 500)
+            );
+        }
+
+        // If variation found, return it
+        if ($variation_id) {
+            // Verify the post exists and is a product variation
+            $post_type = get_post_type($variation_id);
+            if ($post_type !== 'product_variation') {
+                return new \WP_Error(
+                    'invalid_variation',
+                    sprintf(
+                    'Found ID %d is not a valid product variation',
+                        $variation_id
+                    ),
+                    array('status' => 400)
+                );
+            }
+            return (int) $variation_id;
+        }
+
+        // If no variation found, return WP_Error
+        return new \WP_Error(
+            'variation_not_found',
+            sprintf(
+                'No product variation found with Anar SKU: %s',
+                $anar_sku
+            ),
+            array('status' => 404)
+        );
+    }
+
+
+    /**
+     * Get product variation ID by Anar SKU
+     *
+     * @param string $anar_sku The Anar SKU to search for
+     * @return int|\WP_Error Returns variation ID on success, WP_Error on failure
+     */
+    public static function check_for_existence_product($anar_sku) {
+        global $wpdb;
+
+        try {
+
+            if (empty($anar_sku)) {
+                throw new \Exception('Anar SKU cannot be empty');
+            }
+
+            // Sanitize the input
+            $anar_sku = sanitize_text_field($anar_sku);
+
+            // Prepare and execute the query
+            $sql = $wpdb->prepare("
+                SELECT post_id 
+                FROM {$wpdb->postmeta} 
+                WHERE meta_key = '_anar_sku' 
+                AND meta_value = %s
+            ", $anar_sku);
+
+            // Check for SQL errors before executing
+            if ($sql === false) {
+                throw new \Exception('Failed to prepare SQL query');
+            }
+
+            // Execute query
+            $variation_id = $wpdb->get_var($sql);
+
+            // If variation found, return it
+            if ($variation_id) {
+                return (int) $variation_id;
+            }
+
+            // If no variation found
+            throw new \Exception(sprintf('No product variation found with Anar SKU: %s', $anar_sku));
+
+        }catch (\Exception $exception){
+            if(ANAR_DEBUG)
+                awca_log($exception->getMessage());
+            return false;
+        }
     }
 
 
@@ -57,40 +205,14 @@ class ProductData{
             return 'پست';
         }
 
+        if($slug == 'bikeCOD'){
+            return 'پرداخت کرایه در مقصد';
+        }
+
         return $slug;
     }
 
 
-
-    /**
-     * @return array
-     */
-    public static function get_all_products_shipments_ref() {
-        $awca_products = ApiDataHandler::tryGetAnarApiResponse('https://api.anar360.com/wp/products');
-        $res = [];
-        foreach ($awca_products->items as $i) {
-            $shipmentsReferenceId = $i->shipmentsReferenceId;
-            $deliveryArray = [];
-            foreach ($i->shipments as $value) {
-                if($value->type == "insideShopCity") {
-                    foreach ($value->delivery as $delivery) {
-                        if ($delivery->active == true || $delivery->active == "true") {
-                            $deliveryArray[$delivery->_id] = [
-                                "name" => self::verbose_shipment_name($delivery->deliveryType),
-                                "price" => $delivery->price,
-                                "estimatedTime" => $delivery->estimatedTime,
-                            ];
-                        }
-                    }
-                }
-            }
-
-            $res[$shipmentsReferenceId] = [
-                'delivery' => $deliveryArray,
-            ];
-        }
-        return $res;
-    }
 
 
     /**
@@ -102,6 +224,7 @@ class ProductData{
 
         if(!$shipments_json || $shipments_json == '' || count(json_decode($shipments_json)) == 0){
             return false;
+//            @todo check the usage of this function, replace false with []
         }
 
 
@@ -142,12 +265,16 @@ class ProductData{
 
         $query = new \WP_Query( array(
             'post_type'      => 'product',
+            'status'        => ['publish', 'draft'],
             'meta_key'       => $meta_key,
             'meta_compare'   => 'EXISTS',
             'fields'         => 'ids',
         ) );
 
+        update_option(OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB, $query->found_posts);
+
         return $query->found_posts;
     }
+
 
 }

@@ -28,6 +28,9 @@ class Woocommerce{
 
         add_action('pre_get_posts', [$this, 'filter_anar_deprecated_products']);
 
+        // add anar meta-data to front product page
+        add_action('wp_head', [$this, 'add_anar_product_meta_tag'], 10);
+
 
     }
 
@@ -55,8 +58,13 @@ class Woocommerce{
         $gallery_image_urls = get_post_meta($post->ID, '_anar_gallery_images', true);
         $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
         $anar_prices = get_post_meta($post->ID, '_anar_prices', true);
+        $anar_sku = get_post_meta($post->ID, '_anar_sku', true);
+
+        $anar_url = "https://anar360.com/earning-income/product/{$anar_sku}";
+
         ?>
         <div id="awca-custom-meta-box-container">
+
             <?php if($last_sync_time) {
                 printf('<div class="awca-product-last-sync-time"><span>آخرین همگام سازی با انار</span> <strong>%s</strong>%s</div>',
                     mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_sync_time),
@@ -68,9 +76,11 @@ class Woocommerce{
                 printf('<div class="awca-product-anar-prices">
                         <span>قیمت فروش در انار <strong>%s</strong></span>
                         <span>قیمت همکار <strong>%s</strong></span>
+                        <span><a style="display: flex; gap:8px" href="%s" target="_blank"><span class="anar-fruit"><img src="'.ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg"></span> مشاهده محصول در سایت انار</a></strong></span>
                         </div>',
                     awca_get_formatted_price($anar_prices['price']) ?? '-',
                     awca_get_formatted_price($anar_prices['priceForResell']) ?? '-',
+                    $anar_url
                 );
             }?>
 
@@ -162,19 +172,8 @@ class Woocommerce{
 
 
     public function anar_products_filter_link($views) {
-        global $wpdb;
 
-        $count = $wpdb->get_var($wpdb->prepare("
-    SELECT COUNT(DISTINCT p.ID)
-    FROM {$wpdb->posts} AS p
-    INNER JOIN {$wpdb->postmeta} AS pm ON p.ID = pm.post_id
-    WHERE p.post_type = 'product'
-    AND p.post_status IN ('publish', 'draft', 'pending', 'private')
-    AND pm.meta_key = %s
-", '_anar_sku'));
-
-
-        update_option('awca_count_anar_products_on_db', $count);
+        $count = (new ProductData())->count_anar_products();
         // Check if current filter is active
         $current = isset($_GET['is_anar_product']) ? ' class="current"' : '';
 
@@ -198,7 +197,7 @@ class Woocommerce{
         if (isset($_GET['is_anar_product']) && $_GET['is_anar_product'] === '1') {
             $query->set('meta_query', array(
                 array(
-                    'key' => '_anar_sku',
+                    'key' => '_anar_products',
                     'compare' => 'EXISTS'
                 ),
             ));
@@ -243,6 +242,34 @@ class Woocommerce{
         }
 
         return $actions;
+    }
+
+    public function add_anar_product_meta_tag() {
+
+        global $post;
+
+        if (is_product()) {
+            $anar_sku = get_post_meta($post->ID, '_anar_sku', true);
+            if ($anar_sku) {
+                $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
+
+                printf( '
+                <meta name="anar_sku" content="%s" />
+                <meta name="anar_last_sync" content="%s" />
+                ',
+                    $anar_sku,
+                    $last_sync_time ? mysql2date('j-m-Y  H:i' , $last_sync_time) : '',
+                );
+            }
+        }
+
+        printf( '
+                <meta name="anar_version" content="%s" />
+                ',
+            ANAR_PLUGIN_VERSION,
+        );
+
+
     }
 
 

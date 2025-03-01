@@ -7,6 +7,7 @@ jQuery(document).ready(function($) {
         var $spinnerLoading = $form.find('.spinner-loading');
         var $formButton = $form.find('.tool_submit_btn');
 
+
         $form.on('submit', function (e) {
             e.preventDefault();
 
@@ -68,4 +69,5 @@ jQuery(document).ready(function($) {
             });
         });
     });
+
 });

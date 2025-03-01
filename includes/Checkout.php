@@ -53,7 +53,8 @@ class Checkout {
 
             // Check if city or state is empty
             if (empty($billing_city) || empty($billing_state_name)) {
-                return;
+                $billing_state_name = 'تهران';
+                $billing_city = 'تهران';
             }
 
 
@@ -106,10 +107,20 @@ class Checkout {
 
                         // Filter the shipments based on the types to display
                         foreach ($anar_shipment_data['shipments'] as $shipment) {
-                            if (in_array($shipment->type, $shipment_types_to_display)) {
-                                foreach ($shipment->delivery as $delivery) {
-                                    if ($delivery->active) { // Check if the delivery method is active
+                            $shipment_deliveries = [];
 
+                            // only show shipments that we have based on customer location
+                            if ($shipment->type == 'allCities' && $shipment->active) {
+                                $shipment_deliveries = $shipment->delivery;
+                            }elseif (in_array($shipment->type, $shipment_types_to_display) && $shipment->active){
+                                $shipment_deliveries = $shipment->delivery;
+                            }
+
+                            // prepare shipments to generate radio fields later
+                            foreach ($shipment_deliveries as $delivery) {
+                                    if ($delivery->active) {
+
+                                        // store products with same shipmentsReferenceId together on $ship
                                         if (isset($ship[$shipmentsReferenceId])) {
                                             $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
                                         } else {
@@ -127,6 +138,7 @@ class Checkout {
                                                 'name' => $delivery->deliveryType,
                                                 'estimatedTime' => $delivery->estimatedTime,
                                                 'price' => $delivery->price,
+                                                'freeConditions' => $delivery->freeConditions ?? [],
                                             ];
 
                                             // Save relevant shipment data to the session
@@ -138,14 +150,10 @@ class Checkout {
 
                                         }
 
-
-
                                     }
                                 }
-                            }
+
                         }
-
-
 
                     }
                 }
@@ -158,6 +166,10 @@ class Checkout {
             // Display Anar shipping methods if Anar products are present
             if ($has_anar_product) {
                 $pack_index = 0;
+                $anar_shipments_alert = '';
+                if(count($ship) > 1){
+                    echo '<tr class="anar-shipments-user-notice"><td><p>کالاهای انتخابی شما از چند انبار مختلف ارسال می شوند.</p></td></tr>';
+                }
                 foreach ($ship as $key => $v) {
                     $pack_index++;
                     $product_uniques = array_unique($v['names']);
@@ -173,6 +185,7 @@ class Checkout {
                         $pack_index,
                         count($product_uniques)
                     );
+
                     // collect package images
                     $product_list_markup .= '<ul class="package-items">';
                     foreach ($product_uniques as $item) {
@@ -207,12 +220,28 @@ class Checkout {
                     $names = [];
                     $radio_data = [];
                     foreach ($v['delivery'] as $delivery_key => $delivery) {
+                        $package_total = $this->calculate_package_total($product_uniques);
+                        $is_free_shipping = false;
+                        $original_price = $delivery['price'];
+                        $original_estimate_time = $delivery['estimatedTime'];
+                        awca_log(print_r($delivery, true));
+                        // Check free condition
+                        if (isset($delivery['freeCondition']) && isset($delivery['freeCondition']['purchasesPrice'])){
+                            if($package_total >= $delivery['freeCondition']['purchasesPrice']) {
+                                $is_free_shipping = true;
+                                $delivery['price'] = 0;
+                                $delivery['estimatedTime'] = 'ارسال رایگان';
+
+                            }
+                            awca_log("package_total:" . $package_total . " - " . $delivery['freeCondition']['purchasesPrice']);
+                        }
+
                         $estimate_time_str = $delivery['estimatedTime'] ? ' (' . $delivery['estimatedTime'] . ')' : '';
                         $names[$delivery_key] = awca_translator($delivery['name']) . $estimate_time_str .' : ' . $delivery['price'] . ' ' . get_woocommerce_currency_symbol() ;
                         $radio_data[$delivery_key] = [
                             'label' => awca_translator($delivery['name']),
                             'estimated_time' => $delivery['estimatedTime'] ?? '',
-                            'price' => awca_convert_price_to_woocommerce_currency($delivery['price']) . ' ' . get_woocommerce_currency_symbol(),
+                            'price' => awca_get_formatted_price($delivery['price']),
                         ];
                     }
 
@@ -240,13 +269,36 @@ class Checkout {
                     </tr>
                     <?php
                 }
+            }else{
+//                @todo show message 'fill form please'
             }
         } finally {
-            $this->calculate_total_shipping_fee();
+            //$this->calculate_total_shipping_fee();
         }
 
+    }
 
+    private function calculate_package_total($product_ids) {
+        $total = 0;
+        foreach ($product_ids as $product_id) {
+            $product = wc_get_product($product_id);
+            if ($product) {
+                $cart_item = $this->find_cart_item_by_product_id($product_id);
+                if ($cart_item) {
+                    $total += $product->get_price() * $cart_item['quantity'];
+                }
+            }
+        }
+        return $total;
+    }
 
+    private function find_cart_item_by_product_id($product_id) {
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            if ($cart_item['product_id'] == $product_id || $cart_item['variation_id'] == $product_id) {
+                return $cart_item;
+            }
+        }
+        return null;
     }
 
 
@@ -299,7 +351,8 @@ class Checkout {
 
             WC()->cart->add_fee($label, $total_shipping_fee);
         } else {
-            awca_log('No shipping fee to add');
+            if(ANAR_DEBUG)
+                awca_log('No shipping fee to add');
         }
     }
 
@@ -320,18 +373,6 @@ class Checkout {
         }
 
         return $selected_option;
-    }
-
-    /**
-     * New method to remove existing shipping fees
-     */
-    private function remove_existing_shipping_fees() {
-        $fees = WC()->cart->get_fees();
-        foreach ($fees as $fee_key => $fee) {
-            if (strpos($fee->name, 'مجموع حمل نقل') !== false) {
-                WC()->cart->remove_fee($fee_key);
-            }
-        }
     }
 
 
@@ -386,16 +427,6 @@ class Checkout {
     }
 
 
-    public function save_checkout_delivery_choice_on_session( $posted_data ) {
-        parse_str( $posted_data, $output );
-        $resShip = ProductData::get_all_products_shipments_ref();
-        foreach ($resShip as $key => $v) {
-            if ( isset( $output['anar_delivery_option_'.$key] ) ){
-                WC()->session->set( 'anar_delivery_option_'.$key, $output['anar_delivery_option_'.$key] );
-            }
-        }
-
-    }
 
     public function save_checkout_delivery_choice_on_session_better($posted_data ) {
         parse_str($posted_data, $output);
@@ -416,27 +447,6 @@ class Checkout {
         $has_standard_product = WC()->session->get('has_standard_product');
         if (!$has_standard_product) {
             WC()->session->set('chosen_shipping_methods', ['free_shipping']);
-        }
-    }
-
-    public function checkout_fields_validations() {
-        // Loop through the session stored delivery options to validate each one
-        $has_anar_product = WC()->session->get('has_anar_product');
-
-        if ($has_anar_product) {
-            // Check if any Anar delivery option is selected
-            $cart_items = WC()->cart->get_cart();
-            foreach ($cart_items as $item => $values) {
-                $product_id = $values['product_id'];
-                $shipments_ref_id = get_post_meta($product_id, '_anar_shipments_ref', true)['shipmentsReferenceId'];
-
-                // Check if the delivery option for this reference ID is set
-                $chosen = WC()->session->get('anar_delivery_option_' . $shipments_ref_id);
-                if (empty($chosen)) {
-                    wc_add_notice('فیلدهای حمل و نقل محصولات را بطور کامل انتخاب نکرده اید', 'error');
-                    break; // Exit the loop after adding the notice
-                }
-            }
         }
     }
 

@@ -30,7 +30,7 @@
 
         <?php endif;?>
 
-        <div class="awca_step-ajax-result"></div>
+            <div class="awca_step-ajax-result"></div>
         <div class="awca_step-ajax-result-progress"><span class="bar"></span></div>
     </div>
 

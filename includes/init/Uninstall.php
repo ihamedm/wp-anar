@@ -60,6 +60,7 @@ class Uninstall
         delete_option('awca_total_products');
         delete_option('awca_proceed_products');
         delete_option('awca_product_save_lock');
+        delete_option('anar_active_full_sync_jobID');
         delete_transient('awca_sync_all_products_lock');
     }
 

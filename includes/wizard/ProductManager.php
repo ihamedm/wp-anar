@@ -1,16 +1,21 @@
 <?php
 namespace Anar\Wizard;
 
+use Anar\Core\Logger;
 use Anar\CronJob_Process_Products;
 use Anar\ProductData;
+use voku\CssToInlineStyles\Exception;
 use WC_Product_Simple;
 use WC_Product_Variable;
 use WC_Product_Variation;
+use WP_Query;
 
 class ProductManager{
 
     protected static $instance;
 
+    public static $logger;
+    
     public static function get_instance() {
         if ( ! isset( self::$instance ) ) {
             self::$instance = new self();
@@ -19,11 +24,19 @@ class ProductManager{
     }
 
     public function __construct(){
+        
+        self::$logger = new Logger();
+        
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
         add_action( 'wp_ajax_awca_set_vendor_for_anar_products_ajax', [$this, 'set_vendor_for_anar_products_ajax'] );
 
+        //add_action('do_publish_draft_products_background', [$this, 'publish_draft_products'], 10, 1);
+    }
+
+    public static function log($message) {
+        self::$logger->log($message, 'general');
     }
 
     public function fetch_and_save_products_from_api_to_db_ajax() {
@@ -78,7 +91,8 @@ class ProductManager{
                 return false;
             }
 
-            $existing_product_id = ProductData::get_product_variation_by_anar_sku($product_data['sku']);
+            $existing_product_id = ProductData::check_for_existence_product($product_data['sku']);
+
             $product_id = 0;
             $product_created = true;
 
@@ -97,7 +111,7 @@ class ProductManager{
             return ['product_id' => $product_id, 'created' => $product_created];
 
         } catch (\Throwable $th) {
-            awca_log('Error in awca_create_woocommerce_product: ' . $th->getMessage());
+            self::log('Error in awca_create_woocommerce_product: ' . $th->getMessage());
             return false;
         }
     }
@@ -116,7 +130,9 @@ class ProductManager{
         }
 
         $product->save();
-        awca_log('Product Exist: Type[' . $product->get_type() . '], Name: ' . $product->get_name() .
+
+        if(ANAR_DEBUG)
+            self::log('Product Exist: Type[' . $product->get_type() . '], Name: ' . $product->get_name() .
             ' ID: #' . $product->get_id() . ' SKU: ' . $product_data['sku']);
     }
 
@@ -184,7 +200,7 @@ class ProductManager{
 
     private static function update_common_meta_data($product, $product_data) {
         $product_id = $product->get_id();
-        $import_job_id = get_option('awca_cron_create_products_job_id');
+        $import_job_id = get_transient('awca_cron_create_products_job_id');
 
 
         update_post_meta($product_id, '_anar_products', 'true');
@@ -311,12 +327,12 @@ class ProductManager{
             $variation_attributes = array();
             if (!empty($attributes)) {
                 $theseAttributesCalculated = [];
-//            awca_log('---------------- start check --------------------');
-//            awca_log('#0 $variation_data->attributes: ' . print_r($variation_data->attributes, true));
+//            self::log('---------------- start check --------------------');
+//            self::log('#0 $variation_data->attributes: ' . print_r($variation_data->attributes, true));
                 foreach ($variation_data->attributes as $attr_key => $attr_value) {
                     $attr_name = $attributes[$attr_key]['name']; // Use the name directly from $attributes dictionary
 
-//                awca_log('#1 : $attr_key  : ' . print_r($attr_key, true) .' - $attr_name:' . print_r($attr_name, true) .' - $attr_value:' . print_r($attr_value, true));
+//                self::log('#1 : $attr_key  : ' . print_r($attr_key, true) .' - $attr_name:' . print_r($attr_name, true) .' - $attr_value:' . print_r($attr_value, true));
 
                     // if need to map
                     if ($attributeMap != null && $attributeMap != '' ) {
@@ -329,7 +345,7 @@ class ProductManager{
                             continue; // Skip if mapping is incomplete
                         }
 
-//                    awca_log('#2 : $mapped_attribute find : ' . print_r($mapped_attribute, true));
+//                    self::log('#2 : $mapped_attribute find : ' . print_r($mapped_attribute, true));
 
                         // Double check for find attribute
                         if (isset($mapped_attribute['name'])) {
@@ -346,7 +362,7 @@ class ProductManager{
 
                         // Ensure consistent slug creation
                         $attr_slug = sanitize_title($attr_slug);
-//                    awca_log('#3 : $attr_slug : ' . print_r($attr_slug, true));
+//                    self::log('#3 : $attr_slug : ' . print_r($attr_slug, true));
                     } else {
                         // Use the attribute name directly for slug creation, if not in attributeMap
                         $attr_slug = sanitize_title($attr_name);
@@ -355,7 +371,7 @@ class ProductManager{
                     $theseAttributesCalculated['pa_' . $attr_slug] = sanitize_title($attr_value);
                 }
 
-//            awca_log("Attributes calculated for variation: " . print_r($theseAttributesCalculated, true));
+//            self::log("Attributes calculated for variation: " . print_r($theseAttributesCalculated, true));
             }
 
             if(isset($theseAttributesCalculated)) {
@@ -370,11 +386,70 @@ class ProductManager{
                 update_post_meta($variation_id, '_anar_sku', $variation_data->_id);
                 update_post_meta($variation_id, '_anar_variant_id', $variation_data->_id);
             } else {
-                awca_log("Failed to save variation for product ID: " . $product->get_id());
+                self::log("Failed to save variation for product ID: " . $product->get_id());
             }
         }
     }
 
+
+    public static function handle_removed_products_from_anar($process, $job_id) {
+        global $wpdb;
+
+        if(!$job_id) {
+            return;
+        }
+
+        $key = ($process == 'import') ? '_anar_import_job_id' : '_anar_sync_job_id';
+        $log_file = ($process == 'import') ? 'general' : 'fullSync';
+
+        if(awca_is_import_products_running()){
+            self::$logger->log("detect importing in progress, so skipp deprecating until next job.", $log_file);
+            return;
+        }
+
+        self::$logger->log("detect removed products from anar. jobID: $job_id, key $key", $log_file);
+
+        $args = [
+            'posts_per_page' => -1,
+            'post_type'      => 'product',
+            'post_status'    => ['publish', 'draft'],
+            'fields'         => 'ids',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key' => '_anar_products',
+                    'compare' => 'EXISTS'
+                ),
+                array(
+                    'relation' => 'OR',
+                    array(
+                        'key' => $key,
+                        'compare' => 'NOT EXISTS'
+                    ),
+                    array(
+                        'key' => $key,
+                        'value' => $job_id,
+                        'compare' => '!=',
+                    )
+                )
+            )
+        ];
+
+        $products = get_posts($args);
+
+        $product_count = count($products);
+        self::$logger->log("found $product_count products that removed from Anar. " , $log_file);
+
+        if (!empty($products)) {
+            // Store the count of removed products
+            update_option('awca_removed_products_count', count($products));
+            update_option('awca_removed_products_time', current_time('mysql', true)); // Store UTC time
+
+            foreach ($products as $product) {
+                self::deprecate_anar_product($product, $job_id, $log_file);
+            }
+        }
+    }
 
     /**
      * Deprecates a WooCommerce product from Anar integration
@@ -384,16 +459,17 @@ class ProductManager{
      * @param string $job_id The job ID to mark as deprecated
      * @return bool True if deprecation was successful, false otherwise
      */
-    public static function deprecate_anar_product($product_id, $job_id) {
+    public static function deprecate_anar_product($product_id, $job_id, $log_file) {
         try {
             $wc_product = wc_get_product($product_id);
 
             if (!$wc_product) {
-                awca_log("Error: Product #{$product_id} not found");
+                self::$logger->log("Error: Product #{$product_id} not found", $log_file);
                 return false;
             }
 
-            awca_log("Depricating product #{$product_id} from Anar.");
+            if(ANAR_DEBUG)
+                self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file);
 
             // Update product meta
             update_post_meta($product_id, '_anar_deprecated', $job_id);
@@ -427,10 +503,12 @@ class ProductManager{
             return true;
 
         } catch (\Exception $e) {
-            awca_log("Error depricating product #{$product_id}: " . $e->getMessage());
+            self::$logger->log("Error deprecating product #{$product_id}: " . $e->getMessage(), $log_file);
             return false;
         }
     }
+
+
 
     public function publish_draft_products_ajax() {
         // Verify nonce
@@ -447,12 +525,21 @@ class ProductManager{
             ));
         }
 
+//        self::log(print_r($_POST, true));
+
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 100;
+        $has_more = true;
+        $total_published = 0;
+        $found_products = 0;
+        $this_loop_products = 0;
+
         // Query arguments to get draft products
-        $args = array(
+        $query_args = array(
             'post_type'      => 'product',
             'post_status'    => 'draft',
-            'posts_per_page' => -1,
             'fields'         => 'ids',
+            'posts_per_page' => $limit,
             'meta_query'     => array(
                 array(
                     'key'     => '_anar_products',
@@ -463,63 +550,121 @@ class ProductManager{
 
         // Add stock status check if needed
         if (isset($_POST['skipp_out_of_stocks']) && $_POST['skipp_out_of_stocks'] === 'true') {
-            $args['meta_query'][] = array(
+            $query_args['meta_query'][] = array(
                 'key'     => '_stock_status',
                 'value'   => 'instock',
                 'compare' => '='
             );
         }
 
-        // Get all draft products
-        $product_ids = get_posts($args);
 
+
+        try {
+            $products_query = new \WP_Query($query_args);
+
+            $found_products = $products_query->found_posts;
+            $this_loop_products = count($products_query->posts);
+            $products_to_clear = [];
+
+            if ($products_query->have_posts()) :
+                while ($products_query->have_posts()) :
+                    $products_query->the_post();
+                    $product_id = get_the_ID();
+
+                    // Get the product object
+                    $product = wc_get_product($product_id);
+
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $product->set_status('publish');
+
+                    if ($product->save()) {
+                        $products_to_clear[] = $product_id;
+
+                        // Trigger action for other plugins
+                        do_action('woocommerce_product_published', $product_id, $product);
+                    }
+
+                    $total_published++;
+                    // Clean up product object to free memory
+                    unset($product);
+                endwhile;
+            else:
+                $has_more = false;
+                return;
+            endif;
+
+            // Clear batch cache
+            $this->clear_batch_cache($products_to_clear);
+
+            // Reset post data
+            wp_reset_postdata();
+
+            // Clear some memory
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+
+            // Final cache clear
+            wc_delete_product_transients();
+
+        }catch (\Exception $exception){
+            $response = [
+                'success' => false,
+                'has_more' => false,
+                'total_published' => $total_published,
+                'loop_products' => $this_loop_products,
+                'found_products' => $found_products,
+                'message' => $exception->getMessage()
+            ];
+            wp_send_json($response);
+
+        } finally {
+
+            if(ANAR_DEBUG)
+                self::log(sprintf('Completed page %d. Found Products %s, total Published %d , Loop Products %s, Has More? %s, $_POST: %s',
+                    $page,
+                    $found_products,
+                    $total_published,
+                    $this_loop_products,
+                    print_r($has_more, true),
+                    print_r($_POST, true)
+                ));
+
+            $response = [
+                'success' => true,
+                'has_more' => $has_more,
+                'total_published' => $total_published,
+                'loop_products' => $this_loop_products,
+                'found_products' => $found_products,
+            ];
+            wp_send_json($response);
+        }
+
+    }
+
+
+    /**
+     * Clear cache for a batch of products
+     *
+     * @param array $product_ids Array of product IDs to clear cache for
+     */
+    private function clear_batch_cache($product_ids)
+    {
         if (empty($product_ids)) {
-            wp_send_json_success(array(
-                'message' => 'هیچ محصول پیش نویسی وجود ندارد.'
-            ));
+            return;
         }
 
-        $published_count = 0;
-
-        // Update each product
-        foreach ($product_ids as $product_id) {
-            // Get the product object
-            $product = wc_get_product($product_id);
-
-            if (!$product) {
-                continue;
-            }
-
-            // Update the product status
-            $product->set_status('publish');
-
-            // Save the product
-            if ($product->save()) {
-                $published_count++;
-
-                // Trigger action for other plugins
-                do_action('woocommerce_product_published', $product_id, $product);
-            }
-        }
-
-        if ($published_count === 0) {
-            wp_send_json_error(array(
-                'message' => 'خطایی در بروزرسانی محصولات پیش آمده. صفحه را دوباره بارگذاری و تست کنید.'
-            ));
-        }
-
-        // Clear cache
-        wc_delete_product_transients();
-
-        // Clear product cache for each published product
         foreach ($product_ids as $product_id) {
             wp_cache_delete($product_id, 'post_meta');
             wp_cache_delete('product-' . $product_id, 'products');
         }
 
-        wp_send_json_success(array(
-            'message' => sprintf('%d محصول منتشر شد.', $published_count)
-        ));
+        // Clear some common WooCommerce transients that might be affected
+        delete_transient('wc_products_onsale');
+        delete_transient('wc_featured_products');
     }
 
     public function set_vendor_for_anar_products_ajax() {

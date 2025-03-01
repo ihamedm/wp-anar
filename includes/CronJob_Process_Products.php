@@ -43,30 +43,55 @@ class CronJob_Process_Products {
             return;
         }
 
-        try {
-            global $wpdb;
+        if(self::is_process_a_row_on_progress()){
+            if(ANAR_DEBUG)
+                awca_log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
 
-            // Fetch all unprocessed rows from the database
-            $table_name = $wpdb->prefix . ANAR_DB_NAME;
-            $row = $wpdb->get_results("SELECT * FROM $table_name WHERE `key` = 'products' AND `processed` = 0 ORDER BY `page` ASC LIMIT 1", ARRAY_A);
-            $row = $row[0];
-            if ($row) {
+            return;
+        }
+
+        $start_time = microtime(true);
+        $max_execution_time = 50; // Set a limit slightly below your server's PHP execution time
+        $rows_processed = 0;
+
+        do{
+            try {
+                global $wpdb;
+
+                // Fetch all unprocessed rows from the database
+                $table_name = $wpdb->prefix . ANAR_DB_NAME;
+                $row = $wpdb->get_results("SELECT * FROM $table_name WHERE `key` = 'products' AND `processed` = 0 ORDER BY `page` ASC LIMIT 1", ARRAY_A);
+
+                if (empty($row)) {
+                    $this->log('No more unprocessed product pages found.');
+                    $this->complete();
+                    break;
+                }
+
+                $row = $row[0];
                 $this->log("start to create products of row {$row['page']}", true);
+                self::set_process_a_row_on_progress();
 
                 $this->create_products(array(
                     'row_id' => $row['id'],
                     'row_page_number' => $row['page'],
                 ));
 
+                $rows_processed++;
 
-            } else {
-                $this->logger->log('No unprocessed product pages found.');
-                $this->complete();
+            } catch (\Exception $e) {
+                $this->logger->log($e->getMessage(), true);
+                break;
+            } finally {
+                self::set_process_row_complete();
             }
-        } catch (\Exception $e) {
-            $this->logger->log($e->getMessage(), true);
-            wp_send_json_error('An error occurred: ' . $e->getMessage());
-        }
+
+            // Check if we're approaching the time limit
+            $elapsed_time = microtime(true) - $start_time;
+
+            // Continue as long as we haven't exceeded the time limit and have processed fewer than X rows
+            // You can add a max rows per run limit if needed
+        }while($elapsed_time < $max_execution_time && $rows_processed < 10);
 
     }
 
@@ -90,11 +115,12 @@ class CronJob_Process_Products {
 
         if ($item['row_page_number'] == 1) {
             $start_time = current_time('timestamp'); // Current timestamp
-            update_option('awca_cron_create_products_job_id', uniqid('awca_job_', true));
             update_option( 'awca_cron_create_products_start_time', $start_time);
             update_option( 'awca_proceed_products', 0);
             $this->add_to_awake_list();
         }
+
+
 
 
         // Retrieve the full row data from the database using the ID
@@ -108,9 +134,10 @@ class CronJob_Process_Products {
 
         // Extract necessary data from the item
         $page = $row['page'];
+        $import_jobID = $this->set_jobID($page);
         $serialized_response = $row['response'];
 
-        $this->log("-------- Background cron Task Start ,page {$page} -------");
+        $this->log("-------- Background cron Task Start ,jobID {$import_jobID} , page {$page} -------");
 
         // deserialize the response
         $awca_products = maybe_unserialize($serialized_response);
@@ -256,55 +283,16 @@ class CronJob_Process_Products {
         return false;
     }
 
-    public function detect_removed_products_from_anar() {
-        global $wpdb;
-
-        $this->log('detect removed products from Anar.');
-
-        $job_id = get_option('awca_cron_create_products_job_id');
-
-        if(!$job_id) {
-            return;
-        }
-
-
-        $query_result = $wpdb->prepare(
-            "SELECT DISTINCT 
-            p.ID, 
-            p.post_title 
-            FROM {$wpdb->posts} AS p
-            INNER JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
-            LEFT JOIN {$wpdb->postmeta} AS mt2 ON (
-                p.ID = mt2.post_id 
-                AND mt2.meta_key = '_anar_import_job_id'
-            )
-            WHERE 1=1 
-            AND p.post_type = 'product'
-            AND p.post_status != 'trash'
-            AND mt1.meta_key = '_anar_products'
-            AND (mt2.meta_value IS NULL OR mt2.meta_value != %s)",
-            $job_id
-        );
-
-        $products = $wpdb->get_results($query_result);
-        $product_count = count($products);
-        $this->log("found $product_count products that removed from Anar.");
-
-        if (!empty($products)) {
-            // Store the count of removed products
-            update_option('awca_removed_products_count', count($products));
-            update_option('awca_removed_products_time', current_time('mysql', true)); // Store UTC time
-
-            foreach ($products as $product) {
-                ProductManager::deprecate_anar_product($product->ID, $job_id);
-            }
-        }
-    }
 
     // Add the notice
     public function show_removed_products_notice() {
         // Handle the dismiss action
         if (isset($_GET['awca_hide_notice']) && wp_verify_nonce($_GET['nonce'], 'awca_hide_notice')) {
+            delete_option('awca_removed_products_count', 0);
+            return;
+        }
+
+        if (isset($_GET['anar_deprecated'])) {
             delete_option('awca_removed_products_count', 0);
             return;
         }
@@ -363,12 +351,13 @@ class CronJob_Process_Products {
         $this->notice_completed();
         $this::lock_create_products_cron();
 
-        $this->detect_removed_products_from_anar();
+        $import_jobID = $this->get_jobID();
+        ProductManager::handle_removed_products_from_anar('import', $import_jobID);
 
         delete_option('awca_proceed_products');
-//        delete_option('awca_total_products');
+        delete_transient('awca_cron_create_products_job_id');
         delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
-        $this->log('------------------------ completed ----------------------');
+        $this->log("------------------------ completed import job {$import_jobID} ----------------------");
         $this->log('Background Complete method : All products have been processed.');
 
 
@@ -389,6 +378,21 @@ class CronJob_Process_Products {
     }
 
 
+    public function set_jobID($page){
+        if($page == 1){
+            $new_jobID = uniqid('awca_job_');
+            set_transient('awca_cron_create_products_job_id', $new_jobID, 7200);
+
+            return $new_jobID;
+        }
+        return $this->get_jobID();
+    }
+
+    public function get_jobID(){
+        return get_transient('awca_cron_create_products_job_id');
+    }
+
+
     /**
      * deactivate cron event that create products when all products processed
      * @return void
@@ -402,13 +406,25 @@ class CronJob_Process_Products {
 
     public static function unlock_create_products_cron(){
         update_option('awca_create_product_cron_lock', 'unlock');
-        awca_log('create products unlocked.');
+        awca_log('create products unlocked [ start creating products ].');
         CronJobs::get_instance()->reschedule_events();
     }
 
     public static function is_create_products_cron_locked(){
         return get_option('awca_create_product_cron_lock') === 'lock';
     }
+
+
+    public static function set_process_a_row_on_progress(){
+        update_option('awca_create_product_row_on_progress', 'yes');
+    }
+    public static function set_process_row_complete(){
+        delete_option('awca_create_product_row_on_progress');
+    }
+    public static function is_process_a_row_on_progress(){
+        return get_option('awca_create_product_row_on_progress') === 'yes';
+    }
+
 
 
 }

@@ -121,8 +121,8 @@ function awca_convert_price_to_woocommerce_currency($price_in_irt)
 function awca_get_formatted_price($anar_price){
     $converted_price = awca_convert_price_to_woocommerce_currency($anar_price);
     $currency_symbol = get_woocommerce_currency_symbol();
-    $thousand_separator = ',';
-    $decimal_separator = '.';
+    $thousand_separator = get_option( 'woocommerce_price_thousand_sep', ',' );
+    $decimal_separator = get_option( 'woocommerce_price_num_decimals', 0 );
 
     // Format the price
     $formatted_price = number_format(floatval(preg_replace('/[^\d.]/', '', $converted_price)), 0, $decimal_separator, $thousand_separator);
@@ -146,8 +146,11 @@ function awca_is_hpos_enable(): bool
  */
 function awca_translator($string){
 
+
     if ($string === 'bike') {
         return 'پیک موتوری';
+    }elseif($string === 'bikeCOD'){
+        return 'پرداخت کرایه در مقصد';
     } elseif ($string === 'post') {
         return 'پست';
     } elseif ($string === 'express') {
@@ -221,6 +224,15 @@ function awca_call_anar_api($api_url)
 
 function awca_is_import_products_running(){
     return !Anar\CronJob_Process_Products::is_create_products_cron_locked();
+}
+
+
+/**
+ * check if still process of a page not complete to prevent overlap 2 product creation process
+ * @return void
+ */
+function awca_is_process_a_page_on_progress(){
+    return false;
 }
 
 function awca_get_dokan_vendors() {

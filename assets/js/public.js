@@ -71,7 +71,6 @@ jQuery(document).ready(function($) {
 
     // Execute functions on WooCommerce updated_checkout event
     $(document.body).on('updated_checkout', function() {
-        console.log('wc updated checkout')
         ensureRadioSelection();
         validateRadioSelectionOnOrder();
     });
@@ -100,7 +99,6 @@ jQuery(document).ready(function($) {
                 loadingIcon.show();
             },
             success: function (response) {
-                console.log(response)
                 if (response.success) {
                     anarOrderDetails.html(response.data.output)
                 }

@@ -9,7 +9,7 @@ class Image_Downloader{
     private $timeout;
     private $retry_limit;
 
-    public function __construct($size_limit = 5 * 1024 * 1024, $timeout = 60, $retry_limit = 3){
+    public function __construct($size_limit = 5 * 1024 * 1024, $timeout = 60, $retry_limit = 2){
         $this->size_limit = $size_limit;
         $this->timeout = $timeout;
         $this->retry_limit = $retry_limit;

@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://anar360.com/wordpress-plugin
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.2.0
+ * Version:          	0.3.0
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -185,12 +185,14 @@ class Wp_Anar
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_VERSION', '1.7');
-        define('ANAR_CRON_VERSION', '1.3');
+        define('ANAR_CRON_VERSION', '1.10');
 
 
-        define('ANAR_IS_ENABLE_CREATE_ORDER', get_option('anar_conf_feat__create_orders', 'no') !== 'no');
+        define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
+        define('ANAR_IS_ENABLE_CREATE_ORDER', get_option('anar_conf_feat__create_orders', 'yes'));
         define('ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE', get_option('anar_conf_feat__optional_price_sync', 'no') !== 'no');
         define('ANAR_IS_ENABLE_PAYMENTS_PAGE', false);
+        define('ANAR_IS_ENABLE_NOTIF_PAGE', true);
 
 
         /**
@@ -201,6 +203,8 @@ class Wp_Anar
          */
         define('ANAR_WC_API_PLUGIN_DIR', plugin_dir_path(__FILE__));
         define('ANAR_WC_API_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+        define('OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB', 'anar_count_anar_products_on_db');
 
 	}
 
@@ -262,6 +266,9 @@ class Wp_Anar
 
         new Woocommerce();
         Sync::get_instance();
+        SyncTools::get_instance();
+
+        //new Multi_Seller();
 
         //Background_Process_Products::get_instance();
 //        Background_Process_Images::get_instance();

@@ -483,7 +483,7 @@ class Order {
         if($this->create_anar_order($_POST['order_id'])){
             wp_send_json_success(array('message' => 'سفارش با موفقیت در پنل انار ثبت شد.'));
         }else{
-            wp_send_json_error(array('message' => 'خطا در ثبت ثبت سفارش در پنل انار.'));
+            wp_send_json_error(array('message' => 'خطا در ثبت ثبت سفارش در پنل انار. مجدد انجام دهید.'));
         }
 
     }
@@ -533,7 +533,7 @@ class Order {
 
                         $item_wc_id = ProductData::get_product_variation_by_anar_sku($item['product']);
                         // Check if the product ID is valid and get the product link
-                        if ($item_wc_id) {
+                        if ($item_wc_id && !is_wp_error($item_wc_id)) {
                             $product_link = get_permalink($item_wc_id); // Get the product link
                             $all_item_titles[] = sprintf('<a href="%s">%s</a>', esc_url($product_link), esc_html($item['title']));
                         } else {
@@ -692,12 +692,21 @@ class Order {
                     foreach ($package['items'] as $item) {
 //                        $item_wc_id = awca_get_product_by_anar_variant_id($item['product']);
                         $item_wc_id = ProductData::get_product_variation_by_anar_sku($item['product']);
+
                         // Check if the product ID is valid and get the product link
-                        if ($item_wc_id) {
+                        if ($item_wc_id && !is_wp_error($item_wc_id)) {
+                            $product = wc_get_product($item_wc_id);
+                            if ($product && $product->is_type('variation')) {
+                                // Return the parent ID
+                                $product_id = $product->get_parent_id();
+                            }else{
+                                $product_id = $product->get_id();
+                            }
+
                             $product_list_markup .= sprintf('<li><a class="awca-tooltip-on" href="%s" title="%s"><img src="%s" alt="%s"></a></li>',
-                                get_permalink($item_wc_id),
+                                get_permalink($product_id),
                                 $item['title'],
-                                get_the_post_thumbnail_url($item_wc_id),
+                                get_the_post_thumbnail_url($product_id),
                                 $item['title'],
                             );
                         } else {
@@ -723,7 +732,6 @@ class Order {
                     $output .= sprintf('<ul class="package-data-list">
                             <li><b>شماره مرسوله: </b>%s</li>
                             <li>%s</li>
-                            <li><b>وضعیت سفارش: </b>%s</li>
                             <li><b>شیوه ارسال: </b>%s</li>
                             <li><b>زمان ارسال: </b>%s</li>
                             <li><b>کد رهگیری: </b>%s</li>
@@ -732,7 +740,6 @@ class Order {
                         $package['orderNumber'],
                         $product_list_markup,
 
-                        awca_translator($package['status']),
                         awca_translator($package['delivery']['deliveryType']),
                         $package['delivery']['estimatedTime'],
                         $package['trackingNumber'],
