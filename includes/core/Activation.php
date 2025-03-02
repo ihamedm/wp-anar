@@ -40,7 +40,7 @@ class Activation{
         } elseif ($activation_status) {
             $response = [
                 'success' => true,
-                'message' => 'توکن شما معتبر و سمت انار مورد تایید است ',
+                'message' => 'توکن شما معتبر و پلاگین انار فعال شد.',
             ];
         } else {
             $response['message'] = 'توکن شما از سمت انار تایید نشد';

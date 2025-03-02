@@ -108,27 +108,9 @@ class SyncTools{
         }
     }
 
-
-    public function find_not_synced_products_ajax_callback() {
-
-        // Verify nonce
-        if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'awca_not_synced_products_nonce')) {
-            wp_send_json_error(array(
-                'message' => 'فرم نامعتبر است.'
-            ));
-        }
-
-        // Check user capabilities
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error(array(
-                'message' => 'شما مجوز این کار را ندارید!'
-            ));
-        }
-
-
-        $hours_ago = $_POST['skipp_out_of_stocks'] ?? 1;
+    public function found_not_synced_products($hours_ago)
+    {
         $time_ago = date('Y-m-d H:i:s', strtotime("-{$hours_ago} hour"));
-
         $args = array(
             'post_type' => 'product',
             'post_status' => 'publish',
@@ -156,16 +138,36 @@ class SyncTools{
         );
 
         $products = new \WP_Query($args);
-        if($products->have_posts()) {
-            while($products->have_posts()) {
-                $products->the_post();
-            }
+
+        return $products->found_posts;
+
+    }
+
+    public function find_not_synced_products_ajax_callback() {
+
+        // Verify nonce
+        if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'awca_not_synced_products_nonce')) {
+            wp_send_json_error(array(
+                'message' => 'فرم نامعتبر است.'
+            ));
         }
 
+        // Check user capabilities
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array(
+                'message' => 'شما مجوز این کار را ندارید!'
+            ));
+        }
+
+
+        $hours_ago = $_POST['hours_ago'] ?? 1;
+
+        $found_posts = $this->found_not_synced_products($hours_ago);
+
         wp_send_json_success([
-            'message' => sprintf("%s محصول پیدا شد", $products->found_posts),
+            'message' => sprintf("%s محصول پیدا شد", $found_posts),
             'markup_message' => sprintf('<p>%s محصول پیدا شد</p><p><a href="%s" target="_blank">مشاهده محصولات آپدیت نشده</a></p>',
-                $products->found_posts,
+                $found_posts,
                 admin_url('edit.php?post_type=product&sync=late&hours_ago='.$hours_ago),
             )
         ]);

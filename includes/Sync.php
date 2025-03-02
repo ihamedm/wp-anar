@@ -110,17 +110,20 @@ class Sync {
 
 
             $this->log('## Trigger by [ '.$this->triggerBy.' ] ' . ($this->fullSync ? ' [ full sync ]' : '') );
-            $this->processPages();
+            $completed = $this->processPages();
 
-            // After processing all pages in a full sync, check for removed products
-            if ($this->fullSync) {
-                ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
+            // Only perform final cleanup if truly complete
+            if ($completed) {
+                // After processing all pages in a full sync, check for removed products
+                if ($this->fullSync) {
+                    ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
+                }
+                $this->setLastSyncTime();
+                $this->complete_full_sync_job();
             }
 
-            $this->setLastSyncTime();
         } finally {
             $this->unlockSync();
-            $this->complete_full_sync_job();
             $this->logTotalTime(); // Log the total time at the end
         }
     }
@@ -129,6 +132,7 @@ class Sync {
     private function processPages() {
         $start_time = time();
         $max_execution_time = 240; // 4 minutes (to stay safely under 5 min limit)
+        $syncCompleted = false;
         while (true) {
 
             // Check if we're approaching the execution time limit
@@ -182,6 +186,7 @@ class Sync {
 
             if (count($awcaProducts->items) < $this->limit) {
                 $this->log(sprintf('##items of this page is %s , its last page.' , count($awcaProducts->items)));
+                $syncCompleted = true;
                 break;
             }
 
@@ -192,6 +197,8 @@ class Sync {
             }
 
         }
+
+        return $syncCompleted;
     }
 
     public function processProducts($products) {
