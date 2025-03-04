@@ -105,6 +105,11 @@ class CronJobs {
 
     public function create_products_job(){
         $cron_product_generator = CronJob_Process_Products::get_instance();
+
+        // First check if there's a stuck process
+        $cron_product_generator->check_for_stuck_processes();
+
+        // Then proceed with regular processing
         $cron_product_generator->process_the_row();
     }
 

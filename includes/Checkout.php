@@ -224,7 +224,7 @@ class Checkout {
                         $is_free_shipping = false;
                         $original_price = $delivery['price'];
                         $original_estimate_time = $delivery['estimatedTime'];
-                        awca_log(print_r($delivery, true));
+//                        awca_log(print_r($delivery, true));
                         // Check free condition
                         if (isset($delivery['freeCondition']) && isset($delivery['freeCondition']['purchasesPrice'])){
                             if($package_total >= $delivery['freeCondition']['purchasesPrice']) {
@@ -233,7 +233,7 @@ class Checkout {
                                 $delivery['estimatedTime'] = 'ارسال رایگان';
 
                             }
-                            awca_log("package_total:" . $package_total . " - " . $delivery['freeCondition']['purchasesPrice']);
+//                            awca_log("package_total:" . $package_total . " - " . $delivery['freeCondition']['purchasesPrice']);
                         }
 
                         $estimate_time_str = $delivery['estimatedTime'] ? ' (' . $delivery['estimatedTime'] . ')' : '';

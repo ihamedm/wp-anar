@@ -159,6 +159,10 @@ function awca_translator($string){
         return 'پرداخت نشده';
     } elseif ($string === 'paid') {
         return 'پرداخت شده';
+    } elseif ($string === 'approvalPending') {
+        return 'در انتظار تایید فروشگاه';
+    } elseif ($string === 'preparing') {
+        return 'در حال آماده سازی';
     } else {
         return $string;
     }

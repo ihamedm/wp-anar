@@ -62,6 +62,8 @@ class Woocommerce{
 
         $anar_url = "https://anar360.com/earning-income/product/{$anar_sku}";
 
+        $wc_product = wc_get_product($post->ID);
+
         ?>
         <div id="awca-custom-meta-box-container">
 
@@ -72,14 +74,18 @@ class Woocommerce{
                 );
             }?>
 
-            <?php if($anar_prices) {
+            <?php if($anar_prices && $wc_product->get_type() == 'simple') {
                 printf('<div class="awca-product-anar-prices">
-                        <span>قیمت فروش در انار <strong>%s</strong></span>
+                        <span>قیمت لیبل <strong>%s</strong></span>
                         <span>قیمت همکار <strong>%s</strong></span>
-                        <span><a style="display: flex; gap:8px" href="%s" target="_blank"><span class="anar-fruit"><img src="'.ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg"></span> مشاهده محصول در سایت انار</a></strong></span>
+                        <span>قیمت فروش شما <strong>%s</strong></span>
+                        <span style="color: #079d66">سود شما <strong>%s</strong></span>
+                        <span><a style="display: flex; gap:8px" href="%s" target="_blank"><span class="anar-fruit"><img src="' .ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg"></span> مشاهده محصول در سایت انار</a></strong></span>
                         </div>',
-                    awca_get_formatted_price($anar_prices['price']) ?? '-',
+                    awca_get_formatted_price($anar_prices['labelPrice']) ?? '-',
                     awca_get_formatted_price($anar_prices['priceForResell']) ?? '-',
+                awca_get_formatted_price($anar_prices['price']) ?? '-',
+                awca_get_formatted_price($anar_prices['resellerProfit']) ?? '-',
                     $anar_url
                 );
             }?>

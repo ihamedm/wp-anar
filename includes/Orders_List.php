@@ -91,19 +91,8 @@ class Orders_List {
         if( 'shop_order' !== $post_type ) {
             return;
         }
-        global $wpdb;
 
-        // Count for HPOS enabled stores
-        $orders_table = $wpdb->prefix . 'wc_orders';
-        $meta_table = $wpdb->prefix . 'wc_orders_meta';
-
-        $count = $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(DISTINCT o.id)
-        FROM {$orders_table} o
-        INNER JOIN {$meta_table} om ON o.id = om.order_id
-        WHERE om.meta_key = %s
-        AND om.meta_value = %s
-    ", '_is_anar_order', 'anar'));
+        $count = OrderData::count_anar_orders();
 
         $is_anar_order = isset( $_GET[ 'is_anar_order' ] ) ? $_GET[ 'is_anar_order' ] : '';
 
@@ -118,16 +107,7 @@ class Orders_List {
     }
 
     public function anar_orders_filter_link($views) {
-        global $wpdb;
-
-        $count = $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(DISTINCT p.ID)
-        FROM {$wpdb->posts} AS p
-        INNER JOIN {$wpdb->postmeta} AS pm ON p.ID = pm.post_id
-        WHERE p.post_type = 'shop_order'
-        AND pm.meta_key = %s
-        AND pm.meta_value = %s
-    ", '_is_anar_order', 'anar'));
+        $count = OrderData::count_anar_orders();
 
         // Check if current filter is active
         $current = isset($_GET['is_anar_order']) ? ' class="current"' : '';

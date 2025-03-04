@@ -369,6 +369,7 @@ class Sync {
         update_post_meta($wcProductParentId, '_anar_prices',
             [
                 'price' => $variant->price,
+                'labelPrice' => $variant->labelPrice,
                 'priceForResell' => $variant->priceForResell,
                 'resellerProfit' => $variant->resellerProfit,
                 'sellerDiscount' => $variant->sellerDiscount,

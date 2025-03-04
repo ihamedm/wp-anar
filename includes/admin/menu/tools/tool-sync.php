@@ -30,7 +30,7 @@
 
 
     <?php
-    $sync = new \Anar\Sync();
+    $sync = \Anar\Sync::get_instance();
     $last_sync_time = $sync->getLastSyncTime();
     $sync->fullSync = true;
     $last_full_sync_time = $sync->getLastSyncTime();

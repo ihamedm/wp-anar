@@ -6,3 +6,4 @@ import './reset-options';
 import './publish-drafts';
 import './tool-ajax-form';
 import './not-synced';
+import './system-reports';

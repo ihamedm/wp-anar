@@ -71,40 +71,4 @@ jQuery(document).ready(function($) {
     });
 
 
-    function getSystemReports(){
-        const reportEl = $('#anar-system-reports')
-        const action = reportEl.data('action')
-
-        if(reportEl.length !== 0){
-            $.ajax({
-                url: awca_ajax_object.ajax_url,
-                type: "POST",
-                dataType: "json",
-                data: {
-                    action: action,
-                },
-                beforeSend: function () {
-                    awca_toast('در حال دریافت اطلاعات', 'success');
-                },
-                success: function (response) {
-                    var msgType = response.success ? 'success' : 'error';
-                    // Show toast message
-                    if (response.data && response.data.toast) {
-                        awca_toast(response.data.toast, msgType);
-                        reportEl.html(response.data.reports);
-                    }
-
-                },
-                error: function (xhr, status, err) {
-                    awca_toast(xhr.responseText || 'An error occurred', 'error');
-                },
-                complete: function () {
-                }
-            });
-        }
-    }
-
-    getSystemReports()
-
-
 });

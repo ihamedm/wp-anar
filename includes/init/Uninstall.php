@@ -31,7 +31,7 @@ class Uninstall
 	 */
 	public function run_uninstall()
 	{
-		self::remove_options();
+        self::reset_options();
         self::clear_scheduled();
 	}
 
@@ -61,7 +61,14 @@ class Uninstall
         delete_option('awca_proceed_products');
         delete_option('awca_product_save_lock');
         delete_option('anar_active_full_sync_jobID');
+        delete_option('awca_cron_create_products_start_time');
+        delete_option('awca_proceed_products');
+
+
+        delete_transient('awca_create_product_row_on_progress');
         delete_transient('awca_sync_all_products_lock');
+        delete_transient('awca_create_product_row_start_time');
+        delete_transient('awca_create_product_heartbeat');
     }
 
 

@@ -532,7 +532,7 @@ input#plugin_activation_button {
   gap: 32px;
 }
 
-.stepper_btn, .awca_sync_btn, .awca-primary-btn {
+.stepper_btn, .awca_sync_btn, .awca-primary-btn, .awca-btn {
   background-color: var(--line-border-fill) !important;
   border-color: var(--line-border-fill) !important;
   border: 0;
@@ -554,6 +554,10 @@ input#plugin_activation_button {
 .stepper_btn:disabled, .awca_sync_btn:disabled, .awca-primary-btn:disabled{
   background-color: #cf667c !important;
   border-color:#cf667c !important;
+}
+
+.awca-success-btn{
+  background-color: #0A875A !important;
 }
 
 .awca-primary-btn.loading .spinner-loading{

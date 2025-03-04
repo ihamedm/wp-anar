@@ -14,8 +14,9 @@ class CronJob_Process_Products {
      */
     public $logger = null;
     private static $instance = null;
-
-    private $thumbnail_generator = null;
+    private int $stuck_process_timeout = 300; // 5 minutes
+    private int $heartbeat_timeout = 480; // 8 minutes
+    private Image_Downloader $image_downloader;
 
 
     private function __construct()
@@ -25,7 +26,7 @@ class CronJob_Process_Products {
         //add_action( 'admin_notices', array( $this, 'admin_notice' ) );
         add_action('admin_notices', [$this, 'show_removed_products_notice']);
 
-        $this->thumbnail_generator = Background_Process_Thumbnails::get_instance();
+        $this->image_downloader = new Image_Downloader();
     }
 
 
@@ -44,14 +45,18 @@ class CronJob_Process_Products {
         }
 
         if(self::is_process_a_row_on_progress()){
-            if(ANAR_DEBUG)
-                awca_log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
+            awca_log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
 
             return;
         }
 
+        // Set start time for this row process
+        set_transient('awca_create_product_row_start_time', time(), 30 * MINUTE_IN_SECONDS);
+
         $start_time = microtime(true);
-        $max_execution_time = 50; // Set a limit slightly below your server's PHP execution time
+        // Set a limit slightly below your server's PHP execution time
+//        $max_execution_time = min((int)(ini_get('max_execution_time') * 0.8), 50);
+        $max_execution_time = 240;
         $rows_processed = 0;
 
         do{
@@ -80,7 +85,9 @@ class CronJob_Process_Products {
                 $rows_processed++;
 
             } catch (\Exception $e) {
-                $this->logger->log($e->getMessage(), true);
+                $this->logger->log('Error processing row: ' . $e->getMessage(), true);
+                self::set_process_row_complete();
+                delete_transient('awca_create_product_row_start_time');
                 break;
             } finally {
                 self::set_process_row_complete();
@@ -107,114 +114,136 @@ class CronJob_Process_Products {
         global $wpdb;
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
-        // Check if the item contains the necessary data
-        if ( ! isset( $item['row_id'] ) ) {
-            $this->log('Invalid task data, skipping.');
-            return false;
-        }
+        // Start transaction at the beginning of the method
+        $wpdb->query('START TRANSACTION');
 
-        if ($item['row_page_number'] == 1) {
-            $start_time = current_time('timestamp'); // Current timestamp
-            update_option( 'awca_cron_create_products_start_time', $start_time);
-            update_option( 'awca_proceed_products', 0);
-            $this->add_to_awake_list();
-        }
-
-
-
-
-        // Retrieve the full row data from the database using the ID
-        $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item['row_id']), ARRAY_A );
-
-        if ( ! $row ) {
-            $this->log("No data found for ID {$item['row_id']}, skipping.");
-            return false;
-        }
-
-
-        // Extract necessary data from the item
-        $page = $row['page'];
-        $import_jobID = $this->set_jobID($page);
-        $serialized_response = $row['response'];
-
-        $this->log("-------- Background cron Task Start ,jobID {$import_jobID} , page {$page} -------");
-
-        // deserialize the response
-        $awca_products = maybe_unserialize($serialized_response);
-        if ($awca_products === false) {
-            $this->log("Failed to deserialize the response for page $page.");
-            return false;
-        }
-
-        if (!isset($awca_products->items)) {
-            $this->log("deserialized data does not contain 'items' for page $page.");
-            return false;
-        }
-
-        // Get necessary options and mappings
-        $attributeMap = get_option('attributeMap');
-        $combinedCategories = get_option('combinedCategories');
-        $categoryMap = get_option('categoryMap');
-
-        $created_product_ids = [];
-        $exist_product_ids = [];
-        update_option('awca_total_products', $awca_products->total);
-        $proceed_products = get_option('awca_proceed_products', 0);
-
-        $image_downloader = new Image_Downloader();
-
-        // Loop through products and create them in WooCommerce
-        foreach ($awca_products->items as $product_item) {
-            $prepared_product = ProductManager::product_serializer($product_item);
-
-            $product_creation_data = array(
-                'name' => $prepared_product['name'],
-                'regular_price' => $prepared_product['regular_price'],
-                'description' => $prepared_product['description'],
-                'image' => $prepared_product['image'],
-                'categories' => $prepared_product['categories'],
-                'category' => $prepared_product['category'],
-                'stock_quantity' => $prepared_product['stock_quantity'],
-                'gallery_images' => $prepared_product['gallery_images'],
-                'attributes' => $prepared_product['attributes'],
-                'variants' => $prepared_product['variants'],
-                'sku' => $prepared_product['sku'],
-                'shipments' => $prepared_product['shipments'],
-                'shipments_ref' => $prepared_product['shipments_ref'],
-            );
-
-            // Create or update the product
-            $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
-
-            $product_id = $product_creation_result['product_id'];
-            if ($product_creation_result['created']) {
-                $created_product_ids[] = $product_id;
-                $image_downloader->set_product_thumbnail($product_id, $prepared_product['image']);
-            } else {
-                $exist_product_ids[] = $product_id;
+        try {
+            // Check if the item contains the necessary data
+            if ( ! isset( $item['row_id'] ) ) {
+                $this->log('Invalid task data, skipping.');
+                $wpdb->query('ROLLBACK');
+                return false;
             }
 
-            $proceed_products++;
-            update_option('awca_proceed_products', $proceed_products);
+            if ($item['row_page_number'] == 1) {
+                $start_time = current_time('timestamp'); // Current timestamp
+                update_option( 'awca_cron_create_products_start_time', $start_time);
+                update_option( 'awca_proceed_products', 0);
+                $this->add_to_awake_list();
+            }
 
-            $this->log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
+
+            // Retrieve the full row data from the database using the ID
+            $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item['row_id']), ARRAY_A );
+
+            if ( ! $row ) {
+                $this->log("No data found for ID {$item['row_id']}, skipping.");
+                return false;
+            }
+
+
+            // Extract necessary data from the item
+            $page = $row['page'];
+            $import_jobID = $this->set_jobID($page);
+            $serialized_response = $row['response'];
+
+            $this->log("-------- Background cron Task Start ,jobID {$import_jobID} , page {$page} -------");
+
+            // deserialize the response
+            $awca_products = maybe_unserialize($serialized_response);
+            if ($awca_products === false) {
+                $this->log("Failed to deserialize the response for page $page.");
+                return false;
+            }
+
+            if (!isset($awca_products->items)) {
+                $this->log("deserialized data does not contain 'items' for page $page.");
+                return false;
+            }
+
+            // Get necessary options and mappings
+            $attributeMap = get_option('attributeMap');
+            $combinedCategories = get_option('combinedCategories');
+            $categoryMap = get_option('categoryMap');
+
+            $created_product_ids = [];
+            $exist_product_ids = [];
+            update_option('awca_total_products', $awca_products->total);
+            $proceed_products = get_option('awca_proceed_products', 0);
+
+            // Update heartbeat every few products
+            $heartbeat_counter = 0;
+
+            // Loop through products and create them in WooCommerce
+            foreach ($awca_products->items as $product_item) {
+                $prepared_product = ProductManager::product_serializer($product_item);
+
+                $product_creation_data = array(
+                    'name' => $prepared_product['name'],
+                    'regular_price' => $prepared_product['regular_price'],
+                    'description' => $prepared_product['description'],
+                    'image' => $prepared_product['image'],
+                    'categories' => $prepared_product['categories'],
+                    'category' => $prepared_product['category'],
+                    'stock_quantity' => $prepared_product['stock_quantity'],
+                    'gallery_images' => $prepared_product['gallery_images'],
+                    'attributes' => $prepared_product['attributes'],
+                    'variants' => $prepared_product['variants'],
+                    'sku' => $prepared_product['sku'],
+                    'shipments' => $prepared_product['shipments'],
+                    'shipments_ref' => $prepared_product['shipments_ref'],
+                );
+
+                // Create or update the product
+                $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
+
+                $product_id = $product_creation_result['product_id'];
+                if ($product_creation_result['created']) {
+                    $created_product_ids[] = $product_id;
+                    $this->image_downloader->set_product_thumbnail($product_id, $prepared_product['image']);
+                } else {
+                    $exist_product_ids[] = $product_id;
+                }
+
+                $proceed_products++;
+                update_option('awca_proceed_products', $proceed_products);
+
+                $this->log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
+
+                // Update heartbeat every 5 products
+                if ($heartbeat_counter % 5 === 0) {
+                    set_transient('awca_create_product_heartbeat', time(), 10 * MINUTE_IN_SECONDS);
+                }
+                $heartbeat_counter++;
+            }
+
+            // Mark the page as processed
+            $update_result = $wpdb->update(
+                $table_name,
+                array('processed' => 1),
+                array('id' => $item['row_id']),
+                array('%d'),
+                array('%d')
+            );
+
+            if ($update_result === false) {
+                throw new \Exception("Failed to update row status for page {$page}");
+            }
+
+            // If we got here, commit the transaction
+            $wpdb->query('COMMIT');
+            $this->log("Page $page processed and marked as complete.");
+
+            // Continue processing
+            return true;
+
+        }catch (\Exception $e) {
+            // If anything goes wrong, roll back the transaction
+            $wpdb->query('ROLLBACK');
+            $this->log("Error processing page {$page}: " . $e->getMessage());
+            return false;
         }
 
-        // Mark the page as processed
-        $wpdb->update(
-            $table_name,
-            array('processed' => 1),
-            array('id' => $item['row_id']),
-            array('%d'),
-            array('%d')
-        );
-
-
-
-        $this->log("Page $page processed and marked as complete.");
-
-        // Continue processing
-        return true;
     }
 
 
@@ -416,15 +445,57 @@ class CronJob_Process_Products {
 
 
     public static function set_process_a_row_on_progress(){
-        update_option('awca_create_product_row_on_progress', 'yes');
+        set_transient('awca_create_product_row_on_progress', 'yes', 5 * MINUTE_IN_SECONDS);
     }
     public static function set_process_row_complete(){
-        delete_option('awca_create_product_row_on_progress');
+        delete_transient('awca_create_product_row_on_progress');
     }
     public static function is_process_a_row_on_progress(){
-        return get_option('awca_create_product_row_on_progress') === 'yes';
+        return get_transient('awca_create_product_row_on_progress') === 'yes';
     }
 
+    public function check_for_stuck_processes() {
+        // Check if a process has been running too long
+        $process_started = get_transient('awca_create_product_row_start_time');
+        $last_heartbeat = get_transient('awca_create_product_heartbeat');
+
+        $current_time = time();
+
+        // If process has been flagged as in-progress
+        if (self::is_process_a_row_on_progress()) {
+            $this->log("Found a process marked as in-progress, checking if it's stuck...");
+
+            $is_stuck = false;
+
+            // Check start time - if it's been more than 5 minutes, consider it stuck
+            if ($process_started && ($current_time - $process_started > $this->stuck_process_timeout)) {
+                $this->log("Process has been running for more than 5 minutes, likely stuck");
+                $is_stuck = true;
+            }
+
+            // Also check heartbeat - if no heartbeat for 8 minutes, consider it stuck
+            if ($last_heartbeat && ($current_time - $last_heartbeat > $this->heartbeat_timeout)) {
+                $this->log("No heartbeat detected for more than 8 minutes, likely stuck");
+                $is_stuck = true;
+            }
+
+            // If we've determined the process is stuck
+            if ($is_stuck) {
+                $this->log("Resetting stuck process locks to allow processing to continue");
+                delete_transient('awca_create_product_row_on_progress');
+                delete_transient('awca_create_product_row_start_time');
+                delete_transient('awca_create_product_heartbeat');
+
+                // Optionally, you could log which row was being processed
+                $progress_data = get_transient('awca_product_creation_progress');
+                if ($progress_data) {
+                    $this->log("Stuck process was working on row ID: " . $progress_data['row_id'] .
+                        ", processed " . count($progress_data['products_processed']) . " products");
+                    delete_transient('awca_product_creation_progress');
+                }
+            }
+        }
+    }
 
 
 }

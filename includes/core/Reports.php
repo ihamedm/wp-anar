@@ -1,6 +1,7 @@
 <?php
 namespace Anar\Core;
 
+use Anar\OrderData;
 use Anar\ProductData;
 use Anar\SyncTools;
 
@@ -21,15 +22,24 @@ class Reports{
     public function get_system_reports() {
         // WordPress Information
         $wp_info = sprintf(
-            "WordPress Information:\nVersion: %s\nLanguage: %s\nCharset: %s\nDebug mode: %s\nHome URL: %s\nSite URL: %s\nWordPress Path: %s\nWordPress Content Path: %s\n\n",
+            "WordPress Information:\nVersion: %s\nLanguage: %s\nTimeZone: %s\nCharset: %s\nDebug mode: %s\nHome URL: %s\nSite URL: %s\nWordPress Path: %s\nWordPress Content Path: %s\n\n",
             get_bloginfo('version'),
             get_bloginfo('language'),
+            wp_timezone_string(),
             get_bloginfo('charset'),
             (defined('WP_DEBUG') && WP_DEBUG) ? 'Enabled' : 'Disabled',
             home_url(),
             site_url(),
             ABSPATH,
             WP_CONTENT_DIR
+        );
+
+        // Woocommerce Information
+        $wc_info = sprintf(
+            "Woocommerce Information:\nHPOS: %s\nAnar Orders: %s\nAnar Register Orders: %s\n\n",
+           awca_is_hpos_enable() ? 'Yes' : 'No',
+                    OrderData::count_anar_orders(),
+                    OrderData::count_anar_orders_submited()
         );
 
         // Theme Information
@@ -72,7 +82,12 @@ class Reports{
 
         wp_send_json_success(
             [
-                'reports' => $wp_info . $theme_info . $plugins_info . $server_info . $this->get_some_anar_data(),
+                'reports' => $wp_info . $wc_info . $theme_info . $plugins_info . $server_info .
+                    $this->get_some_anar_data()
+                    .SystemStatus::get_cron_health_report()
+                    .SystemStatus::get_db_health_report()
+                    .Logger::get_logs_status_report()
+                ,
                 'toast' => 'گزارش سیستم دریافت شد'
             ]
         );
@@ -82,11 +97,17 @@ class Reports{
     public function get_some_anar_data(){
         $sync_tools = SyncTools::get_instance();
         $product_data = new ProductData();
+        $sync = \Anar\Sync::get_instance();
+        $last_sync_time = mysql2date('j F Y' . ' - ' . 'H:i', $sync->getLastSyncTime());
+        $sync->fullSync = true;
+        $last_full_sync_time = mysql2date('j F Y' . ' - ' . 'H:i', $sync->getLastSyncTime());
 
         $anar_info = sprintf(
-            "\nAnar Data:\nAnar products count: %s\nNot synced last hour ago: %s",
+            "\nAnar Data:\nAnar products count: %s\nNot synced last hour ago: %s\nLast fullSync: %s\nLast partial sync: %s\n",
             $product_data->count_anar_products()   ,
             $sync_tools->found_not_synced_products(1),
+            $last_full_sync_time,
+            $last_sync_time,
         );
 
         return $anar_info;

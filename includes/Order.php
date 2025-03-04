@@ -528,7 +528,7 @@ class Order {
                     // Collect item titles
                     foreach ($package['items'] as $item) {
 
-                        $paymentStatus = $package['paymentStatus'];
+                        $paymentStatus = $package['status'];
                         $groupId = $package['groupId'];
 
                         $item_wc_id = ProductData::get_product_variation_by_anar_sku($item['product']);
@@ -642,6 +642,9 @@ class Order {
             </div>
         </div>';
 
+            }else{
+                $output .= '<p class="alert alert-warning">وضعیت سفارش را از پنل انار دنبال کنید</p>';
+                $output .= '<a class="awca-btn awca-success-btn" target="_blank" href="https://anar360.com/o/'.$groupId.'">وضعیت سفارش در پنل انار</a>';
             }
 
 
