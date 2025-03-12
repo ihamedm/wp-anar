@@ -1,4 +1,4 @@
-<div class="wrapper tools-wrapper" style="margin-top:32px">
+<div class="wrapper anar-tools-wrapper" style="margin-top:32px">
     <h2 class="awca_plugin_titles">اختصاص محصولات انار به فروشنده دکان</h2>
     <p class="awca_plugin_subTitles">
         از طریق این فرم می توانید کل محصولات انار را به یک فروشنده افزونه دکان اختصاص دهید.
@@ -26,10 +26,10 @@
 
         <div class="stepper_button_container">
             <button type="submit" class="plugin_activation_button stepper_btn tool_submit_btn" ">
-                <span>اختصاص این فروشنده به تمام محصولات انار</span>
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
+            <span>اختصاص این فروشنده به تمام محصولات انار</span>
+            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+            </svg>
             </button>
         </div>
     </form>

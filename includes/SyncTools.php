@@ -113,7 +113,7 @@ class SyncTools{
         $time_ago = date('Y-m-d H:i:s', strtotime("-{$hours_ago} hour"));
         $args = array(
             'post_type' => 'product',
-            'post_status' => 'publish',
+            'post_status' => ['publish', 'draft'],
             'posts_per_page' => -1,
             'meta_query' => array(
                 'relation' => 'AND',
@@ -163,108 +163,19 @@ class SyncTools{
         $hours_ago = $_POST['hours_ago'] ?? 1;
 
         $found_posts = $this->found_not_synced_products($hours_ago);
-
+        $message = $found_posts > 0 ? "$found_posts محصول پیدا شد" : 'همه محصولات آپدیت هستند.';
         wp_send_json_success([
-            'message' => sprintf("%s محصول پیدا شد", $found_posts),
-            'markup_message' => sprintf('<p>%s محصول پیدا شد</p><p><a href="%s" target="_blank">مشاهده محصولات آپدیت نشده</a></p>',
-                $found_posts,
-                admin_url('edit.php?post_type=product&sync=late&hours_ago='.$hours_ago),
+            'found_posts' => $found_posts,
+            'toast' => $message,
+            'message' => sprintf('<span>%s</span>%s',
+                $message,
+                $found_posts > 0 ? sprintf('<a href="%s" target="_blank">%s</a>'
+                    , admin_url('edit.php?post_type=product&sync=late&hours_ago='.$hours_ago), get_anar_icon('external', 14)) : '',
             )
         ]);
 
     }
 
-
-    public function process_not_synced_products_batch($limit=5, $hours_ago=1) {
-
-        $time_ago = date('Y-m-d H:i:s', strtotime("-{$hours_ago} hour"));
-
-        $args = array(
-            'post_type' => 'product',
-            'posts_per_page' => $limit,
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key' => '_anar_products',
-                    'compare' => 'EXISTS'
-                ),
-                array(
-                    'relation' => 'OR',
-                    array(
-                        'key' => '_anar_last_sync_time',
-                        'compare' => 'NOT EXISTS'
-                    ),
-                    array(
-                        'key' => '_anar_last_sync_time',
-                        'value' => $time_ago,
-                        'compare' => '<',
-                        'type' => 'DATETIME'
-                    )
-                )
-            )
-        );
-
-        $q = new \WP_Query($args);
-        $this->log(sprintf('process %s product of %s found products that not synced in %s hours ago, start to sync [ Cronjob check ]',
-            $limit, $q->found_posts, $hours_ago));
-
-        if($q->have_posts()) : while($q->have_posts()) : $q->the_post();
-            $product_wc_id = get_the_ID();
-
-            $sku = get_post_meta($product_wc_id, '_anar_sku', true);
-            $this->log($sku);
-            if(!$sku)
-                return;
-
-            $api_url = 'https://api.anar360.com/wp/product/' . $sku;
-            $product_api_data = $this->callAnarApi($api_url);
-
-            $this->log(print_r($product_api_data, true));
-
-
-            if (is_wp_error($product_api_data)) {
-                $this->log('Failed to fetch products from API: ' . $product_api_data->get_error_message());
-                break;
-            }
-
-            if(empty($product_api_data->variants)){
-                $this->log('Product #'.$product_wc_id.' has empty variants from API');
-                break;
-            }
-
-            if (count($product_api_data->variants) == 1) {
-                $variant = $product_api_data->variants[0];
-                $wc_product = wc_get_product($product_wc_id);
-
-                $this->sync->updateProductStockAndPrice($wc_product,$product_api_data , $variant);
-                $this->sync->updateProductMetadata($product_wc_id, $variant);
-
-                $log_product = '#'.$product_wc_id;
-            } else {
-                foreach ($product_api_data->variants as $variant) {
-                    $wc_variation_id = ProductData::get_product_variation_by_anar_sku($sku);
-                    if($wc_variation_id && !is_wp_error($wc_variation_id)) {
-                        $wc_product = wc_get_product($wc_variation_id);
-
-                        $this->sync->updateProductStockAndPrice($wc_product, $product_api_data, $variant );
-                        $this->sync->updateProductMetadata($product_wc_id, $variant);
-                    }
-                }
-                $log_product = 'v#'.$product_wc_id;
-            }
-
-            $this->log(sprintf('%s' , $log_product));
-
-
-        endwhile;endif; wp_reset_postdata();
-
-
-        wp_send_json_success(
-            sprintf('<p>%s محصول از %s محصول پردازش شد.</p>',
-                $limit,
-                $q->found_posts),
-        );
-    }
 
 
     public function filter_not_synced_products($query){

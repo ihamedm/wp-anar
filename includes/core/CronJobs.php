@@ -6,6 +6,7 @@ use Anar\Notifications;
 use Anar\Payments;
 use Anar\ProductData;
 use Anar\Sync;
+use Anar\SyncOutdated;
 use Anar\SyncTools;
 
 class CronJobs {
@@ -58,8 +59,8 @@ class CronJobs {
         }
 
         // Schedule the log cleanup job to run daily
-        if (!wp_next_scheduled('awca_daily_log_cleanup_cron')) {
-            wp_schedule_event(time(), 'daily', 'awca_daily_log_cleanup_cron');
+        if (!wp_next_scheduled('anar_daily_jobs')) {
+            wp_schedule_event(time(), 'daily', 'anar_daily_jobs');
         }
 
 
@@ -77,7 +78,7 @@ class CronJobs {
         add_action('awca_fetch_updated_data_from_anar_cron', [$this, 'fetch_updated_data_from_anar_job']);
 
         // Assign the daily log cleanup job
-        add_action('awca_daily_log_cleanup_cron', [$this, 'log_cleanup_job']);
+        add_action('anar_daily_jobs', [$this, 'daily_jobs']);
 
     }
 
@@ -134,7 +135,7 @@ class CronJobs {
 
 
     public function fetch_updated_data_from_anar_job() {
-        (new Notifications)->count_unread_notifications();
+        // (new Notifications)->count_unread_notifications();
         (new ProductData())->count_anar_products();
         //(new Payments())->count_unpaid_orders_count();
 
@@ -142,12 +143,13 @@ class CronJobs {
 
 
 
-    public function log_cleanup_job() {
-        // Create an instance of the Logger class
+    public function daily_jobs() {
         $logger = new Logger();
+        $logger->cleanup_logs();
+        
 
-        // Call the cleanup method
-        $logger->cleanup_logs($logger);
+        $sync_outdated = SyncOutdated::get_instance();
+        $sync_outdated->process_outdated_products_job();
     }
 
 

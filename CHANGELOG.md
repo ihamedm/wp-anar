@@ -1,6 +1,15 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+
+## [0.3.3] - 1403/12/1
+- new : SyncOutdated class
+- new : force to woocommerce activate first
+- new : alert to update to the new version
+- new : fullSync schedule time option on tools/feature tab 
+- new : organize tools with new sub tabs
+- update : upgrade styles and features of sync widget to have better UX 
+
 ## [0.3.2] - 1403/12/14
 - رفع باگ نمایش دکمه پرداخت بعد از تغییر وضعیت به پرداخت شده
 - رفع باگ کرش کردن ایمپورت محصولات

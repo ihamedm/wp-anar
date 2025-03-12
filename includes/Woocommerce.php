@@ -159,12 +159,15 @@ class Woocommerce{
     public function anar_product_list_label($column, $post_id)
     {
         if ($column === 'product_label') {
-            $anar_products = get_post_meta($post_id, '_anar_sku', true);
-            if (!empty($anar_products)) {
+            $anar_sku = get_post_meta($post_id, '_anar_sku', true);
+            if (!empty($anar_sku)) {
                 $anar_prices = get_post_meta($post_id, '_anar_prices', true);
+                $anar_pending = get_post_meta($post_id, '_anar_pending', true);
 
-                $anar_url = "https://anar360.com/earning-income/product/{$anar_products}";
-                echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="مشاهده محصول در سایت انار۳۶۰"><img src="'.ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg"></a>';
+                $anar_url = "https://anar360.com/earning-income/product/{$anar_sku}";
+                $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/'.($anar_pending ? 'anar-fruit-pending.svg' : 'anar-fruit.svg');
+
+                echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="مشاهده محصول در سایت انار۳۶۰"><img src="'.$anar_fruit_url.'"></a>';
 
                 if($anar_prices && ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes') {
                     echo '<br>';
@@ -172,6 +175,15 @@ class Woocommerce{
                     echo '<br>';
                     echo awca_get_formatted_price($anar_prices['price']) ?? '-';
                 }
+            }
+
+            $anar_deprecated = get_post_meta($post_id, '_anar_deprecated', true);
+            if($anar_deprecated) {
+                $anar_sku_backup = get_post_meta($post_id, '_anar_sku_backup', true);
+                $anar_url = "https://anar360.com/earning-income/product/{$anar_sku_backup}";
+                $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit-deprecated.svg';
+
+                echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="از پنل انار حذف شده"><img src="'.$anar_fruit_url.'"></a>';
             }
         }
     }

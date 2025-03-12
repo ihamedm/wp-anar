@@ -129,6 +129,8 @@ class ProductManager{
             update_post_meta($product->get_id(), '_product_image_url', $product_data['image']);
         }
 
+        delete_post_meta($product->get_id(), '_anar_pending');
+
         $product->save();
 
         if(ANAR_DEBUG)
@@ -442,11 +444,12 @@ class ProductManager{
 
         if (!empty($products)) {
             // Store the count of removed products
-            update_option('awca_removed_products_count', count($products));
-            update_option('awca_removed_products_time', current_time('mysql', true)); // Store UTC time
+            update_option('awca_deprecated_products_count', count($products));
+            update_option('awca_deprecated_products_time', current_time('mysql'));
+
 
             foreach ($products as $product) {
-                self::deprecate_anar_product($product, $job_id, $log_file);
+                self::set_product_out_of_stock($product, $job_id, $log_file);
             }
         }
     }
@@ -459,7 +462,7 @@ class ProductManager{
      * @param string $job_id The job ID to mark as deprecated
      * @return bool True if deprecation was successful, false otherwise
      */
-    public static function deprecate_anar_product($product_id, $job_id, $log_file) {
+    public static function set_product_out_of_stock($product_id, $job_id, $log_file, $deprecate = false) {
         try {
             $wc_product = wc_get_product($product_id);
 
@@ -472,9 +475,18 @@ class ProductManager{
                 self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file);
 
             // Update product meta
-            update_post_meta($product_id, '_anar_deprecated', $job_id);
-            delete_post_meta($product_id, '_anar_sku');
-            delete_post_meta($product_id, '_anar_products');
+            if($deprecate){
+                update_post_meta($product_id, '_anar_deprecated', $job_id);
+
+                // make a backup from sku then delete
+                self::backup_anar_meta_data($product_id);
+
+                delete_post_meta($product_id, '_anar_sku');
+                delete_post_meta($product_id, '_anar_products');
+            }else{
+                update_post_meta($product_id, '_anar_pending', $job_id);
+            }
+
 
             if ($wc_product->is_type('variable')) {
                 // Handle variable product variations
@@ -488,9 +500,14 @@ class ProductManager{
                         $variation->set_stock_status('outofstock');
                         $variation->save();
 
-                        // Clean up variation meta
-                        delete_post_meta($variation_id, '_anar_sku');
-                        delete_post_meta($variation_id, '_anar_products');
+                        if($deprecate){
+                            // make a backup from sku then delete
+                            self::backup_anar_meta_data($product_id);
+
+                            // Clean up variation meta
+                            delete_post_meta($variation_id, '_anar_sku');
+                            delete_post_meta($variation_id, '_anar_products');
+                        }
                     }
                 }
             }
@@ -498,6 +515,7 @@ class ProductManager{
             // Update parent product (works for both simple and variable)
             $wc_product->set_stock_quantity(0);
             $wc_product->set_stock_status('outofstock');
+            $wc_product->set_status('draft');
             $wc_product->save();
 
             return true;
@@ -509,6 +527,16 @@ class ProductManager{
     }
 
 
+    public static function backup_anar_meta_data($product_id){
+        $anar_sku = get_post_meta($product_id, '_anar_sku', true);
+        if($anar_sku){
+            update_post_meta($product_id, '_anar_sku_backup', $anar_sku);
+        }
+        $anar_products = get_post_meta($product_id, '_anar_products', true);
+        if($anar_products){
+            update_post_meta($product_id, '_anar_products_backup', $anar_products);
+        }
+    }
 
     public function publish_draft_products_ajax() {
         // Verify nonce

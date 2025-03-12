@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * @return false|mixed|null
  */
@@ -7,6 +8,9 @@ function awca_get_activation_key(){
    return Anar\Core\Activation::get_saved_activation_key();
 }
 
+function get_anar_icon($name, $size){
+    return Anar\Core\Icons::get_sized_icon($name, $size);
+}
 
 /**
  * @param $string
@@ -136,7 +140,18 @@ function awca_get_formatted_price($anar_price){
  */
 function awca_is_hpos_enable(): bool
 {
-    return Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+    // Check if WooCommerce is active
+    if (!function_exists('WC') || !class_exists('Automattic\WooCommerce\Utilities\OrderUtil')) {
+        return false;
+    }
+
+    // Now safely check if HPOS is enabled
+    try {
+        return Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+    } catch (Exception $e) {
+        // Handle any exceptions that might occur
+        return false;
+    }
 }
 
 

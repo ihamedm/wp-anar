@@ -4,7 +4,7 @@ jQuery(document).ready(function($) {
     function find_not_synced_products() {
         const form = $('#anar_tools_not_sync_form');
         const formSubmitBtn = form.find('#submit-form-btn');
-        const $formDoSync = $("#process_not_synced_products_batch")
+        const $formSyncOutdated = $("#anar_tools_sync_outdated")
 
         if (form.length !== 0) {
             form.on('submit', function (e) {
@@ -43,10 +43,12 @@ jQuery(document).ready(function($) {
                     success: function (response) {
                         if (response.success) {
                             msgType = 'success';
-                            $formDoSync.show()
                         }
-                        form.find('.form-results').show().html(response.data.markup_message)
-                        awca_toast(response.data.message, msgType);
+                        if(response.data.found_posts > 0) {
+                            $formSyncOutdated.show()
+                        }
+                        form.find('.form-results').show().html(response.data.message)
+                        awca_toast(response.data.toast, msgType);
                     },
                     error: function (xhr, status, err) {
                         awca_toast(xhr.responseText);
@@ -57,7 +59,6 @@ jQuery(document).ready(function($) {
                     }
                 });
 
-                DoSyncAjax($formDoSync)
             }); // end on click
 
         }

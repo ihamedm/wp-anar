@@ -331,7 +331,7 @@ class CronJob_Process_Products {
             return;
         }
 
-        $removed_count = get_option('awca_removed_products_count', 0);
+        $removed_count = get_option('awca_deprecated_products_count', 0);
 
         if ($removed_count > 0) {
             // Create query parameters for the products page

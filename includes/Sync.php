@@ -22,7 +22,9 @@ class Sync {
 
     public $fullSync = false;
 
-    public $restBetweenFullSyncs = 60; //seconds
+    public $restBetweenFullSyncs; //seconds
+
+    public $max_execution_time;
 
     /**
      * time in milliseconds
@@ -44,6 +46,8 @@ class Sync {
         $this->page = 1;
         $this->syncedCounter = 0;
         $this->triggerBy = 'Cronjob';
+        $this->max_execution_time = 240; // 4 minutes (to stay safely under 5 min limit)
+        $this->restBetweenFullSyncs = get_option('anar_full_sync_schedule', 5) * 60;
 
         $this->logger = new Logger();
 
@@ -73,15 +77,18 @@ class Sync {
             return;
         }
 
+
         // only check cool down for fullSync jobs
         if($this->fullSync){
             $lastSyncTime = $this->getLastSyncTime();
             if($lastSyncTime){
                 $msSinceLastSync = strtotime(current_time('mysql')) - strtotime($lastSyncTime);
                 if(!$this->haveActiveFullSync() && $msSinceLastSync < $this->restBetweenFullSyncs){
+                    $minutes = round(($this->restBetweenFullSyncs - $msSinceLastSync ) / 60, 2);
+                    set_transient('anar_since_next_full_sync', $minutes, 3600);
                     $this->log(
                         sprintf('still %s Minutes left since next fullSync. %s',
-                            round(($this->restBetweenFullSyncs - $msSinceLastSync ) / 60, 2),
+                            $minutes,
                             $lastSyncTime
                         )
                     );
@@ -131,7 +138,7 @@ class Sync {
 
     private function processPages() {
         $start_time = time();
-        $max_execution_time = 240; // 4 minutes (to stay safely under 5 min limit)
+        $max_execution_time = $this->max_execution_time;
         $syncCompleted = false;
         while (true) {
 
@@ -379,6 +386,8 @@ class Sync {
         if ($this->fullSync) {
             update_post_meta($wcProductParentId, '_anar_sync_job_id', $this->jobID);
         }
+
+        delete_post_meta($wcProductParentId, '_anar_pending');
     }
 
 

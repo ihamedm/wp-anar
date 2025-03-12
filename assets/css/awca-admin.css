@@ -48,12 +48,21 @@
   margin: 10px auto;
   padding: 32px;
   font-family: "KalamehWeb";
+  overflow: hidden;
 }
 
-.tools-wrapper{
-  max-width: 400px;
-  margin: 32px 0;
+.awca-wrap-all-tools{
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap :32px;
+  align-content: flex-start;
 }
+
+.anar-tools-wrapper{
+  max-width: 80%;
+}
+
 
 
 .anar-text {
@@ -556,13 +565,32 @@ input#plugin_activation_button {
   border-color:#cf667c !important;
 }
 
+.awca-alt-btn{
+  background-color: #333 !important;
+}
+.awca-alt-btn:disabled{
+  background-color: #ccc !important;
+}
+
 .awca-success-btn{
   background-color: #0A875A !important;
 }
+.awca-success-btn:disabled{
+  background-color: #5e977d !important;
+}
 
+.awca-btn.loading .spinner-loading,
 .awca-primary-btn.loading .spinner-loading{
   display: block;
 }
+
+.awca-sm-btn{
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+
 
 .inline-btn{
   display: inline-flex !important;
@@ -800,7 +828,7 @@ select::-ms-expand {
   width: 163px !important;
   border: 1px solid #cecece !important;
   padding: 12px !important;
-  color: "#333333" !important;
+  color: #333333 !important;
   border-radius: 8px !important;
 }
 
@@ -1328,6 +1356,136 @@ select::-ms-expand {
   gap:4px;
   align-items: center;
   justify-content: space-between;
+}
+
+
+/* Icons */
+.anar-icon{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.anar-icon-12{
+  width: 12px;
+  height: 12px;
+}
+.anar-icon-14{
+  width: 14px;
+  height: 14px;
+}
+.anar-icon-16{
+  width: 16px;
+  height: 16px;
+}
+.anar-icon-18{
+  width: 18px;
+  height: 18px;
+}
+
+
+/* Tools */
+.anar-tool {
+  position: relative;
+}
+.anar-tool .access-menu{
+  position: absolute;
+  left:24px;
+  top:24px;
+}
+.anar-tool .access-menu ul{
+  display: none;
+  position: absolute;
+  min-width: 250px;
+  left: 0;
+  background: #fff;
+  padding: 12px 24px;
+  box-shadow: 0 1px 20px -10px rgba(0,0,0,0.5);
+  border-radius: 12px;
+}
+.anar-tool .access-menu li{
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+  margin:0
+}
+.anar-tool .access-menu li:last-child{
+  border:none
+}
+.anar-tool .access-menu li small{
+  color: #666;
+  font-size:12px;
+}
+.anar-tool .access-menu a{
+  text-decoration: none;
+  color: #212121;
+}
+.anar-tool .access-menu a:hover{
+  color: #0055c5;
+}
+
+.anar-tool .tool-footer{
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  margin: 32px -32px -32px;
+  background: #f9f9f9;
+}
+
+#anar_tools_not_sync_form{
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 16px;
+  flex-direction: row;
+}
+
+#anar_tools_not_sync_form .form-results {
+  display: flex;
+  gap: 4px;
+}
+
+.anar-tool-alert{
+  background-color: #c5e6fb;
+  border: 1px dashed blue;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0 0 0;
+  display: flex;
+  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.anar-tool-alert-warning{
+  background: #fffae2;
+  border: 1px dashed #f89f30;
+}
+
+.anar-tool-alert .buttons {
+  display: flex;
+  flex-direction: row;
+  gap :16px;
+  align-items: center;
+  justify-content: start
+}
+.anar-tool-alert .alert-title .label {
+  background: #d08c05;
+  color: white;
+  display: inline-block;
+  padding: 2px 5px;
+  font-size: 11px;
+  font-weight: 100;
+  border-radius: 4px;
+  margin-left: 7px;
+}
+
+#anar_tools_sync_outdated .anar-batch-messages{
+  width: 100% !important;
+  padding: 12px 0 !important;
+}
+#anar_tools_sync_outdated .anar-batch-progress{
+  width: 100% !important;
 }
 
 

@@ -71,4 +71,10 @@ jQuery(document).ready(function($) {
     });
 
 
+    $('.access-menu').on('click', '.access-menu-toggle', function(e) {
+        e.preventDefault();
+        const UL = $(this).siblings('ul')
+        UL.toggle()
+    })
+
 });

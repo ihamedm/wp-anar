@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.2
+ * Version:          	0.3.3
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -99,6 +99,9 @@ class Wp_Anar
 	 */
 	protected static $_instance = null;
 
+
+    private $update_checker;
+
 	/**
 	 * Access this plugin’s working instance
 	 *
@@ -142,10 +145,9 @@ class Wp_Anar
             return;
         }
 
-        /**
-         * @todo check woocommerce installed and versions, move from Install class to here.
-         */
+        add_action('admin_notices', array($this, 'show_new_version_notice'));
 
+        add_Action('admin_init', [$this, 'check_woocommerce_activate']);
         $this->check_and_update_db();
         $this->check_and_update_cron();
         $this->plugin_update_check();
@@ -223,7 +225,6 @@ class Wp_Anar
         register_deactivation_hook(__FILE__, [$uninstaller, 'run_uninstall']);
 
 
-
     }
 
 
@@ -268,6 +269,7 @@ class Wp_Anar
         new Woocommerce();
         Sync::get_instance();
         SyncTools::get_instance();
+        SyncOutdated::get_instance();
 
         //new Multi_Seller();
 
@@ -306,6 +308,23 @@ class Wp_Anar
             <p><?php printf($error); ?></p>
         </div>
         <?php
+    }
+
+    public function check_woocommerce_activate(){
+        if (!class_exists('WooCommerce')) {
+            // Deactivate the plugin
+            deactivate_plugins(plugin_basename(__FILE__));
+
+            // Add admin notice
+            add_action('admin_notices', [$this, 'woocommerce_dependency_notice']);
+
+            // If user is activating this plugin, redirect to plugins page
+            if (isset($_GET['activate'])) {
+                unset($_GET['activate']);
+                wp_redirect(admin_url('plugins.php?deactivate=true'));
+                exit;
+            }
+        }
     }
 
 
@@ -349,13 +368,35 @@ class Wp_Anar
      */
     public function plugin_update_check()
     {
-        $update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+        $this->update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
             'https://github.com/ihamedm/wp-anar',
             __FILE__,
             'wp-anar'
         );
         //Set the branch that contains the stable release.
-        $update_checker->setBranch('main');
+        $this->update_checker->setBranch('main');
+    }
+
+    public function show_new_version_notice()
+    {
+        $state = $this->update_checker->getUpdateState();
+        $update = $state->getUpdate();
+
+        // Check if an update is available
+        if ($update !== null) {
+            $current_version = $this->update_checker->getInstalledVersion();
+            $new_version = $update->version;
+
+            // Only show notification if new version is greater than installed version
+            if (version_compare($new_version, $current_version, '>')) {
+                // Display update notification
+                echo '<div class="notice notice-warning is-dismissible">';
+                echo '<p><strong>هشدار بروزرسانی به نسخه جدید پلاگین انار:</strong> نسخه ' . esc_html($new_version) . ' پلاگین انار منتشر شد. لطفا هر چه سریعتر بروزرسانی کنید. ';
+                echo 'نسخه فعلی شما ' . esc_html($current_version) . ' می باشد. ';
+                echo '<a href="' . esc_url(admin_url('plugins.php')) . '">برو به صفحه افزونه ها</a></p>';
+                echo '</div>';
+            }
+        }
     }
 
 
@@ -368,6 +409,17 @@ class Wp_Anar
                 \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
             }
         });
+    }
+
+
+    public function woocommerce_dependency_notice() {
+        $class = 'notice notice-error';
+        $message = 'پلاگین انار نیاز به فعال بودن ووکامرس دارد. لطفا ابتدا ووکامرس را نصب و فعال کنید.';
+
+        printf('<div class="%1$s"><p>%2$s</p><p></p></div>',
+            esc_attr($class),
+            esc_html($message),
+        );
     }
 
 
