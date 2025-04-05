@@ -30,6 +30,11 @@ class CronJob_Process_Products {
     }
 
 
+    public function log($message, $level = 'info') {
+        $this->logger->log($message,'import', $level);
+    }
+
+
     public static function get_instance() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -45,7 +50,7 @@ class CronJob_Process_Products {
         }
 
         if(self::is_process_a_row_on_progress()){
-            awca_log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
+            $this->log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
 
             return;
         }
@@ -55,7 +60,6 @@ class CronJob_Process_Products {
 
         $start_time = microtime(true);
         // Set a limit slightly below your server's PHP execution time
-//        $max_execution_time = min((int)(ini_get('max_execution_time') * 0.8), 50);
         $max_execution_time = 240;
         $rows_processed = 0;
 
@@ -74,7 +78,7 @@ class CronJob_Process_Products {
                 }
 
                 $row = $row[0];
-                $this->log("start to create products of row {$row['page']}", true);
+                $this->log("start to create products of row {$row['page']}");
                 self::set_process_a_row_on_progress();
 
                 $this->create_products(array(
@@ -85,11 +89,12 @@ class CronJob_Process_Products {
                 $rows_processed++;
 
             } catch (\Exception $e) {
-                $this->logger->log('Error processing row: ' . $e->getMessage(), true);
+                $this->log('Error processing row: ' . $e->getMessage(), 'error');
                 self::set_process_row_complete();
                 delete_transient('awca_create_product_row_start_time');
                 break;
             } finally {
+                (new ProductData())->count_anar_products(true);
                 self::set_process_row_complete();
             }
 
@@ -120,7 +125,7 @@ class CronJob_Process_Products {
         try {
             // Check if the item contains the necessary data
             if ( ! isset( $item['row_id'] ) ) {
-                $this->log('Invalid task data, skipping.');
+                $this->log('Invalid row data, skipping.', 'warning');
                 $wpdb->query('ROLLBACK');
                 return false;
             }
@@ -152,12 +157,12 @@ class CronJob_Process_Products {
             // deserialize the response
             $awca_products = maybe_unserialize($serialized_response);
             if ($awca_products === false) {
-                $this->log("Failed to deserialize the response for page $page.");
+                $this->log("Failed to deserialize the response for page $page.", 'error');
                 return false;
             }
 
             if (!isset($awca_products->items)) {
-                $this->log("deserialized data does not contain 'items' for page $page.");
+                $this->log("deserialized data does not contain 'items' for page $page.", 'error');
                 return false;
             }
 
@@ -240,33 +245,13 @@ class CronJob_Process_Products {
         }catch (\Exception $e) {
             // If anything goes wrong, roll back the transaction
             $wpdb->query('ROLLBACK');
-            $this->log("Error processing page {$page}: " . $e->getMessage());
+            $this->log("Error processing page {$page}: " . $e->getMessage(), 'error');
             return false;
         }
 
     }
 
 
-
-    public function log($message, $new=false) {
-        $this->logger->log('Cron[Products] :: ' .$message);
-    }
-
-
-    public function admin_notice() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
-
-        if(!self::is_create_products_cron_locked())
-            return;
-
-
-        // Display the admin notice
-        echo '<div class="notice notice-info is-dismissible" id="handle-bg-process" >';
-        echo '<p>ساخت محصولات انار در پس زمینه در حال انجام است.';
-
-    }
 
     /**
      * We must notice Anar that creation products complete done.
@@ -276,7 +261,7 @@ class CronJob_Process_Products {
         $response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/status', ['status'=> 'synced']);
 
         if (is_wp_error($response)) {
-            $this->log('set status completed in Anar failed, Error: '. $response->get_error_message());
+            $this->log('set status completed in Anar failed, Error: '. $response->get_error_message(), 'error');
         } else {
             $this->log('set status completed in Anar done successfully. $response:' . print_r($response['body'], true));
         }
@@ -378,7 +363,7 @@ class CronJob_Process_Products {
      */
     protected function complete() {
         $this->notice_completed();
-        $this::lock_create_products_cron();
+        $this->lock_create_products_cron();
 
         $import_jobID = $this->get_jobID();
         ProductManager::handle_removed_products_from_anar('import', $import_jobID);
@@ -426,9 +411,9 @@ class CronJob_Process_Products {
      * deactivate cron event that create products when all products processed
      * @return void
      */
-    public static function lock_create_products_cron(){
+    public function lock_create_products_cron(){
         update_option('awca_create_product_cron_lock', 'lock');
-        awca_log('create products locked.');
+        $this->log('create products locked.');
         CronJobs::get_instance()->reschedule_events();
     }
 
@@ -463,25 +448,25 @@ class CronJob_Process_Products {
 
         // If process has been flagged as in-progress
         if (self::is_process_a_row_on_progress()) {
-            $this->log("Found a process marked as in-progress, checking if it's stuck...");
+            $this->log("Found a process marked as in-progress, checking if it's stuck...", 'warning');
 
             $is_stuck = false;
 
             // Check start time - if it's been more than 5 minutes, consider it stuck
             if ($process_started && ($current_time - $process_started > $this->stuck_process_timeout)) {
-                $this->log("Process has been running for more than 5 minutes, likely stuck");
+                $this->log("Process has been running for more than 5 minutes, likely stuck", 'warning');
                 $is_stuck = true;
             }
 
             // Also check heartbeat - if no heartbeat for 8 minutes, consider it stuck
             if ($last_heartbeat && ($current_time - $last_heartbeat > $this->heartbeat_timeout)) {
-                $this->log("No heartbeat detected for more than 8 minutes, likely stuck");
+                $this->log("No heartbeat detected for more than 8 minutes, likely stuck", 'warning');
                 $is_stuck = true;
             }
 
             // If we've determined the process is stuck
             if ($is_stuck) {
-                $this->log("Resetting stuck process locks to allow processing to continue");
+                $this->log("Resetting stuck process locks to allow processing to continue", 'warning');
                 delete_transient('awca_create_product_row_on_progress');
                 delete_transient('awca_create_product_row_start_time');
                 delete_transient('awca_create_product_heartbeat');

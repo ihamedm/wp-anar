@@ -31,6 +31,13 @@ class SyncOutdated {
         add_action('anar_process_outdated_products_continued', array($this, 'continue_outdated_products_processing'));
     }
 
+    /**
+     * Log a message
+     */
+    private function log($message, $level = 'info') {
+        $this->logger->log($message, 'sync-outdated', $level);
+    }
+
 
 
     /**
@@ -93,14 +100,6 @@ class SyncOutdated {
     }
 
 
-    /**
-     * Log a message
-     */
-    private function log($message) {
-        $this->logger->log($message, 'sync');
-    }
-
-
 
     /**
      * AJAX handler for syncing outdated products
@@ -140,7 +139,7 @@ class SyncOutdated {
                 'success' => false,
                 'message' => $e->getMessage()
             ];
-            $this->log("Sync outdated products failed: " . $e->getMessage());
+            $this->log("Sync outdated products failed: " . $e->getMessage(), 'error');
         }
 
         wp_send_json($response);

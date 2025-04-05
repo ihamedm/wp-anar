@@ -170,6 +170,10 @@ function awca_translator($string){
         return 'پست';
     } elseif ($string === 'express') {
         return 'اکسپرس';
+    } elseif ($string === 'tipax') {
+        return 'تیپاکس';
+    } elseif ($string === 'chapar') {
+        return 'چاپار';
     } elseif ($string === 'unpaid') {
         return 'پرداخت نشده';
     } elseif ($string === 'paid') {
@@ -188,71 +192,19 @@ function awca_translator($string){
  * @param $message
  * @return void
  */
-function awca_log($message) {
+function awca_log($message, $prefix = 'general', $level = null) {
     // Create an instance of the logger class
     $logger = Anar\Core\Logger::get_instance();
-
+    $level = $level ?? 'info';
     // Log the message
-    $logger->log($message);
+    $logger->log($message, $prefix, $level);
 }
-
-
-/**
- * @param $api_url
- * @return false|mixed
- * @deprecated use \ApiDataHandler instead
- */
-function awca_call_anar_api($api_url)
-{
-    $retries = 5;
-    $retry_delay = 10; // seconds
-    $token = awca_get_activation_key();
-
-    while ($retries > 0) {
-        try {
-            $response = \Anar\ApiDataHandler::callAnarApi($api_url);
-
-            if (!is_wp_error($response) && $response['response']['code'] === 200) {
-                $data = json_decode($response['body']);
-                return $data;
-            } else {
-                $error_message = '';
-                if (is_array($response)) {
-                    $error_message = $response['response']['message'];
-                } elseif (is_wp_error($response)) {
-                    $error_message = $response->get_error_message();
-                } else {
-                    $error_message = 'Unknown error';
-                }
-                awca_log('Failed to fetch data from API: ' . $api_url . '  Error: ' . $error_message . '. Retries left: ' . ($retries - 1));
-                sleep($retry_delay); // wait before retrying
-            }
-        } catch (Exception $e) {
-            awca_log('Exception caught while fetching data from API: ' . $e->getMessage() . '. Retries left: ' . ($retries - 1));
-            sleep($retry_delay); // wait before retrying
-        }
-
-        $retries--;
-    }
-
-    awca_log('Failed to fetch data from API after multiple retries: ' . $api_url);
-    return false;
-}
-
 
 
 function awca_is_import_products_running(){
     return !Anar\CronJob_Process_Products::is_create_products_cron_locked();
 }
 
-
-/**
- * check if still process of a page not complete to prevent overlap 2 product creation process
- * @return void
- */
-function awca_is_process_a_page_on_progress(){
-    return false;
-}
 
 function awca_get_dokan_vendors() {
     if ( ! current_user_can( 'manage_woocommerce' ) ) {

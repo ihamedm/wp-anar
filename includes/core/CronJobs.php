@@ -55,8 +55,9 @@ class CronJobs {
 
         // Schedule the unread notifications count event
         if (!wp_next_scheduled('awca_fetch_updated_data_from_anar_cron')) {
-            wp_schedule_event(time(), 'every_one_min', 'awca_fetch_updated_data_from_anar_cron');
+            wp_schedule_event(time(), 'hourly', 'awca_fetch_updated_data_from_anar_cron');
         }
+
 
         // Schedule the log cleanup job to run daily
         if (!wp_next_scheduled('anar_daily_jobs')) {
@@ -136,7 +137,7 @@ class CronJobs {
 
     public function fetch_updated_data_from_anar_job() {
         // (new Notifications)->count_unread_notifications();
-        (new ProductData())->count_anar_products();
+        (new ProductData())->count_anar_products(true);
         //(new Payments())->count_unpaid_orders_count();
 
     }

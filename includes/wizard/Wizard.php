@@ -3,14 +3,22 @@
 namespace Anar\Wizard;
 
 use Anar\ApiDataHandler;
+use Anar\Core\Logger;
 
 class Wizard{
 
+    private $logger;
+
     public function __construct(){
+        $this->logger = new Logger();
 
         add_action( 'wp_ajax_awca_fetch_products_paginate_ajax', [$this, 'fetch_products_paginate_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_fetch_products_paginate_ajax', [$this, 'fetch_products_paginate_ajax'] );
 
+    }
+
+    private function log($message, $level = 'info'){
+        $this->logger->log($message, 'import', $level);
     }
 
 
@@ -29,22 +37,20 @@ class Wizard{
 
         $page = intval( $_GET['page'] );
         $api_url = "https://api.anar360.com/wp/products?page=$page&limit=10";
-        awca_log("Fetching products from page: $page");
-        awca_log($api_url);
+        $this->log("Fetching products from page: $page");
 
         // Fetch the products from the API
-        $token = awca_get_activation_key();
         $response = ApiDataHandler::callAnarApi($api_url);
 
         if ( is_wp_error( $response ) ) {
             $error_message = $response->get_error_message();
-            awca_log("API request failed: $error_message");
+            $this->log("API request failed: $error_message", 'error');
             wp_send_json_error( array( 'message' => 'API request failed', 'code' => 'api_request_failed', 'details' => $error_message ) );
         }
 
         $http_code = wp_remote_retrieve_response_code( $response );
         if ( $http_code != 200 ) {
-            awca_log("API request returned HTTP status code: $http_code");
+            $this->log("API request returned HTTP status code: $http_code", 'error');
             wp_send_json_error( array( 'message' => 'Unexpected HTTP status code', 'code' => 'http_status_error', 'status_code' => $http_code ) );
         }
 
@@ -56,11 +62,11 @@ class Wizard{
 
         // Calculate and log the time taken
         $time_taken = $end_time - $start_time;
-        awca_log("Time taken to fetch products from API : " . $time_taken . " seconds");
+        $this->log("Time taken to fetch products from API : " . $time_taken . " seconds");
 
         if ( json_last_error() !== JSON_ERROR_NONE ) {
             $json_error = json_last_error_msg();
-            awca_log("JSON decoding failed: $json_error");
+            $this->log("JSON decoding failed: $json_error", 'error');
             wp_send_json_error( array( 'message' => 'JSON decoding failed', 'code' => 'json_decoding_failed', 'details' => $json_error ) );
         }
 

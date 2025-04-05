@@ -3,16 +3,26 @@
 namespace Anar\Wizard;
 
 use Anar\ApiDataHandler;
+use Anar\Core\Logger;
 use Exception;
 
 class Category{
 
+    private $logger;
+
     public function __construct(){
+
+        $this->logger = new Logger();
+
         add_action('wp_ajax_awca_handle_pair_categories_ajax', [$this, 'pair_and_save_mapped_categories_ajax']);
         add_action('wp_ajax_nopriv_awca_handle_pair_categories_ajax', [$this, 'pair_and_save_mapped_categories_ajax']);
 
         add_action( 'wp_ajax_awca_get_categories_save_on_db_ajax', [$this, 'fetch_and_save_categories_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_categories_save_on_db_ajax', [$this, 'fetch_and_save_categories_from_api_to_db_ajax'] );
+    }
+
+    private function log($message, $level = 'info'){
+        $this->logger->log($message, 'import', $level);
     }
 
 
@@ -54,7 +64,7 @@ class Category{
             'success' => true,
             'message' => 'معادل سازی دسته بندی ها با موفقیت ذخیره شد'
         );
-        awca_log('categories saved successfully');
+        $this->log('categories saved successfully');
         wp_send_json($response);
     }
 
@@ -63,8 +73,10 @@ class Category{
         $api_data_handler = new ApiDataHandler('categories', 'https://api.anar360.com/wp/categories');
         $result = $api_data_handler->fetchAndStoreApiResponse();
         if ($result) {
+            $this->log('categories saved successfully');
             wp_send_json_success('Categories fetched and stored successfully.');
         } else {
+            $this->log('Failed to fetch and store categories.', 'error');
             wp_send_json_error('Failed to fetch and store categories.');
         }
     }
@@ -105,7 +117,7 @@ class Category{
                 return $existing_category->term_id;
             }
         } catch (Exception $e) {
-            awca_log('Error: ' . $e->getMessage());
+            awca_log('Error: ' . $e->getMessage(),'import', 'error');
             return 0;
         }
     }

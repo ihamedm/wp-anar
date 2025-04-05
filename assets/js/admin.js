@@ -8,3 +8,4 @@ import './tool-ajax-form';
 import './not-synced';
 import './system-reports';
 import './sync-outdated';
+import './dl-gallery';

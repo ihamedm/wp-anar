@@ -145,12 +145,12 @@ class Sync {
             // Check if we're approaching the execution time limit
             if (time() - $start_time > $max_execution_time) {
                 if ($this->fullSync) {
-                    $this->log("Approaching execution time limit, saving progress and will continue in next run.");
+                    $this->log("Approaching execution time limit, saving progress and will continue in next run.", 'warning');
                     // For full sync, we'll continue on the next run from this page
                     break;
                 } else {
                     // For regular sync, log that we couldn't complete in one run
-                    $this->log("WARNING: Regular sync approaching execution time limit. Consider optimizing or reducing the updatedSince window.");
+                    $this->log("Regular sync approaching execution time limit. Consider optimizing or reducing the updatedSince window.", 'warning');
                     break;
                 }
             }
@@ -175,7 +175,7 @@ class Sync {
             $awcaProducts = $this->callAnarApi($apiUrl);
 
             if (is_wp_error($awcaProducts)) {
-                $this->log('Failed to fetch products from API: ' . $awcaProducts->get_error_message());
+                $this->log('Failed to fetch products from API: ' . $awcaProducts->get_error_message(), 'error');
                 return;
             }
 
@@ -221,16 +221,15 @@ class Sync {
                 $processed_products_ids [] = 'v#'.$updated_wc_id;
             }
 
-            if(ANAR_DEBUG)
-                $this->log(sprintf('#%s' , $updated_wc_id));
+
+            $this->log(sprintf('#%s' , $updated_wc_id), 'debug');
 
         }
 
-        $this->log(sprintf("%s - Sync %s Products from page %s [ %s ]",
+        $this->log(sprintf("%s - Sync %s Products from page %s",
             $this->jobID,
             count($processed_products_ids),
             $this->page,
-            ANAR_DEBUG ? implode(' , ', $processed_products_ids) : '-'
             )
         );
     }
@@ -265,28 +264,41 @@ class Sync {
 
                     return $productId;
                 } catch (\Exception $e) {
-                    if(ANAR_DEBUG)
-                        $this->log("Error updating product {$sku}: " . $e->getMessage());
+                    $this->log("Error updating product {$sku}: " . $e->getMessage(), 'error');
                     return "Error updating product {$sku}: " . $e->getMessage();
                 }
             }
 
             return sprintf("simple product %s not found in wp", $updateProduct->id);
         } catch (\Exception $e) {
-            if(ANAR_DEBUG)
-                $this->log("Error processing simple product: " . $e->getMessage());
+            $this->log("Error processing simple product: " . $e->getMessage(), 'error');
             return "Error processing simple product: " . $e->getMessage();
         }
     }
 
+
+
     public function processVariableProduct($updateProduct) {
-        $productId = '';
-        $parentId = '';
+        $wp_variation_productId = '';
+        $parentId = 0;
 
         try {
             if (!is_array($updateProduct->variants) || empty($updateProduct->variants)) {
                 throw new \Exception("No variants found in the product data");
             }
+
+            // first set outofstock all wc_product variation, because maybe some variant on anar removed buy reseller
+            $wc_parent_product_id = ProductData::get_simple_product_by_anar_sku($updateProduct->id);
+            if (is_wp_error($wc_parent_product_id)) {
+                throw new \Exception($wc_parent_product_id->get_error_message());
+            }
+
+            $wc_parent_product = wc_get_product($wc_parent_product_id);
+            $variations = $wc_parent_product->get_children();
+            foreach ($variations as $variation_id) {
+                ProductManager::set_product_variation_out_of_stock($variation_id);
+            }
+
 
             // update variants
             foreach ($updateProduct->variants as $variant) {
@@ -295,53 +307,56 @@ class Sync {
                         continue; // Skip variants without ID
                     }
 
-                    $sku = $variant->_id;
-                    $productId = ProductData::get_product_variation_by_anar_sku($sku);
+                    $anar_variation_id = $variant->_id;
+                    $wp_variation_productId = ProductData::get_product_variation_by_anar_sku($anar_variation_id);
 
-                    if (is_wp_error($productId)) {
-                        throw new \Exception($productId->get_error_message());
+                    if (is_wp_error($wp_variation_productId)) {
+                        if($wp_variation_productId->get_error_code() == 404){
+                            // @todo create the variation
+                        }else{
+                            throw new \Exception($wp_variation_productId->get_error_message());
+                        }
+
                     }else{
-                        $product = wc_get_product($productId);
+                        $product = wc_get_product($wp_variation_productId);
 
                         if (!$product) {
-                            throw new \Exception("Failed to get WooCommerce product variation with ID: {$productId}");
+                            throw new \Exception("Failed to get WooCommerce product variation with ID: {$wp_variation_productId}");
                         }
 
                         $this->updateProductStockAndPrice($product, $updateProduct, $variant);
 
                         // Store parent ID for later use
-                        if (!$parentId) {
+                        if ($parentId == 0) {
                             $parentId = $product->get_parent_id();
                         }
 
                         $this->updateProductMetadata($parentId, $variant);
                     }
                 } catch (\Exception $e) {
-                    if(ANAR_DEBUG)
-                        $this->log("Error processing variant {$sku}: " . $e->getMessage());
+                    $this->log("Error processing variant {$anar_variation_id}: " . $e->getMessage(), 'debug');
                     // Continue processing other variants
                 }
             }
 
-            if ($productId) {
+            if ($wp_variation_productId) {
                 try {
-                    $wc_var_item = wc_get_product($productId);
+                    $wc_var_item = wc_get_product($wp_variation_productId);
                     if ($wc_var_item) {
                         return $wc_var_item->get_parent_id();
                     }
                 } catch (\Exception $e) {
-                    if(ANAR_DEBUG)
-                        $this->log("Error getting parent product for {$productId}: " . $e->getMessage());
+                    $this->log("Error getting parent product for {$wp_variation_productId}: " . $e->getMessage(), 'error');
                 }
             }
 
             return sprintf("variable product %s not found in wp", isset($updateProduct->id) ? $updateProduct->id : 'unknown');
         } catch (\Exception $e) {
-            if(ANAR_DEBUG)
-                $this->log("Error processing variable product: " . $e->getMessage());
+            $this->log("Error processing variable product: " . $e->getMessage(), 'error');
             return "Error processing variable product: " . $e->getMessage();
         }
     }
+
 
     /**
      * @param \WC_Product $product
@@ -450,9 +465,9 @@ class Sync {
         return ApiDataHandler::tryGetAnarApiResponse($apiUrl);
     }
 
-    private function log($message) {
+    private function log($message, $level = 'info') {
         $prefix = $this->fullSync ? 'fullSync' : 'sync';
-        $this->logger->log($message, $prefix);
+        $this->logger->log($message, $prefix, $level);
     }
 
     private function isSyncInProgress() {

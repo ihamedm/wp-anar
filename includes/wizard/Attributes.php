@@ -2,16 +2,25 @@
 
 namespace Anar\Wizard;
 
+use Anar\Core\Logger;
 use WC_Product_Attribute;
 
 class Attributes{
 
+    private $logger;
+
     public function __construct(){
+        $this->logger = new Logger();
+
         add_action('wp_ajax_awca_handle_pair_attributes_ajax', [$this, 'pair_and_save_mapped_attributes_ajax']);
         add_action('wp_ajax_nopriv_awca_handle_pair_attributes_ajax', [$this, 'pair_and_save_mapped_attributes_ajax']);
 
         add_action( 'wp_ajax_awca_get_attributes_save_on_db_ajax', [$this, 'fetch_and_save_attributes_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_attributes_save_on_db_ajax', [$this, 'fetch_and_save_attributes_from_api_to_db_ajax'] );
+    }
+
+    private function log($message, $level = 'info'){
+        $this->logger->log($message, 'import', $level);
     }
 
 
@@ -30,7 +39,7 @@ class Attributes{
             'success' => true,
             'message' => 'معادل سازی ویژگی ها ها با موفقیت ذخیره شد'
         );
-        awca_log('attributes saved successfully');
+        $this->log('attributes saved successfully');
         wp_send_json($response);
     }
 
@@ -41,8 +50,10 @@ class Attributes{
         $result = $api_data_handler->fetchAndStoreApiResponse();
 
         if ($result) {
+            $this->log('attributes fetched and stored successfully.');
             wp_send_json_success('attributes fetched and stored successfully.');
         } else {
+            $this->log('Failed to fetch and store categories.', 'error');
             wp_send_json_error('Failed to fetch and store categories.');
         }
 
@@ -92,13 +103,13 @@ class Attributes{
                     }
 
                 } else {
-                    awca_log('#8 Attribute not found in attributeMap for $product_attribute = ' . print_r($product_attribute, true));
+                    awca_log('#8 Attribute not found in attributeMap for $product_attribute = ' . print_r($product_attribute, true), 'import', 'error');
                 }
             }
 
             // Ensure tax_name is not empty
             if (empty($tax_name)) {
-                awca_log('#5 tax_name is empty after processing attributeMapItem.');
+                awca_log('#5 tax_name is empty after processing attributeMapItem.', 'import', 'error');
                 continue; // Skip to the next attribute
             }
 

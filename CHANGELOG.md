@@ -1,8 +1,13 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.4] - 1404/01/16
+- new : set outofstock for removed variant on sync
+- new : download galley images of all products
+- update : improved log system and add log level option on plugin features
 
-## [0.3.3] - 1403/12/1
+
+## [0.3.3] - 1403/12/23
 - new : SyncOutdated class
 - new : force to woocommerce activate first
 - new : alert to update to the new version

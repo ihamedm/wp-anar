@@ -10,6 +10,23 @@ class Logger {
     private $log_file_postfix;
     private $max_file_size;
 
+    // Define log levels as constants
+    const LEVEL_ERROR = 100;
+    const LEVEL_WARNING = 200;
+    const LEVEL_INFO = 300;
+    const LEVEL_DEBUG = 400;
+
+    // Map of log level names to their numeric values
+    private static $log_levels = [
+        'error' => self::LEVEL_ERROR,
+        'warning' => self::LEVEL_WARNING,
+        'info' => self::LEVEL_INFO,
+        'debug' => self::LEVEL_DEBUG
+    ];
+
+    // Default log level (info for backward compatibility)
+    private $current_log_level;
+
     public static function get_instance() {
         if ( ! isset( self::$instance ) ) {
             self::$instance = new self();
@@ -24,10 +41,49 @@ class Logger {
         $this->log_file_postfix = $log_file_postfix;
         $this->max_file_size = $max_file_size;
 
+        // Set the current log level from options or default to INFO
+        $this->set_log_level(get_option('anar_log_level', 'info'));
+
         // Create the log directory if it doesn't exist
         if (!file_exists($this->log_dir)) {
             mkdir($this->log_dir, 0755, true); // Creates the directory with proper permissions
         }
+    }
+
+    /**
+     * Set the current log level
+     *
+     * @param string $level The log level (error, warning, info, debug)
+     * @return void
+     */
+    public function set_log_level($level) {
+        $level = strtolower($level);
+        if (isset(self::$log_levels[$level])) {
+            $this->current_log_level = self::$log_levels[$level];
+        } else {
+            // Default to INFO level for backward compatibility
+            $this->current_log_level = self::LEVEL_INFO;
+        }
+    }
+
+    /**
+     * Get the current log level
+     *
+     * @return string The current log level name
+     */
+    public function get_log_level() {
+        $current = $this->current_log_level;
+        return array_search($current, self::$log_levels) ?: 'info';
+    }
+
+    /**
+     * Check if the given log level should be logged
+     *
+     * @param int $level The log level to check
+     * @return bool Whether the log level should be logged
+     */
+    private function should_log($level) {
+        return $level <= $this->current_log_level;
     }
 
     // Method to get the current log file name
@@ -44,8 +100,81 @@ class Logger {
         }
     }
 
-    // Method to log messages with an optional new file creation
-    public function log($message, $prefix = null, $new_file = false) {
+    /**
+     * Log an error message
+     *
+     * @param string $message The message to log
+     * @param string|null $prefix Optional log file prefix
+     * @param bool $new_file Whether to create a new log file
+     * @return void
+     */
+    public function error($message, $prefix = null, $new_file = false) {
+        if ($this->should_log(self::LEVEL_ERROR)) {
+            $this->log($message, $prefix, $new_file, 'ERROR');
+        }
+    }
+
+    /**
+     * Log a warning message
+     *
+     * @param string $message The message to log
+     * @param string|null $prefix Optional log file prefix
+     * @param bool $new_file Whether to create a new log file
+     * @return void
+     */
+    public function warning($message, $prefix = null, $new_file = false) {
+        if ($this->should_log(self::LEVEL_WARNING)) {
+            $this->log($message, $prefix, $new_file, 'WARNING');
+        }
+    }
+
+    /**
+     * Log an info message
+     *
+     * @param string $message The message to log
+     * @param string|null $prefix Optional log file prefix
+     * @param bool $new_file Whether to create a new log file
+     * @return void
+     */
+    public function info($message, $prefix = null, $new_file = false) {
+        if ($this->should_log(self::LEVEL_INFO)) {
+            $this->log($message, $prefix, $new_file, 'INFO');
+        }
+    }
+
+    /**
+     * Log a debug message
+     *
+     * @param string $message The message to log
+     * @param string|null $prefix Optional log file prefix
+     * @param bool $new_file Whether to create a new log file
+     * @return void
+     */
+    public function debug($message, $prefix = null, $new_file = false) {
+        if ($this->should_log(self::LEVEL_DEBUG)) {
+            $this->log($message, $prefix, $new_file, 'DEBUG');
+        }
+    }
+
+    /**
+     * Method to log messages with an optional new file creation
+     *
+     * @param string $message The message to log
+     * @param string|null $prefix Optional log file prefix
+     * @param bool $new_file Whether to create a new log file
+     * @param string $level The log level (defaults to INFO for backward compatibility)
+     * @return void
+     */
+    public function log($message, $prefix = null, $level = 'INFO', $new_file = false) {
+        // For backward compatibility, if log() is called directly, treat it as INFO level
+        $numeric_level = isset(self::$log_levels[strtolower($level)]) ?
+            self::$log_levels[strtolower($level)] : self::LEVEL_INFO;
+
+        // Skip logging if the level is higher than the current log level
+        if (!$this->should_log($numeric_level)) {
+            return;
+        }
+
         // If a new prefix is provided, use it; otherwise, use the default prefix
         if ($prefix !== null) {
             $this->log_file_prefix = $prefix;
@@ -67,9 +196,9 @@ class Logger {
 
         // Ensure the log file is writable
         if (is_writable($log_file)) {
-            // Append the message to the log file with a timestamp
+            // Append the message to the log file with a timestamp and level
             $timestamp = current_time("mysql");
-            file_put_contents($log_file, "[$timestamp] $message" . PHP_EOL, FILE_APPEND);
+            file_put_contents($log_file, "[$timestamp] [$level] $message" . PHP_EOL, FILE_APPEND);
         } else {
             // Log an error if the file is not writable
             error_log("Cannot write to log file: $log_file");
@@ -84,14 +213,14 @@ class Logger {
         // Get all log files with the current prefix
         $files = glob($this->log_dir . '/' . $this->log_file_prefix . '*.log');
 
-        if (count($files) > 5) {
+        if (count($files) > 15) {
             // Sort files by modification time (oldest first)
             usort($files, function($a, $b) {
                 return filemtime($a) - filemtime($b);
             });
 
             // Delete the oldest files, keeping only the 3 most recent
-            while (count($files) > 3) {
+            while (count($files) > 10) {
                 $oldest_file = array_shift($files);
                 unlink($oldest_file);
                 $this->log("Deleted log file: $oldest_file");
@@ -110,6 +239,16 @@ class Logger {
         $results = [];
 
         try {
+            // Add current log level to the status report
+            $results['log_level'] = [
+                'status' => 'good',
+                'message' => sprintf(
+                    'Current Log Level: %s',
+                    strtoupper($instance->get_log_level())
+                ),
+                'label' => 'Log Level'
+            ];
+
             // Check log directory existence and permissions
             $results['log_directory'] = [
                 'status' => file_exists($instance->log_dir) && is_writable($instance->log_dir) ? 'good' : 'critical',

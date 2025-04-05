@@ -32,20 +32,16 @@ class ProductManager{
         add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
         add_action( 'wp_ajax_awca_set_vendor_for_anar_products_ajax', [$this, 'set_vendor_for_anar_products_ajax'] );
 
-        //add_action('do_publish_draft_products_background', [$this, 'publish_draft_products'], 10, 1);
     }
 
-    public static function log($message) {
-        self::$logger->log($message, 'general');
+    public static function log($message, $level = 'info') {
+        self::$logger->log($message, 'general', $level);
     }
 
     public function fetch_and_save_products_from_api_to_db_ajax() {
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
-        $products_api = "https://api.anar360.com/wp/products";
-        $total_items_per_page = 0 ;
         $api_data_handler = new \Anar\ApiDataHandler('products', 'https://api.anar360.com/wp/products');
         $result = $api_data_handler->fetchAndStoreApiResponseByPage($page);
-//    $result = awca_fetch_and_store_anar_api_response_by_page('products', $products_api, $page);
         if ($result !== false) {
             if($page == 1){
                 // lock to prevent run again until all product created , after that we unset this lock
@@ -111,7 +107,7 @@ class ProductManager{
             return ['product_id' => $product_id, 'created' => $product_created];
 
         } catch (\Throwable $th) {
-            self::log('Error in awca_create_woocommerce_product: ' . $th->getMessage());
+            self::log('Error in awca_create_woocommerce_product: ' . $th->getMessage(), 'error');
             return false;
         }
     }
@@ -133,20 +129,20 @@ class ProductManager{
 
         $product->save();
 
-        if(ANAR_DEBUG)
-            self::log('Product Exist: Type[' . $product->get_type() . '], Name: ' . $product->get_name() .
-            ' ID: #' . $product->get_id() . ' SKU: ' . $product_data['sku']);
+        self::log('Product Exist: Type[' . $product->get_type() . '], Name: ' . $product->get_name() .
+            ' ID: #' . $product->get_id() . ' SKU: ' . $product_data['sku'], 'info');
     }
 
-    private static function update_simple_product($product, $product_data) {
+    public static function update_simple_product($product, $product_data) {
         $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
         $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
         $product->set_stock_quantity($product_data['stock_quantity']);
         $product->set_manage_stock(true);
     }
 
-    private static function update_variable_product($product, $product_data, $attributeMap) {
+    public static function update_variable_product($product, $product_data, $attributeMap) {
         // Delete variations
+
         $variations = $product->get_children();
         foreach ($variations as $variation_id) {
             wp_delete_post($variation_id, true);
@@ -159,13 +155,13 @@ class ProductManager{
         self::setup_attributes_and_variations($product, $product_data, $attributeMap);
     }
 
-    private static function initialize_new_product($product_data) {
+    public static function initialize_new_product($product_data) {
         return !empty($product_data['attributes'])
             ? new WC_Product_Variable()
             : new WC_Product_Simple();
     }
 
-    private static function setup_new_product($product, $product_data, $attributeMap, $categoryMap) {
+    public static function setup_new_product($product, $product_data, $attributeMap, $categoryMap) {
         $product->set_name($product_data['name']);
         $product->set_status('draft');
         $product->set_description($product_data['description']);
@@ -176,6 +172,9 @@ class ProductManager{
         $product_id = $product->save();
 
         update_post_meta($product_id, '_anar_sku', $product_data['sku']);
+        update_post_meta($product_id, '_anar_sku_backup', $product_data['sku']);
+
+        // _anar_variant_id used on Order
         update_post_meta($product_id, '_anar_variant_id', $product_data['variants'][0]->_id);
 
         if (isset($product_data['attributes']) && !empty($product_data['attributes'])) {
@@ -185,14 +184,14 @@ class ProductManager{
         }
     }
 
-    private static function setup_attributes_and_variations($product, $product_data, $attributeMap) {
+    public static function setup_attributes_and_variations($product, $product_data, $attributeMap) {
         $attrsObject = Attributes::create_attributes($product_data['attributes']);
         $product->set_props(['attributes' => $attrsObject]);
         $product->save();
-        self::create_product_variations($product, $product_data['variants'], $product_data['attributes'], $attributeMap);
+        self::create_product_variations($product->get_id(), $product_data['variants'], $product_data['attributes'], $attributeMap);
     }
 
-    private static function setup_simple_product_data($product, $product_data) {
+    public static function setup_simple_product_data($product, $product_data) {
         $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
         $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
         $product->set_stock_quantity($product_data['stock_quantity']);
@@ -200,7 +199,7 @@ class ProductManager{
         $product->save();
     }
 
-    private static function update_common_meta_data($product, $product_data) {
+    public static function update_common_meta_data($product, $product_data) {
         $product_id = $product->get_id();
         $import_job_id = get_transient('awca_cron_create_products_job_id');
 
@@ -318,10 +317,10 @@ class ProductManager{
     }
 
 
-    public static function create_product_variations($product, $variations, $attributes, $attributeMap) {
+    public static function create_product_variations($wc_parent_product_id, $variations, $attributes, $attributeMap) {
         foreach ($variations as $variation_data) {
             $variation = new WC_Product_Variation();
-            $variation->set_parent_id($product->get_id());
+            $variation->set_parent_id($wc_parent_product_id);
             $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
             $variation->set_stock_quantity($variation_data->stock);
             $variation->set_manage_stock(true);
@@ -329,12 +328,8 @@ class ProductManager{
             $variation_attributes = array();
             if (!empty($attributes)) {
                 $theseAttributesCalculated = [];
-//            self::log('---------------- start check --------------------');
-//            self::log('#0 $variation_data->attributes: ' . print_r($variation_data->attributes, true));
                 foreach ($variation_data->attributes as $attr_key => $attr_value) {
                     $attr_name = $attributes[$attr_key]['name']; // Use the name directly from $attributes dictionary
-
-//                self::log('#1 : $attr_key  : ' . print_r($attr_key, true) .' - $attr_name:' . print_r($attr_name, true) .' - $attr_value:' . print_r($attr_value, true));
 
                     // if need to map
                     if ($attributeMap != null && $attributeMap != '' ) {
@@ -346,8 +341,6 @@ class ProductManager{
                         }else{
                             continue; // Skip if mapping is incomplete
                         }
-
-//                    self::log('#2 : $mapped_attribute find : ' . print_r($mapped_attribute, true));
 
                         // Double check for find attribute
                         if (isset($mapped_attribute['name'])) {
@@ -364,7 +357,6 @@ class ProductManager{
 
                         // Ensure consistent slug creation
                         $attr_slug = sanitize_title($attr_slug);
-//                    self::log('#3 : $attr_slug : ' . print_r($attr_slug, true));
                     } else {
                         // Use the attribute name directly for slug creation, if not in attributeMap
                         $attr_slug = sanitize_title($attr_name);
@@ -373,7 +365,6 @@ class ProductManager{
                     $theseAttributesCalculated['pa_' . $attr_slug] = sanitize_title($attr_value);
                 }
 
-//            self::log("Attributes calculated for variation: " . print_r($theseAttributesCalculated, true));
             }
 
             if(isset($theseAttributesCalculated)) {
@@ -388,14 +379,13 @@ class ProductManager{
                 update_post_meta($variation_id, '_anar_sku', $variation_data->_id);
                 update_post_meta($variation_id, '_anar_variant_id', $variation_data->_id);
             } else {
-                self::log("Failed to save variation for product ID: " . $product->get_id());
+                self::log("Failed to save variation for product ID: " . $wc_parent_product_id, 'error');
             }
         }
     }
 
 
     public static function handle_removed_products_from_anar($process, $job_id) {
-        global $wpdb;
 
         if(!$job_id) {
             return;
@@ -467,12 +457,12 @@ class ProductManager{
             $wc_product = wc_get_product($product_id);
 
             if (!$wc_product) {
-                self::$logger->log("Error: Product #{$product_id} not found", $log_file);
+                self::$logger->log("Error: Product #{$product_id} not found", $log_file, 'error');
                 return false;
             }
 
-            if(ANAR_DEBUG)
-                self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file);
+
+            self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file, 'debug');
 
             // Update product meta
             if($deprecate){
@@ -493,22 +483,7 @@ class ProductManager{
                 $variations = $wc_product->get_children();
 
                 foreach ($variations as $variation_id) {
-                    $variation = wc_get_product($variation_id);
-                    if ($variation) {
-                        // Update variation stock status
-                        $variation->set_stock_quantity(0);
-                        $variation->set_stock_status('outofstock');
-                        $variation->save();
-
-                        if($deprecate){
-                            // make a backup from sku then delete
-                            self::backup_anar_meta_data($product_id);
-
-                            // Clean up variation meta
-                            delete_post_meta($variation_id, '_anar_sku');
-                            delete_post_meta($variation_id, '_anar_products');
-                        }
-                    }
+                    self::set_product_variation_out_of_stock($variation_id, $deprecate);
                 }
             }
 
@@ -523,6 +498,26 @@ class ProductManager{
         } catch (\Exception $e) {
             self::$logger->log("Error deprecating product #{$product_id}: " . $e->getMessage(), $log_file);
             return false;
+        }
+    }
+
+
+    public static function set_product_variation_out_of_stock($wc_variation_id, $deprecate = false) {
+        $variation = wc_get_product($wc_variation_id);
+        if ($variation) {
+            // Update variation stock status
+            $variation->set_stock_quantity(0);
+            $variation->set_stock_status('outofstock');
+            $variation->save();
+
+            if($deprecate){
+                // make a backup from sku then delete
+                self::backup_anar_meta_data($wc_variation_id);
+
+                // Clean up variation meta
+                delete_post_meta($wc_variation_id, '_anar_sku');
+                delete_post_meta($wc_variation_id, '_anar_products');
+            }
         }
     }
 
@@ -651,15 +646,14 @@ class ProductManager{
 
         } finally {
 
-            if(ANAR_DEBUG)
-                self::log(sprintf('Completed page %d. Found Products %s, total Published %d , Loop Products %s, Has More? %s, $_POST: %s',
-                    $page,
-                    $found_products,
-                    $total_published,
-                    $this_loop_products,
-                    print_r($has_more, true),
-                    print_r($_POST, true)
-                ));
+            self::log(sprintf('Completed page %d. Found Products %s, total Published %d , Loop Products %s, Has More? %s, $_POST: %s',
+                $page,
+                $found_products,
+                $total_published,
+                $this_loop_products,
+                print_r($has_more, true),
+                print_r($_POST, true)
+            ), 'debug');
 
             $response = [
                 'success' => true,
@@ -694,6 +688,8 @@ class ProductManager{
         delete_transient('wc_products_onsale');
         delete_transient('wc_featured_products');
     }
+
+
 
     public function set_vendor_for_anar_products_ajax() {
 
@@ -760,9 +756,6 @@ class ProductManager{
             $updated_count++;
         }
 
-//        wp_send_json_success(array(
-//            'message' => print_r($products, true)
-//        ));
 
         wp_send_json_success(array(
             'message' => sprintf('%d محصول بروزرسانی شد.', $updated_count)

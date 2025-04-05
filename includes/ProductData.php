@@ -3,8 +3,6 @@
 namespace Anar;
 
 class ProductData{
-
-
     /**
      * Get simple product ID by Anar SKU
      *
@@ -130,12 +128,12 @@ class ProductData{
 
         // If no variation found, return WP_Error
         return new \WP_Error(
+            404,
             'variation_not_found',
             sprintf(
                 'No product variation found with Anar SKU: %s',
                 $anar_sku
-            ),
-            array('status' => 404)
+            )
         );
     }
 
@@ -183,8 +181,7 @@ class ProductData{
             throw new \Exception(sprintf('No product variation found with Anar SKU: %s', $anar_sku));
 
         }catch (\Exception $exception){
-            if(ANAR_DEBUG)
-                awca_log($exception->getMessage());
+            awca_log($exception->getMessage(), 'debug');
             return false;
         }
     }
@@ -260,20 +257,37 @@ class ProductData{
     }
 
 
-    public function count_anar_products(){
-        $meta_key = '_anar_products';
+    public function count_anar_products($refresh = false) {
+        $transient_key = OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB;
+        $cache_duration = 3600; // 1 hour in seconds
 
-        $query = new \WP_Query( array(
-            'post_type'      => 'product',
-            'status'        => ['publish', 'draft'],
-            'meta_key'       => $meta_key,
-            'meta_compare'   => 'EXISTS',
-            'fields'         => 'ids',
-        ) );
+        // If not forced refresh, try to get from cache first
+        if (!$refresh) {
+            $cached_count = get_transient($transient_key);
+            if ($cached_count !== false) {
+                return (int)$cached_count;
+            }
+        }
 
-        update_option(OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB, $query->found_posts);
+        // Cache miss or forced refresh, fetch the count
+        global $wpdb;
 
-        return $query->found_posts;
+        // Direct SQL query is much faster than WP_Query for counting
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT p.ID) 
+         FROM {$wpdb->posts} p 
+         JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id 
+         WHERE p.post_type = %s 
+         AND p.post_status IN ('publish', 'draft') 
+         AND pm.meta_key = %s",
+            'product',
+            '_anar_products'
+        ));
+
+        // Store in cache
+        set_transient($transient_key, $count, $cache_duration);
+
+        return (int)$count;
     }
 
 

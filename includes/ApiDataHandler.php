@@ -138,7 +138,7 @@ class ApiDataHandler
 
         set_time_limit(300);
         set_transient('awca_sync_all_products_lock', true, 3600); // Lock for 1 hour
-        awca_log('Run fetch API and Store, key: ' . $this->key . ', record_per_page: ' . $record_per_page);
+        awca_log('Run fetch API and Store, key: ' . $this->key . ', record_per_page: ' . $record_per_page, 'import');
 
         // Remove existing records for the key
         $this->wpdb->delete($this->table_name, ['key' => $this->key], ['%s']);
@@ -199,7 +199,7 @@ class ApiDataHandler
             throw new Exception("API URL is required for fetching data.");
 
         set_time_limit(300);
-        awca_log('Run fetch API and Store by page, key: ' . $this->key . ', page: ' . $page . ', limit: ' . $limit);
+        awca_log('Run fetch API and Store by page, key: ' . $this->key . ', page: ' . $page . ', limit: ' . $limit, 'import');
 
         if ($page == 1) {
             $this->wpdb->delete($this->table_name, ['key' => $this->key], ['%s']);
@@ -214,7 +214,7 @@ class ApiDataHandler
 
         $body = wp_remote_retrieve_body($response);
         if (empty($body)) {
-            awca_log("API response body is empty");
+            awca_log("API response body is empty", 'import');
             return false;
         }
 

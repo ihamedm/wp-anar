@@ -3,19 +3,19 @@
 
 $activate_anar_order_feat = get_option('anar_conf_feat__create_orders', 'yes');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
-$anar_debug = get_option('anar_debug', 'no');
+$anar_log_level = get_option('anar_log_level', 'info');
 $anar_full_sync_schedule = get_option('anar_full_sync_schedule', 5);
 
 // Handle form submission
 if (isset($_POST['save_anar_settings'])) {
     // Sanitize and save the values
     $activate_anar_order_feat = $_POST['anar_conf_feat__create_orders'] ?? 'yes';
-    $anar_debug = $_POST['anar_debug'] ?? 'no';
+    $anar_log_level = $_POST['anar_log_level'] ?? 'info';
     $anar_full_sync_schedule = intval($_POST['anar_full_sync_schedule']);
 
 
     update_option('anar_conf_feat__create_orders', $activate_anar_order_feat);
-    update_option('anar_debug', $anar_debug);
+    update_option('anar_log_level', $anar_log_level);
     update_option('anar_full_sync_schedule', $anar_full_sync_schedule);
 
     // Success message
@@ -41,15 +41,17 @@ if(isset($_GET['anar_optional_price_sync'])){
 <form method="post">
     <table class="form-table">
         <tr>
-            <th><label for="anar_debug">دیباگ انار</label></th>
+            <th><label for="anar_log_level">دیباگ انار</label></th>
             <td>
                 <label>
-                    <select name="anar_debug" id="anar_debug">
-                        <option value="no" <?php selected($anar_debug, 'no'); ?>>غیرفعال</option>
-                        <option value="yes" <?php selected($anar_debug, 'yes'); ?>>فعال</option>
+                    <select name="anar_log_level" id="anar_log_level">
+                        <option value="error" <?php selected($anar_log_level, 'error'); ?>>error</option>
+                        <option value="warning" <?php selected($anar_log_level, 'warning'); ?>>warning</option>
+                        <option value="info" <?php selected($anar_log_level, 'info'); ?>>info</option>
+                        <option value="debug" <?php selected($anar_log_level, 'debug'); ?>>debug</option>
                     </select>
                 </label>
-                <p class="description">فعال کردن این گزینه لاگ های دقیق تری ایجاد خواهد کرد.</p>
+                <p class="description">این آپشن صرفا برای دیباگ توسط توسعه دهنده می باشد. لطفا تغییر ندهید.</p>
             </td>
         </tr>
 

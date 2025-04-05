@@ -8,7 +8,7 @@
     <form method="post" id="publish-anar-products">
         <?php wp_nonce_field('publish_anar_products_ajax_nonce', 'security_nonce'); ?>
         <div class="stepper_button_container">
-            <button type="submit" class="awca-primary-btn submit-button" id="awca_publish_anar_products_btn">
+            <button type="submit" class="awca-btn awca-success-btn submit-button" id="awca_publish_anar_products_btn">
                 <span>انتشار همه محصولات انار</span>
                 <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                     <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>

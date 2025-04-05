@@ -13,7 +13,6 @@ class Checkout {
     }
 
     public function __construct() {
-
         // Checkout Customization
         add_action( 'woocommerce_review_order_before_shipping', [$this, 'display_anar_products_shipping'] , 99);
         add_filter( 'woocommerce_shipping_package_name', [$this, 'prefix_shipping_package_name_other_products'] );

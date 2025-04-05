@@ -544,7 +544,7 @@ input#plugin_activation_button {
 .stepper_btn, .awca_sync_btn, .awca-primary-btn, .awca-btn {
   background-color: var(--line-border-fill) !important;
   border-color: var(--line-border-fill) !important;
-  border: 0;
+  border: 1px solid;
   border-radius: 8px !important;
   color: #fff !important;
   cursor: pointer;
@@ -565,18 +565,37 @@ input#plugin_activation_button {
   border-color:#cf667c !important;
 }
 
+.awca-outline-btn{
+  background-color: transparent !important;
+  border:1px solid !important
+}
+
 .awca-alt-btn{
   background-color: #333 !important;
+  border-color: #333 !important;
 }
 .awca-alt-btn:disabled{
   background-color: #ccc !important;
+  border-color: #ccc !important;
 }
 
 .awca-success-btn{
   background-color: #0A875A !important;
+  border-color: #0A875A !important;
 }
 .awca-success-btn:disabled{
   background-color: #5e977d !important;
+  border-color: #5e977d !important;
+}
+.awca-success-btn.awca-outline-btn{
+  color: #0A875A !important;
+  border-color: #0A875A !important;
+  background-color: transparent !important;
+}
+
+.awca-success-btn.awca-outline-btn:disabled{
+  color: #5e977d !important;
+  border-color: #5e977d !important;
 }
 
 .awca-btn.loading .spinner-loading,
@@ -589,6 +608,9 @@ input#plugin_activation_button {
   font-size: 12px !important;
   font-weight: 400 !important;
 }
+
+
+
 
 
 

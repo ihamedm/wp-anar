@@ -147,7 +147,7 @@ class Image_Downloader{
      * @param array $image_urls An array of image URLs to download and set as the product gallery.
      * @return array|WP_Error An array of attachment IDs on success, or a WP_Error on failure.
      */
-    public function set_product_gallery($product_id, $image_urls, $gallery_image_limit = 5) {
+    public function set_product_gallery_deprecated($product_id, $image_urls, $gallery_image_limit = 5) {
         $attachment_ids = array();
         $counter = 0;
 
@@ -160,7 +160,7 @@ class Image_Downloader{
             $attachment_id = $this->save_image_as_attachment($image_url, $product_id);
 
             if (is_wp_error($attachment_id)) {
-                awca_log("Failed to download and insert attachment for product ID: $product_id. Error: " . $attachment_id->get_error_message());
+                awca_log("Failed to download and insert attachment for product ID: $product_id. Error: " . $attachment_id->get_error_message(), 'error');
                 return $attachment_id; // Return WP_Error if download/upload fails
             }
 
@@ -174,16 +174,135 @@ class Image_Downloader{
             if ($product) {
                 $product->set_gallery_image_ids($attachment_ids);
                 $product->save();
-
-                // Clean this meta to skip from cron job check
-                delete_post_meta($product_id, '_anar_gallery_images');
             } else {
-                awca_log("Failed to get product with ID: $product_id");
+                awca_log("Failed to get product with ID: $product_id", 'error');
                 return new WP_Error('product_not_found', __('Product not found.'));
             }
         }
-        awca_log('Product #'.$product_id.' gallery is set');
+        awca_log('Product #'.$product_id.' gallery is set', 'debug');
         return $attachment_ids;
+    }
+
+
+    /**
+     * Set product gallery images from array of image URLs
+     *
+     * @param int   $product_id         Product ID
+     * @param array $image_urls         Array of image URLs
+     * @param int   $gallery_image_limit Maximum number of images to use
+     * @return array|WP_Error Array of attachment IDs or WP_Error
+     */
+    public function set_product_gallery($product_id, $image_urls, $gallery_image_limit = 5) {
+        if (!is_array($image_urls) || empty($image_urls)) {
+            awca_log("No valid image URLs provided for product ID: $product_id", 'warning');
+            return new \WP_Error('invalid_image_urls', __('No valid image URLs provided.'));
+        }
+
+        if (!$product_id || !is_numeric($product_id)) {
+            awca_log("Invalid product ID provided: $product_id", 'error');
+            return new \WP_Error('invalid_product_id', __('Invalid product ID provided.'));
+        }
+
+        // Check if product exists
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            awca_log("Product not found with ID: $product_id", 'error');
+            return new \WP_Error('product_not_found', __('Product not found.'));
+        }
+
+        $attachment_ids = [];
+        $successful_downloads = 0;
+        $failed_downloads = 0;
+
+        // Limit the number of images to process
+        $image_urls = array_slice($image_urls, 0, $gallery_image_limit);
+
+        foreach ($image_urls as $image_url) {
+            // Validate URL
+            if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
+                awca_log("Invalid image URL for product ID: $product_id. URL: $image_url", 'warning');
+                $failed_downloads++;
+                continue; // Skip this URL but continue processing others
+            }
+
+            try {
+                // Download and upload the image
+                $attachment_id = $this->save_image_as_attachment($image_url, $product_id);
+
+                if (is_wp_error($attachment_id)) {
+                    awca_log(
+                        "Failed to download image for product ID: $product_id. URL: $image_url. Error: " .
+                        $attachment_id->get_error_message(),
+                        'error'
+                    );
+                    $failed_downloads++;
+                    continue; // Skip this URL but continue processing others
+                }
+
+                $attachment_ids[] = $attachment_id;
+                $successful_downloads++;
+
+            } catch (\Exception $e) {
+                awca_log(
+                    "Exception while processing image for product ID: $product_id. URL: $image_url. Error: " .
+                    $e->getMessage(),
+                    'error'
+                );
+                $failed_downloads++;
+                continue; // Skip this URL but continue processing others
+            }
+        }
+
+        // Set product gallery images if there are attachment IDs
+        if (!empty($attachment_ids)) {
+            try {
+                // Merge with existing gallery images if needed
+                // Uncomment the below lines if you want to keep existing gallery images
+                // $existing_gallery_ids = $product->get_gallery_image_ids();
+                // $attachment_ids = array_merge($existing_gallery_ids, $attachment_ids);
+
+                $product->set_gallery_image_ids($attachment_ids);
+                $product->save();
+
+                awca_log(
+                    "Product #$product_id gallery updated successfully. " .
+                    "Added: $successful_downloads images. Failed: $failed_downloads images.",
+                    'info'
+                );
+
+                return [
+                    'attachment_ids' => $attachment_ids,
+                    'successful' => $successful_downloads,
+                    'failed' => $failed_downloads
+                ];
+
+            } catch (\Exception $e) {
+                awca_log(
+                    "Failed to update gallery for product ID: $product_id. Error: " . $e->getMessage(),
+                    'error'
+                );
+                return new \WP_Error(
+                    'gallery_update_failed',
+                    __('Failed to update product gallery.'),
+                    [
+                        'product_id' => $product_id,
+                        'error_message' => $e->getMessage(),
+                        'attachment_ids' => $attachment_ids
+                    ]
+                );
+            }
+        } else {
+            $status = $failed_downloads > 0 ? 'All downloads failed' : 'No images to process';
+            awca_log("$status for product ID: $product_id", 'warning');
+            return new \WP_Error(
+                'no_gallery_images',
+                __('No gallery images were successfully downloaded.'),
+                [
+                    'product_id' => $product_id,
+                    'failed_downloads' => $failed_downloads
+                ]
+            );
+        }
     }
 
     /**
