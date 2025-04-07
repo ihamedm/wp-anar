@@ -1,7 +1,15 @@
 <?php
 namespace Anar;
 
+use Anar\Core\Logger;
+
 class Checkout {
+
+    private const ANAR_SHIPPING_META = '_anar_shipping_data';
+    private const ANAR_ORDER_META = '_is_anar_order';
+    private const ANAR_PRODUCT_META = '_anar_products';
+
+    private $logger;
 
     protected static $instance;
 
@@ -13,6 +21,8 @@ class Checkout {
     }
 
     public function __construct() {
+        $this->logger = new Logger();
+
         // Checkout Customization
         add_action( 'woocommerce_review_order_before_shipping', [$this, 'display_anar_products_shipping'] , 99);
         add_filter( 'woocommerce_shipping_package_name', [$this, 'prefix_shipping_package_name_other_products'] );
@@ -39,6 +49,9 @@ class Checkout {
         add_action('woocommerce_after_checkout_form', [$this, 'add_autofill_handler']);
     }
 
+    private function log($message, $level = 'info') {
+        $this->logger->log($message, 'checkout', $level);
+    }
 
     public function display_anar_products_shipping() {
 
@@ -71,8 +84,8 @@ class Checkout {
 
                 // Retrieve the meta values for both the product and its parent
                 $anar_meta = $product_parent_id == 0
-                    ? get_post_meta($_product->get_id(), '_anar_products', true)
-                    : get_post_meta($product_parent_id, '_anar_products', true);
+                    ? get_post_meta($_product->get_id(), self::ANAR_PRODUCT_META, true)
+                    : get_post_meta($product_parent_id, self::ANAR_PRODUCT_META, true);
 
                 // If it's an Anar product, process its shipping data
                 if ($anar_meta) {
@@ -117,40 +130,40 @@ class Checkout {
 
                             // prepare shipments to generate radio fields later
                             foreach ($shipment_deliveries as $delivery) {
-                                    if ($delivery->active) {
+                                if ($delivery->active) {
 
-                                        // store products with same shipmentsReferenceId together on $ship
-                                        if (isset($ship[$shipmentsReferenceId])) {
-                                            $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
-                                        } else {
-                                            $ship[$shipmentsReferenceId] = [
-                                                'delivery' => [],
-                                                'names' => [],
-                                            ];
-                                            $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
-                                        }
+                                    // store products with same shipmentsReferenceId together on $ship
+                                    if (isset($ship[$shipmentsReferenceId])) {
+                                        $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
+                                    } else {
+                                        $ship[$shipmentsReferenceId] = [
+                                            'delivery' => [],
+                                            'names' => [],
+                                        ];
+                                        $ship[$shipmentsReferenceId]['names'][] = $_product->get_id();
+                                    }
 
-                                        // Add unique delivery to the list
-                                        $delivery_key = $delivery->_id;
-                                        if (!isset($ship[$shipmentsReferenceId]['delivery'][$delivery_key])) {
-                                            $ship[$shipmentsReferenceId]['delivery'][$delivery_key] = [
-                                                'name' => $delivery->deliveryType,
-                                                'estimatedTime' => $delivery->estimatedTime,
-                                                'price' => $delivery->price,
-                                                'freeConditions' => $delivery->freeConditions ?? [],
-                                            ];
+                                    // Add unique delivery to the list
+                                    $delivery_key = $delivery->_id;
+                                    if (!isset($ship[$shipmentsReferenceId]['delivery'][$delivery_key])) {
+                                        $ship[$shipmentsReferenceId]['delivery'][$delivery_key] = [
+                                            'name' => $delivery->deliveryType,
+                                            'estimatedTime' => $delivery->estimatedTime,
+                                            'price' => $delivery->price,
+                                            'freeConditions' => $delivery->freeConditions ?? [],
+                                        ];
 
-                                            // Save relevant shipment data to the session
-                                            $shipment_data[] = [
-                                                'shipmentId' => $shipment->_id, // Correctly save the shipment ID
-                                                'deliveryId' => $delivery->_id, // Use the delivery ID from the active delivery
-                                                'shipmentsReferenceId' => $shipmentsReferenceId,
-                                            ];
-
-                                        }
+                                        // Save relevant shipment data to the session
+                                        $shipment_data[] = [
+                                            'shipmentId' => $shipment->_id, // Correctly save the shipment ID
+                                            'deliveryId' => $delivery->_id, // Use the delivery ID from the active delivery
+                                            'shipmentsReferenceId' => $shipmentsReferenceId,
+                                        ];
 
                                     }
+
                                 }
+                            }
 
                         }
 
@@ -376,18 +389,20 @@ class Checkout {
 
 
     public function check_for_cart_products_types() {
-        $cart_items = WC()->cart->get_cart();
+        $cart_items = $this->get_cart_items_safely();
         $has_standard_product = false;
         $has_anar_product = false;
 
         foreach ($cart_items as $item => $values) {
-            $_product = wc_get_product($values['data']->get_id());
+            $_product = $this->get_product_safely($values['data']->get_id());
+            if (!$_product) continue;
+
             $product_parent_id = $_product->get_parent_id();
 
             // Check for Anar products
             $anar_meta = $product_parent_id == 0
-                ? get_post_meta($_product->get_id(), '_anar_products', true)
-                : get_post_meta($product_parent_id, '_anar_products', true);
+                ? get_post_meta($_product->get_id(), self::ANAR_PRODUCT_META, true)
+                : get_post_meta($product_parent_id, self::ANAR_PRODUCT_META, true);
 
             if ($anar_meta) {
                 $has_anar_product = true; // Found an Anar product
@@ -399,7 +414,6 @@ class Checkout {
         // Store the results in session
         WC()->session->set('has_standard_product', $has_standard_product);
         WC()->session->set('has_anar_product', $has_anar_product);
-
     }
 
 
@@ -501,38 +515,81 @@ class Checkout {
 
 
     public function save_anar_data_on_order($order) {
-        // Retrieve the shipment data from the session
-        $shipment_data = WC()->session->get('anar_shipment_data', []);
+        try {
+            $this->log('-------------------- new order ------------------------- ', 'debug');
+            $this->log('Starting save_anar_data_on_order on session for order #' . $order->get_id(), 'debug');
 
-        // Initialize an array to hold the processed shipping data
-        $shipping_data = [];
+            // Retrieve the shipment data from the session
+            $shipment_data = WC()->session->get('anar_shipment_data', []);
 
-        // Loop through the shipment data stored in the session
-        foreach ($shipment_data as $shipment) {
-            // Get the chosen delivery option from the session
-            $chosen = WC()->session->get('anar_delivery_option_' . $shipment['shipmentsReferenceId']);
+            if (empty($shipment_data)) {
+                $this->log('No shipment data found in session for order #' . $order->get_id(), 'debug');
+                return;
+            }
 
-            // Proceed only if a delivery option is chosen
-            if ($chosen && $chosen === $shipment['deliveryId']) {
-                // Save relevant shipment data
+            $this->log('Processing shipment data: ' . print_r($shipment_data, true), 'debug');
+
+            // Initialize an array to hold the processed shipping data
+            $shipping_data = [];
+
+            // Loop through the shipment data stored in the session
+            foreach ($shipment_data as $shipment) {
+                // Get the chosen delivery option from the session
+                $chosen = WC()->session->get('anar_delivery_option_' . $shipment['shipmentsReferenceId']);
+                $this->log('Checking chosen delivery option for reference ' . $shipment['shipmentsReferenceId'] . ': ' . ($chosen ?: 'not set'), 'debug');
+
+                if (!$chosen) {
+                    $this->log('No delivery option chosen for shipment reference: ' . $shipment['shipmentsReferenceId'], 'debug');
+                    continue;
+                }
+
+                // Proceed only if a delivery option is chosen
+                if ($chosen === $shipment['deliveryId']) {
+                    $this->log('Match found for delivery option: ' . $chosen, 'debug');
+                    // Save relevant shipment data
+                    $shipping_data[] = [
+                        'shipmentId' => $shipment['shipmentId'],
+                        'deliveryId' => $shipment['deliveryId'],
+                        'shipmentsReferenceId' => $shipment['shipmentsReferenceId'],
+                    ];
+                }
+            }
+
+            // Fallback: If shipping_data is empty, use the first available option
+            if (empty($shipping_data) && !empty($shipment_data)) {
+                $this->log('No shipping data collected, using fallback to first option', 'debug');
+                $first_shipment = $shipment_data[0];
                 $shipping_data[] = [
-                    'shipmentId' => $shipment['shipmentId'], // Use the shipment ID from session data
-                    'deliveryId' => $shipment['deliveryId'], // Use the delivery ID from session data
-                    'shipmentsReferenceId' => $shipment['shipmentsReferenceId'], // Use the shipments reference ID
+                    'shipmentId' => $first_shipment['shipmentId'],
+                    'deliveryId' => $first_shipment['deliveryId'],
+                    'shipmentsReferenceId' => $first_shipment['shipmentsReferenceId'],
                 ];
+                $this->log('Fallback shipping data: ' . print_r($shipping_data, true), 'debug');
+            }
+
+            // Save the shipping data in the order meta if there are any valid entries
+            if (!empty($shipping_data)) {
+                $this->log('Saving shipping data to order meta: ' . print_r($shipping_data, true), 'debug');
+
+                update_post_meta($order->get_id(), self::ANAR_SHIPPING_META, $shipping_data);
+                $order->update_meta_data(self::ANAR_SHIPPING_META, $shipping_data);
+
+                update_post_meta($order->get_id(), self::ANAR_ORDER_META, 'anar');
+                $order->update_meta_data(self::ANAR_ORDER_META, 'anar');
+
+                $order->save();
+
+                $this->log('Successfully saved Anar order meta data for order #' . $order->get_id(), 'debug');
+            } else {
+                $this->log('No shipping data to save after fallback for order #' . $order->get_id(), 'warning');
+            }
+
+        } catch (\Exception $e) {
+            $this->log('Error saving Anar order meta: ' . $e->getMessage() . ' for order #' . $order->get_id(), 'error');
+            if (current_user_can('manage_options')) {
+                wc_add_notice('Error processing Anar shipping data: ' . $e->getMessage(), 'error');
             }
         }
-
-        // Save the shipping data in the order meta if there are any valid entries
-        if (!empty($shipping_data)) {
-            update_post_meta($order->get_id(), '_anar_shipping_data', $shipping_data);
-            $order->update_meta_data('_anar_shipping_data', $shipping_data);
-
-            update_post_meta($order->get_id(), '_is_anar_order', 'anar');
-            $order->update_meta_data('_is_anar_order', 'anar');
-        }
-
-        $order->save();
     }
 
 
@@ -617,6 +674,25 @@ class Checkout {
     public function handle_autofill_update() {
         // Force recalculation of totals
         WC()->cart->calculate_totals();
+    }
+
+    private function get_session_data($key, $default = null) {
+        return WC()->session ? WC()->session->get($key, $default) : $default;
+    }
+
+    private function set_session_data($key, $value) {
+        if (WC()->session) {
+            WC()->session->set($key, $value);
+        }
+    }
+
+    private function get_product_safely($product_id) {
+        $product = wc_get_product($product_id);
+        return $product instanceof \WC_Product ? $product : null;
+    }
+
+    private function get_cart_items_safely() {
+        return WC()->cart ? WC()->cart->get_cart() : [];
     }
 
 }

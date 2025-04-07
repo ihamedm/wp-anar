@@ -239,167 +239,91 @@ class Logger {
         $results = [];
 
         try {
-            // Add current log level to the status report
+            // Basic Status Checks
             $results['log_level'] = [
-                'status' => 'good',
-                'message' => sprintf(
-                    'Current Log Level: %s',
-                    strtoupper($instance->get_log_level())
-                ),
-                'label' => 'Log Level'
+                'label' => 'Log Level',
+                'message' => strtoupper($instance->get_log_level()),
+                'status' => 'good'
             ];
 
-            // Check log directory existence and permissions
+            $dir_exists = file_exists($instance->log_dir);
+            $dir_writable = $dir_exists && is_writable($instance->log_dir);
+            
             $results['log_directory'] = [
-                'status' => file_exists($instance->log_dir) && is_writable($instance->log_dir) ? 'good' : 'critical',
-                'message' => sprintf(
-                    'Log Directory: %s (%s)',
-                    $instance->log_dir,
-                    file_exists($instance->log_dir)
-                        ? (is_writable($instance->log_dir) ? 'Writable' : 'Not Writable')
-                        : 'Does Not Exist'
-                ),
-                'label' => 'Log Directory Status'
+                'label' => 'Log Directory',
+                'message' => $instance->log_dir,
+                'status' => $dir_writable ? 'good' : 'critical',
+                'details' => $dir_exists 
+                    ? ($dir_writable ? 'Writable' : 'Not Writable') 
+                    : 'Does Not Exist'
             ];
 
-            // Get all log files
-            $log_files = [];
+            if (!$dir_exists) {
+                return $results;
+            }
+
+            // Log Files Analysis
+            $files = glob($instance->log_dir . '/*.log');
             $total_size = 0;
+            $grouped_logs = [];
 
-            if (file_exists($instance->log_dir)) {
-                $files = glob($instance->log_dir . '/*.log');
+            foreach ($files as $file) {
+                $filename = basename($file);
+                $size = filesize($file);
+                $total_size += $size;
+                $prefix = explode('-', $filename)[0];
+                $writable = is_writable($file);
 
-                foreach ($files as $file) {
-                    $filename = basename($file);
-                    $filesize = filesize($file);
-                    $total_size += $filesize;
-                    $modified = filemtime($file);
-
-                    // Get the log type (prefix) from filename
-                    $prefix = explode('-', $filename)[0];
-
-                    // Create URL for the log file
-                    $url = content_url('wp-anar-logs/' . $filename);
-
-                    $log_files[] = [
-                        'name' => $filename,
-                        'size' => size_format($filesize, 2),
-                        'modified' => gmdate('Y-m-d H:i:s', $modified),
-                        'url' => $url,
-                        'prefix' => $prefix,
-                        'writable' => is_writable($file)
+                if (!isset($grouped_logs[$prefix])) {
+                    $grouped_logs[$prefix] = [
+                        'files' => [],
+                        'total_size' => 0,
+                        'has_issues' => false
                     ];
                 }
+
+                $grouped_logs[$prefix]['files'][] = [
+                    'name' => $filename,
+                    'size' => size_format($size, 2),
+                    'modified' => wp_date('Y-m-d H:i:s', filemtime($file)),
+                    'url' => content_url('wp-anar-logs/' . $filename),
+                    'writable' => $writable
+                ];
+                
+                $grouped_logs[$prefix]['total_size'] += $size;
+                $grouped_logs[$prefix]['has_issues'] = $grouped_logs[$prefix]['has_issues'] || !$writable;
             }
 
-            // Sort log files by modification time (newest first)
-            usort($log_files, function($a, $b) {
-                return strtotime($b['modified']) - strtotime($a['modified']);
-            });
-
-            // Group log files by prefix
-            $grouped_logs = [];
-            foreach ($log_files as $log) {
-                $grouped_logs[$log['prefix']][] = $log;
-            }
-
-            // Add log files information to results
-            foreach ($grouped_logs as $prefix => $logs) {
+            // Add grouped logs to results
+            foreach ($grouped_logs as $prefix => $group) {
                 $results['logs_' . $prefix] = [
-                    'status' => 'good',
-                    'message' => sprintf(
-                        "Found %d log file(s)\n%s",
-                        count($logs),
-                        implode("\n", array_map(function($log) {
-                            return sprintf(
-                                "- %s (%s, modified: %s) %s",
-                                $log['name'],
-                                $log['size'],
-                                $log['modified'],
-                                $log['writable'] ? '' : '[NOT WRITABLE]'
-                            );
-                        }, $logs))
-                    ),
                     'label' => ucfirst($prefix) . ' Logs',
-                    'urls' => array_column($logs, 'url')
-                ];
-            }
-
-            // Add total size information
-            $results['total_size'] = [
-                'status' => 'good',
-                'message' => sprintf(
-                    'Total log files size: %s',
-                    size_format($total_size, 2)
-                ),
-                'label' => 'Total Logs Size'
-            ];
-
-            // Check for any unwritable files
-            $unwritable_files = array_filter($log_files, function($log) {
-                return !$log['writable'];
-            });
-
-            if (!empty($unwritable_files)) {
-                $results['file_permissions'] = [
-                    'status' => 'critical',
                     'message' => sprintf(
-                        'Found %d unwritable log file(s): %s',
-                        count($unwritable_files),
-                        implode(', ', array_column($unwritable_files, 'name'))
+                        '%d files (%s total)',
+                        count($group['files']),
+                        size_format($group['total_size'], 2)
                     ),
-                    'label' => 'File Permissions'
+                    'status' => $group['has_issues'] ? 'warning' : 'good',
+                    'files' => $group['files']
                 ];
             }
+
+            // Total size summary
+            $results['total_size'] = [
+                'label' => 'Total Size',
+                'message' => size_format($total_size, 2),
+                'status' => 'good'
+            ];
 
         } catch (\Exception $e) {
             $results['error'] = [
-                'status' => 'critical',
-                'message' => 'Error getting log files status: ' . $e->getMessage(),
-                'label' => 'Error'
+                'label' => 'Error',
+                'message' => $e->getMessage(),
+                'status' => 'critical'
             ];
         }
-
-        // Add timestamp to results
-        $results['last_checked'] = [
-            'status' => 'good',
-            'message' => current_time('mysql'),
-            'label' => 'Last Checked'
-        ];
 
         return $results;
     }
 
-    /**
-     * Get a formatted log files status report
-     *
-     * @return string Formatted status report
-     */
-    public static function get_logs_status_report() {
-        $results = self::get_logs_status();
-        $output = "\n\n=== ANAR Log Files Status Report ===\n";
-        $output .= "Generated: " . current_time('mysql') . "\n";
-        $output .= "Generated by: " . wp_get_current_user()->user_login . "\n\n";
-
-        foreach ($results as $key => $check) {
-            $status_icon = $check['status'] === 'good' ? '✓' : ($check['status'] === 'warning' ? '⚠' : '✗');
-            $output .= sprintf(
-                "%s %s:\n%s\n",
-                $status_icon,
-                $check['label'],
-                $check['message']
-            );
-
-            // Add URLs if they exist
-            if (isset($check['urls']) && !empty($check['urls'])) {
-                $output .= "URLs:\n" . implode("\n", array_map(function($url) {
-                        return "  - " . $url;
-                    }, $check['urls'])) . "\n";
-            }
-
-            $output .= "\n";
-        }
-
-        return $output;
-    }
 }

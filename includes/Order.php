@@ -303,8 +303,8 @@ class Order {
             awca_is_hpos_enable() ? "on" : "off"
         );
 
-
-        if(ANAR_IS_ENABLE_CREATE_ORDER):
+        awca_log('ANAR_IS_ENABLE_CREATE_ORDER: ' . ANAR_IS_ENABLE_CREATE_ORDER);
+        if(ANAR_IS_ENABLE_CREATE_ORDER == 'yes'):
             if( $this->get_order_anar_data($order_id) ):?>
             <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">
                 <div class="awca-loading-message-spinner">

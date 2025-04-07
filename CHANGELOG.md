@@ -1,6 +1,16 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.5] - 1404/01/18
+- fix : checkout process sometimes doesn't save anar order data
+- fix : show deprecated products alert dismiss not working
+- fix : syncOutdated log file doesn't archive correctly
+- fix : recently not synced product link have problem by timezone
+- fix : improved estimated time to complete import products calculation
+- fix : anar automatic order creation option not working
+- update : refactor and add table for system status on tools page 
+
+
 ## [0.3.4] - 1404/01/16
 - new : set outofstock for removed variant on sync
 - new : download galley images of all products

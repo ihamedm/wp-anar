@@ -2,322 +2,322 @@
 
 namespace Anar\Core;
 
+use Anar\OrderData;
+use Anar\ProductData;
+use Anar\SyncTools;
+
 class SystemStatus{
 
-    /**
-     * Verify the health of the plugin's database table
-     *
-     * @return array Array containing health check results
-     */
     public static function verify_db_table_health() {
         global $wpdb;
-        $results = [];
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
-        try {
-            // Check 1: Table Existence
-            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
-            $results['table_exists'] = [
-                'status' => $table_exists ? 'good' : 'critical',
-                'message' => $table_exists ? 'Table exists' : 'Table does not exist',
-                'label' => 'Table Existence'
-            ];
-
-            if (!$table_exists) {
-                throw new \Exception('Table does not exist');
-            }
-
-            // Check 2: Table Structure
-            $expected_columns = [
-                'id' => ['Type' => 'mediumint(9)', 'Null' => 'NO', 'Key' => 'PRI', 'Extra' => 'auto_increment'],
-                'response' => ['Type' => 'longtext', 'Null' => 'NO'],
-                'key' => ['Type' => 'varchar(255)', 'Null' => 'NO'],
-                'processed' => ['Type' => 'tinyint(1)', 'Null' => 'NO', 'Default' => '0'],
-                'page' => ['Type' => 'int(11)', 'Null' => 'YES'],
-                'created_at' => ['Type' => 'datetime', 'Default' => 'CURRENT_TIMESTAMP']
-            ];
-
-            $table_structure = $wpdb->get_results("DESCRIBE $table_name", ARRAY_A);
-            $missing_columns = [];
-            $incorrect_columns = [];
-
-            foreach ($table_structure as $column) {
-                $column_name = $column['Field'];
-                if (isset($expected_columns[$column_name])) {
-                    foreach ($expected_columns[$column_name] as $property => $expected_value) {
-                        if (isset($column[$property]) && $column[$property] !== $expected_value) {
-                            $incorrect_columns[] = "{$column_name} ({$property}: expected {$expected_value}, got {$column[$property]})";
-                        }
-                    }
-                }
-            }
-
-            foreach ($expected_columns as $column_name => $properties) {
-                if (!in_array($column_name, array_column($table_structure, 'Field'))) {
-                    $missing_columns[] = $column_name;
-                }
-            }
-
-            $results['table_structure'] = [
-                'status' => (empty($missing_columns) && empty($incorrect_columns)) ? 'good' : 'critical',
-                'message' => (empty($missing_columns) && empty($incorrect_columns))
-                    ? 'Table structure is correct'
-                    : sprintf(
-                        'Table structure issues found: %s%s',
-                        !empty($missing_columns) ? ' Missing columns: ' . implode(', ', $missing_columns) : '',
-                        !empty($incorrect_columns) ? ' Incorrect columns: ' . implode(', ', $incorrect_columns) : ''
-                    ),
-                'label' => 'Table Structure'
-            ];
-
-            // Check 3: Database Version
-            $installed_version = get_option('awca_db_version');
-            $results['db_version'] = [
-                'status' => ($installed_version === ANAR_DB_VERSION) ? 'good' : 'warning',
-                'message' => sprintf(
-                    'Installed version: %s, Expected version: %s',
-                    $installed_version,
-                    ANAR_DB_VERSION
-                ),
-                'label' => 'Database Version'
-            ];
-
-            // Check 4: Table Size and Row Count
-            $table_status = $wpdb->get_row("SHOW TABLE STATUS LIKE '$table_name'");
-            $results['table_status'] = [
-                'status' => 'good',
-                'message' => sprintf(
-                    'Rows: %d, Data Size: %s, Index Size: %s',
-                    $table_status->Rows,
-                    size_format($table_status->Data_length),
-                    size_format($table_status->Index_length)
-                ),
-                'label' => 'Table Statistics'
-            ];
-
-            // Check 5: Auto Increment Status
-            $results['auto_increment'] = [
-                'status' => ($table_status->Auto_increment > 0) ? 'good' : 'warning',
-                'message' => sprintf('Current Auto Increment value: %d', $table_status->Auto_increment),
-                'label' => 'Auto Increment Status'
-            ];
-
-        } catch (\Exception $e) {
-            // Log the error
-            awca_log('Table health check failed: ' . $e->getMessage());
-
-            $results['error'] = [
-                'status' => 'critical',
-                'message' => 'Health check failed: ' . $e->getMessage(),
-                'label' => 'Error'
-            ];
-        }
-
-        // Add timestamp to results
-        $results['last_checked'] = [
-            'status' => 'good',
-            'message' => current_time('mysql'),
-            'label' => 'Last Checked'
-        ];
-
-        return $results;
-    }
-
-    /**
-     * Get a formatted health report string
-     *
-     * @return string Formatted health report
-     */
-    /**
-     * Get a formatted health report string
-     *
-     * @return string Formatted health report
-     */
-    public static function get_db_health_report() {
-        $results = self::verify_db_table_health();
-        $output = "\n\n=== ANAR Database Health Report ===\n";
-        $output .= "Generated: " . current_time('mysql') . "\n\n";
-
-        foreach ($results as $key => $check) {
-            $status_icon = $check['status'] === 'good' ? '✓' : ($check['status'] === 'warning' ? '⚠' : '✗');
-            $output .= sprintf(
-                "%s %s: %s\n",
-                $status_icon,
-                $check['label'],
-                $check['message']
-            );
-        }
-
-        return $output;
-    }
-
-    /**
-     * Check the health and status of WordPress cron jobs
-     *
-     * @return array Array containing health check results for cron system
-     */
-    public static function verify_cron_health() {
         $results = [];
-        $current_time = current_time('timestamp', true); // Get UTC timestamp
-
         try {
-            // Check 1: WordPress Cron Constant
-            $results['wp_cron_enabled'] = [
-                'status' => (!defined('DISABLE_WP_CRON') || !DISABLE_WP_CRON) ? 'good' : 'warning',
-                'message' => (!defined('DISABLE_WP_CRON') || !DISABLE_WP_CRON)
-                    ? 'WordPress cron is enabled'
-                    : 'WordPress cron is disabled via DISABLE_WP_CRON constant',
-                'label' => 'WP Cron Status'
+            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
+
+            $results['db_table_exists'] = [
+                'label' => 'Database Table',
+                'value' => $table_exists ? 'Exists' : 'Missing',
+                'status' => $table_exists ? 'good' : 'critical',
+                'group' => 'Database Health'
             ];
 
-            // Check 2: Alternative Cron Setting
-            $results['alternate_cron'] = [
-                'status' => (!defined('ALTERNATE_WP_CRON') || !ALTERNATE_WP_CRON) ? 'good' : 'warning',
-                'message' => (!defined('ALTERNATE_WP_CRON') || !ALTERNATE_WP_CRON)
-                    ? 'Using standard WordPress cron'
-                    : 'Using alternative WordPress cron',
-                'label' => 'Cron Mode'
-            ];
-
-            // Check 3: Get all scheduled cron jobs
-            $cron_array = _get_cron_array();
-            $our_cron_jobs = [];
-            $missed_cron_jobs = [];
-            $next_scheduled = PHP_INT_MAX;
-
-            // Plugin-specific cron jobs prefix (adjust this to match your plugin's prefix)
-            $cron_prefix = 'awca_'; // Assuming your plugin prefix is 'awca_'
-
-            foreach ($cron_array as $timestamp => $crons) {
-                foreach ($crons as $hook => $cron_details) {
-                    if (strpos($hook, $cron_prefix) === 0) {
-                        $our_cron_jobs[] = [
-                            'hook' => $hook,
-                            'timestamp' => $timestamp,
-                            'schedule' => reset($cron_details)['schedule'] ?? 'single'
-                        ];
-
-                        // Check for missed cron jobs (more than 1 hour late)
-                        if ($timestamp + 3600 < $current_time) {
-                            $missed_cron_jobs[] = $hook;
-                        }
-
-                        // Track next scheduled job
-                        if ($timestamp > $current_time && $timestamp < $next_scheduled) {
-                            $next_scheduled = $timestamp;
-                        }
-                    }
-                }
-            }
-
-            // Check 4: Plugin's Cron Jobs Status
-            $results['plugin_crons'] = [
-                'status' => !empty($our_cron_jobs) ? 'good' : 'warning',
-                'message' => sprintf(
-                    'Found %d scheduled cron jobs for this plugin',
-                    count($our_cron_jobs)
-                ),
-                'label' => 'Plugin Cron Jobs'
-            ];
-
-            // Check 5: Missed Cron Jobs
-            $results['missed_crons'] = [
-                'status' => empty($missed_cron_jobs) ? 'good' : 'warning',
-                'message' => empty($missed_cron_jobs)
-                    ? 'No missed cron jobs'
-                    : sprintf('Missed cron jobs: %s', implode(', ', $missed_cron_jobs)),
-                'label' => 'Missed Cron Jobs'
-            ];
-
-            // Check 6: Next Scheduled Run
-            $results['next_scheduled'] = [
-                'status' => 'good',
-                'message' => $next_scheduled !== PHP_INT_MAX
-                    ? sprintf(
-                        'Next job scheduled for %s (in %s)',
-                        gmdate('Y-m-d H:i:s', $next_scheduled),
-                        human_time_diff($current_time, $next_scheduled)
-                    )
-                    : 'No upcoming scheduled jobs',
-                'label' => 'Next Scheduled Job'
-            ];
-
-            // Check 7: System Time Check
-            $system_time = time();
-            $wp_time = current_time('timestamp', true);
-            $time_diff = abs($system_time - $wp_time);
-
-            $results['time_sync'] = [
-                'status' => ($time_diff < 300) ? 'good' : 'critical', // 5 minutes threshold
-                'message' => ($time_diff < 300)
-                    ? 'System time is properly synchronized'
-                    : sprintf('System time differs by %s seconds from WordPress time', $time_diff),
-                'label' => 'Time Synchronization'
-            ];
-
-            // Check 8: Cron Lock Status
-            $doing_cron = get_transient('doing_cron');
-            $stuck_cron_threshold = 3600; // 1 hour
-
-            if ($doing_cron) {
-                $cron_lock_time = $doing_cron - $current_time;
-                $results['cron_lock'] = [
-                    'status' => ($cron_lock_time > $stuck_cron_threshold) ? 'critical' : 'warning',
-                    'message' => sprintf(
-                        'Cron appears to be running for %s',
-                        human_time_diff($doing_cron, $current_time)
-                    ),
-                    'label' => 'Cron Lock Status'
-                ];
-            } else {
-                $results['cron_lock'] = [
+            if ($table_exists) {
+                $results['db_table_structure'] = [
+                    'label' => 'Table Structure',
+                    'value' => 'Valid',
                     'status' => 'good',
-                    'message' => 'No cron process is currently running',
-                    'label' => 'Cron Lock Status'
+                    'group' => 'Database Health'
                 ];
             }
-
         } catch (\Exception $e) {
-            awca_log('Cron health check failed: ' . $e->getMessage());
-
-            $results['error'] = [
+            $results['db_error'] = [
+                'label' => 'Database Error',
+                'value' => $e->getMessage(),
                 'status' => 'critical',
-                'message' => 'Cron health check failed: ' . $e->getMessage(),
-                'label' => 'Error'
+                'group' => 'Database Health'
             ];
         }
-
-        // Add timestamp to results
-        $results['last_checked'] = [
-            'status' => 'good',
-            'message' => current_time('mysql'),
-            'label' => 'Last Checked'
-        ];
 
         return $results;
     }
 
-    /**
-     * Get a formatted cron health report string
-     *
-     * @return string Formatted health report
-     */
-    public static function get_cron_health_report() {
-        $results = self::verify_cron_health();
-        $output = "\n\n=== ANAR Cron Health Report ===\n";
-        $output .= "Generated: " . current_time('mysql') . "\n\n";
+    public static function verify_cron_health() {
+        return [
+            'cron_running' => [
+                'label' => 'Cron Status',
+                'value' => awca_is_import_products_running() ? 'Running' : 'Not Running',
+                'status' => awca_is_import_products_running() ? 'good' : 'warning',
+                'group' => 'Cron Health'
+            ],
+            'cron_last_run' => [
+                'label' => 'Last Run',
+                'value' => get_option('awca_cron_last_run', 'Never'),
+                'status' => 'good',
+                'group' => 'Cron Health'
+            ],
+            'cron_next_schedule' => [
+                'label' => 'Next Schedule',
+                'value' => wp_next_scheduled('awca_import_products_cron')
+                    ? wp_date('Y-m-d H:i:s', wp_next_scheduled('awca_import_products_cron'))
+                    : 'Not Scheduled',
+                'status' => wp_next_scheduled('awca_import_products_cron') ? 'good' : 'warning',
+                'group' => 'Cron Health'
+            ]
+        ];
+    }
 
-        foreach ($results as $key => $check) {
-            $status_icon = $check['status'] === 'good' ? '✓' : ($check['status'] === 'warning' ? '⚠' : '✗');
-            $output .= sprintf(
-                "%s %s: %s\n",
-                $status_icon,
-                $check['label'],
-                $check['message']
-            );
+    public static function get_anar_data() {
+        $sync_tools = SyncTools::get_instance();
+        $product_data = new ProductData();
+        $sync = \Anar\Sync::get_instance();
+        
+        return [
+            'anar_products' => [
+                'label' => 'Anar Products Count',
+                'value' => $product_data->count_anar_products(),
+                'status' => 'good',
+                'group' => 'Anar Information'
+            ],
+            'not_synced_products' => [
+                'label' => 'Not Synced (Last Hour)',
+                'value' => $sync_tools->found_not_synced_products(1),
+                'status' => 'good',
+                'group' => 'Anar Information'
+            ],
+            'last_full_sync' => [
+                'label' => 'Last Full Sync',
+                'value' => mysql2date('j F Y - H:i', $sync->getLastSyncTime(true)),
+                'status' => 'good',
+                'group' => 'Anar Information'
+            ],
+            'last_partial_sync' => [
+                'label' => 'Last Partial Sync',
+                'value' => mysql2date('j F Y - H:i', $sync->getLastSyncTime()),
+                'status' => 'good',
+                'group' => 'Anar Information'
+            ]
+        ];
+    }
+
+    public static function get_wordpress_info() {
+        return [
+            'wp_version' => [
+                'label' => 'WordPress Version',
+                'value' => get_bloginfo('version'),
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'wp_language' => [
+                'label' => 'Language',
+                'value' => get_bloginfo('language'),
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'wp_timezone' => [
+                'label' => 'TimeZone',
+                'value' => wp_timezone_string(),
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'wp_charset' => [
+                'label' => 'Charset',
+                'value' => get_bloginfo('charset'),
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'wp_debug' => [
+                'label' => 'Debug Mode',
+                'value' => (defined('WP_DEBUG') && WP_DEBUG) ? 'Enabled' : 'Disabled',
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'home_url' => [
+                'label' => 'Home URL',
+                'value' => home_url(),
+                'status' => 'good',
+                'group' => 'WordPress Information',
+                'is_link' => true
+            ],
+            'site_url' => [
+                'label' => 'Site URL',
+                'value' => site_url(),
+                'status' => 'good',
+                'group' => 'WordPress Information',
+                'is_link' => true
+            ],
+            'wp_path' => [
+                'label' => 'WordPress Path',
+                'value' => ABSPATH,
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ],
+            'wp_content_path' => [
+                'label' => 'WordPress Content Path',
+                'value' => WP_CONTENT_DIR,
+                'status' => 'good',
+                'group' => 'WordPress Information'
+            ]
+        ];
+    }
+
+    public static function get_woocommerce_info() {
+        return [
+            'wc_hpos' => [
+                'label' => 'HPOS',
+                'value' => awca_is_hpos_enable() ? 'Yes' : 'No',
+                'status' => 'good',
+                'group' => 'WooCommerce Information'
+            ],
+            'wc_anar_orders' => [
+                'label' => 'Anar Orders',
+                'value' => OrderData::count_anar_orders(),
+                'status' => 'good',
+                'group' => 'WooCommerce Information'
+            ],
+            'wc_anar_register_orders' => [
+                'label' => 'Anar Register Orders',
+                'value' => OrderData::count_anar_orders_submited(),
+                'status' => 'good',
+                'group' => 'WooCommerce Information'
+            ]
+        ];
+    }
+
+    public static function get_theme_info() {
+        $theme = wp_get_theme();
+        return [
+            'theme_name' => [
+                'label' => 'Theme Name',
+                'value' => $theme->get('Name'),
+                'status' => 'good',
+                'group' => 'Theme Information'
+            ],
+            'theme_version' => [
+                'label' => 'Theme Version',
+                'value' => $theme->get('Version'),
+                'status' => 'good',
+                'group' => 'Theme Information'
+            ],
+            'theme_author' => [
+                'label' => 'Theme Author',
+                'value' => $theme->get('Author'),
+                'status' => 'good',
+                'group' => 'Theme Information'
+            ],
+            'theme_child' => [
+                'label' => 'Child Theme',
+                'value' => is_child_theme() ? 'Yes' : 'No',
+                'status' => 'good',
+                'group' => 'Theme Information'
+            ],
+            'theme_directory' => [
+                'label' => 'Theme Directory',
+                'value' => $theme->get_stylesheet_directory(),
+                'status' => 'good',
+                'group' => 'Theme Information'
+            ]
+        ];
+    }
+
+    public static function get_server_info() {
+        return [
+            'php_version' => [
+                'label' => 'PHP Version',
+                'value' => phpversion(),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'server_software' => [
+                'label' => 'Server Software',
+                'value' => $_SERVER['SERVER_SOFTWARE'],
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'mysql_version' => [
+                'label' => 'MySQL Version',
+                'value' => $GLOBALS['wpdb']->db_version(),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'php_time_limit' => [
+                'label' => 'PHP Time Limit',
+                'value' => ini_get('max_execution_time'),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'php_input_vars' => [
+                'label' => 'PHP Input Vars',
+                'value' => ini_get('max_input_vars'),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'php_memory_limit' => [
+                'label' => 'PHP Memory Limit',
+                'value' => ini_get('memory_limit'),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'php_upload_size' => [
+                'label' => 'PHP Max Upload Size',
+                'value' => ini_get('upload_max_filesize'),
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ],
+            'file_upload_permission' => [
+                'label' => 'File Upload Permission',
+                'value' => is_writable(__FILE__) ? 'Writable' : 'Not Writable',
+                'status' => is_writable(__FILE__) ? 'good' : 'warning',
+                'group' => 'Server Environment'
+            ],
+            'https_status' => [
+                'label' => 'HTTPS',
+                'value' => is_ssl() ? 'Yes' : 'No',
+                'status' => 'good',
+                'group' => 'Server Environment'
+            ]
+        ];
+    }
+
+    public static function get_logs_info() {
+        $logs_status = Logger::get_logs_status();
+        $logs_data = [];
+
+        foreach ($logs_status as $key => $status) {
+            $logs_data['log_' . $key] = [
+                'label' => $status['label'],
+                'value' => $status['message'],
+                'status' => $status['status'],
+                'group' => 'Log Files Status'
+            ];
+
+            // Add detailed file information if available
+            if (isset($status['files'])) {
+                foreach ($status['files'] as $index => $file) {
+                    $logs_data['log_' . $key . '_file_' . $index] = [
+                        'label' => '─ ' . $file['name'],
+                        'value' => sprintf('%s (Modified: %s)', $file['size'], $file['modified']),
+                        'status' => $file['writable'] ? 'good' : 'warning',
+                        'group' => 'Log Files Status',
+                        'is_link' => true,
+                        'url' => $file['url']
+                    ];
+                }
+            }
+
+            // Add details if available
+            if (isset($status['details'])) {
+                $logs_data['log_' . $key . '_details'] = [
+                    'label' => '└─ Status',
+                    'value' => $status['details'],
+                    'status' => $status['status'],
+                    'group' => 'Log Files Status'
+                ];
+            }
         }
 
-        return $output;
+        return $logs_data;
     }
 
 }

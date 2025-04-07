@@ -35,7 +35,7 @@ class SyncOutdated {
      * Log a message
      */
     private function log($message, $level = 'info') {
-        $this->logger->log($message, 'sync-outdated', $level);
+        $this->logger->log($message, 'syncOutdated', $level);
     }
 
 

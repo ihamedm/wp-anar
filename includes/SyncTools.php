@@ -110,7 +110,11 @@ class SyncTools{
 
     public function found_not_synced_products($hours_ago)
     {
-        $time_ago = date('Y-m-d H:i:s', strtotime("-{$hours_ago} hour"));
+        $time_ago = current_time('mysql', false);
+        $time_ago = date('Y-m-d H:i:s', strtotime($time_ago . " -{$hours_ago} hours"));
+        
+        $this->log("Checking for products not synced since: " . $time_ago);
+        
         $args = array(
             'post_type' => 'product',
             'post_status' => ['publish', 'draft'],
@@ -140,7 +144,6 @@ class SyncTools{
         $products = new \WP_Query($args);
 
         return $products->found_posts;
-
     }
 
     public function find_not_synced_products_ajax_callback() {
@@ -184,7 +187,11 @@ class SyncTools{
         }
 
         $hours_ago = $_GET['hours_ago'] ?? 1;
-        $time_ago = date('Y-m-d H:i:s', strtotime("-{$hours_ago} hour"));
+        // Use WordPress current_time instead of PHP date function
+        $time_ago = current_time('mysql', false);
+        $time_ago = date('Y-m-d H:i:s', strtotime($time_ago . " -{$hours_ago} hours"));
+
+        awca_log("Filtering products not synced since: " . $time_ago);
 
         if (isset($_GET['sync']) && $_GET['sync'] === 'late') {
             $query->set('post_status', array('publish'));
@@ -194,6 +201,10 @@ class SyncTools{
                     array(
                         'key' => '_anar_products',
                         'compare' => 'EXISTS'
+                    ),
+                    array(
+                        'key' => '_anar_deprecated',
+                        'compare' => 'NOT EXISTS'
                     ),
                     array(
                         'relation' => 'OR',

@@ -192,22 +192,18 @@ class Menus{
 
         // Only add the menu item if the transient exists
         if (awca_is_import_products_running()) {
-            $total_products = get_option('awca_total_products');
-            $count_db_products = $productData->count_anar_products();
-            $proceed_products_increment = get_option('awca_proceed_products');
-            if ($total_products == 0 || $count_db_products == 0)
+            $cronJob = CronJob_Process_Products::get_instance();
+            $progress = $cronJob->get_progress_data();
+            
+            if ($progress['total'] == 0 || $productData->count_anar_products() == 0) {
                 return;
+            }
 
-            // sometimes we have bug on increment , so prevent show processed products number grater than total products
-            // @todo better counting processed products
-            $proceed_products_increment = $proceed_products_increment > $total_products ? $total_products : $proceed_products_increment;
-            $progress_width_percent = $count_db_products * 100 / $total_products;
             $progress_width_percent = 100;
-//            $message2 = sprintf('انار - پردازش محصولات انار %s', round($progress_width_percent) . '%');
             $message2 = 'همگام سازی محصولات انار';
             $args = array(
                 'id' => 'awca_product_creation_progress',
-                'title' => '<div class="wrap"><span class="bgprogress" style="width:' . $progress_width_percent . '%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>', // The content of the menu item
+                'title' => '<div class="wrap"><span class="bgprogress" style="width:' . $progress_width_percent . '%"></span> <span class="ripple-dot"></span><span class="awca-progress-bar"></span><span class="msg">' . esc_html($message2) . '</span></div>',
                 'href' => false,
                 'meta' => array(
                     'class' => 'awca-progress-bar-menu-bar-item'
@@ -216,20 +212,16 @@ class Menus{
 
             $wp_admin_bar->add_node($args);
 
-            $start_time = wp_date('j F Y ساعت H:i', get_option('awca_cron_create_products_start_time'));
-            $estimate_finish = round(($total_products - $proceed_products_increment) / 30) + 2;
-
             $dropdown_items = array(
-                array('id' => 'awca_progress_detail_1', 'title' => 'هر دقیقه ۳۰ محصول همگام سازی می شود', 'href' => false),
-                array('id' => 'awca_progress_detail_2',
-                    'title' => "{$proceed_products_increment} محصول از {$total_products} پردازش شده",
+                array('id' => 'awca_progress_detail_1',
+                    'title' => "{$progress['processed']} محصول از {$progress['total']} پردازش شده",
                     'href' => false
                 ),
             );
 
-            if($estimate_finish > 0){
-                $dropdown_items[] = array('id' => 'awca_progress_detail_3',
-                    'title' => "حدودا {$estimate_finish} دقیقه تا پایان پردازش",
+            if($progress['estimated_minutes'] > 0){
+                $dropdown_items[] = array('id' => 'awca_progress_detail_2',
+                    'title' => "حدودا {$progress['estimated_minutes']} دقیقه تا پایان پردازش",
                     'href' => false
                 );
             }

@@ -302,12 +302,12 @@ class CronJob_Process_Products {
     public function show_removed_products_notice() {
         // Handle the dismiss action
         if (isset($_GET['awca_hide_notice']) && wp_verify_nonce($_GET['nonce'], 'awca_hide_notice')) {
-            delete_option('awca_removed_products_count', 0);
+            delete_option('awca_deprecated_products_count');
             return;
         }
 
         if (isset($_GET['anar_deprecated'])) {
-            delete_option('awca_removed_products_count', 0);
+            delete_option('awca_deprecated_products_count');
             return;
         }
 
@@ -482,5 +482,28 @@ class CronJob_Process_Products {
         }
     }
 
+    public function get_progress_data() {
+        $total_products = get_option('awca_total_products', 0);
+        $proceed_products = get_option('awca_proceed_products', 0);
+        $start_time = get_option('awca_cron_create_products_start_time');
+
+        // Prevent showing processed products number greater than total
+        $proceed_products = min($proceed_products, $total_products);
+
+        $estimate_minutes = 0;
+        if ($start_time && $proceed_products > 0) {
+            $current_time = current_time('timestamp');
+            $elapsed_time = $current_time - $start_time;
+            $avg_time_per_product = $elapsed_time / $proceed_products;
+            $remaining_products = $total_products - $proceed_products;
+            $estimate_minutes = ceil(($avg_time_per_product * $remaining_products) / 60);
+        }
+
+        return [
+            'total' => $total_products,
+            'processed' => $proceed_products,
+            'estimated_minutes' => $estimate_minutes
+        ];
+    }
 
 }
