@@ -1,6 +1,10 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.6] - 1404/02/07
+- new : add async real-time product updates on loading product page and checkout
+- new : add labelPrice to products as regular price
+
 ## [0.3.5] - 1404/01/18
 - fix : checkout process sometimes doesn't save anar order data
 - fix : show deprecated products alert dismiss not working

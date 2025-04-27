@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.5
+ * Version:          	0.3.6
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -271,11 +271,9 @@ class Wp_Anar
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
+        SyncRealTime::get_instance();
 
         //new Multi_Seller();
-
-        //Background_Process_Products::get_instance();
-//        Background_Process_Images::get_instance();
 
         Gallery::get_instance();
 

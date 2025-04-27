@@ -359,25 +359,78 @@ class Sync {
 
 
     /**
-     * @param \WC_Product $product
-     * @param $updateProduct
-     * @param $variant
+     * Updates the stock and price for a WooCommerce product based on Anar API data.
+     * Assumes 'labelPrice' from API is the Regular Price and 'price' is the Sale Price when applicable.
+     *
+     * @param \WC_Product $product The WooCommerce product object (simple or variation).
+     * @param object $updateProduct The parent product data from Anar API (contains resellStatus).
+     * @param object $variant The specific variant data from Anar API (contains stock, price, labelPrice).
      * @return void
      */
     public function updateProductStockAndPrice($product, $updateProduct, $variant) {
-        $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
-        $variantPrice = $variant->price ?? 0;
 
         if ($product) {
-            $convertedPrice = awca_convert_price_to_woocommerce_currency($variantPrice);
+            // --- Stock Update ---
+            $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
             $product->set_stock_quantity($variantStock);
-
-            if(get_option('anar_conf_feat__optional_price_sync', 'no') == 'no'){
-                $product->set_price($convertedPrice);
-                $product->set_regular_price($convertedPrice);
+            // Set stock status based on quantity (optional but good practice)
+            $product->set_manage_stock(true); // Ensure stock management is on
+            if ($variantStock > 0) {
+                $product->set_stock_status('instock');
+            } else {
+                $product->set_stock_status('outofstock');
             }
 
+            // --- Price Update (if enabled) ---
+            if (get_option('anar_conf_feat__optional_price_sync', 'no') == 'no') {
+                // Get potential regular and sale prices from API variant data
+                $apiPrice = $variant->price ?? null; // Potential Sale Price
+                $apiLabelPrice = $variant->labelPrice ?? null; // Potential Regular Price
+
+                // Convert prices to WooCommerce currency (handle nulls gracefully)
+                $wcPrice = ($apiPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiPrice) : null;
+                $wcLabelPrice = ($apiLabelPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiLabelPrice) : null;
+
+                $finalRegularPrice = '';
+                $finalSalePrice = '';
+                $finalActivePrice = '';
+
+                // Determine prices based on API values provided
+                if ($wcLabelPrice !== null && $wcLabelPrice > 0 && $wcPrice !== null && $wcLabelPrice > $wcPrice) {
+                    // Scenario 1: Both labelPrice and price exist, and labelPrice > price.
+                    // Treat labelPrice as Regular Price, price as Sale Price.
+                    $finalRegularPrice = $wcLabelPrice;
+                    $finalSalePrice = $wcPrice;
+                    $finalActivePrice = $wcPrice; // Active price is the sale price
+                } elseif ($wcPrice !== null) {
+                    // Scenario 2: Only price exists (or labelPrice is not valid for a sale scenario).
+                    // Treat price as the Regular Price, no Sale Price.
+                    $finalRegularPrice = $wcPrice;
+                    $finalSalePrice = ''; // Ensure sale price is empty
+                    $finalActivePrice = $wcPrice; // Active price is the regular price
+                } else {
+                     // Scenario 3: Neither price is valid (or both are 0/null). Set empty prices.
+                     // This might happen if a product is temporarily unavailable or has no price set in Anar.
+                     $finalRegularPrice = '';
+                     $finalSalePrice = '';
+                     $finalActivePrice = '';
+                     // Optionally log a warning here if prices are expected but missing/invalid
+                     $this->log("Warning: Product ID {$product->get_id()} received invalid/missing price data from Anar (Price: {$apiPrice}, LabelPrice: {$apiLabelPrice}). Setting empty prices.", 'warning');
+                }
+
+                // Set WooCommerce product prices
+                $product->set_regular_price($finalRegularPrice);
+                $product->set_sale_price($finalSalePrice);
+                $product->set_price($finalActivePrice); // Set the active price correctly
+            }
+
+            // --- Save Product ---
             $product->save();
+            // Log successful update
+            // $this->log("Updated stock/price for Product ID {$product->get_id()}.", 'debug');
+
+        } else {
+             $this->log("Error: Attempted to update stock/price for a non-existent product object.", 'error');
         }
     }
 
