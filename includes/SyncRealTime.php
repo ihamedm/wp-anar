@@ -74,11 +74,12 @@ class SyncRealTime {
 
             $sync = $this->sync_instance;
 
-            if (count($anar_product->variants) == 1) {
-                $sync->processSimpleProduct($anar_product);
-            } else {
+            if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
                 $sync->processVariableProduct($anar_product);
+            } else {
+                $sync->processSimpleProduct($anar_product);
             }
+
 
             $this->log("Successfully processed update for product ID: {$product_id} with Anar ID: " . ($anar_product->id ?? 'Unknown'), 'debug');
             return true;

@@ -67,11 +67,12 @@ class SyncOutdated {
             $sync = Sync::get_instance();
 
             // Identify if it's a simple or variable product
-            if (count($anar_product->variants) == 1) {
-                $sync->processSimpleProduct($anar_product);
-            } else {
+            if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
                 $sync->processVariableProduct($anar_product);
+            } else {
+                $sync->processSimpleProduct($anar_product);
             }
+
 
             // Log successful update
             $this->log("Successfully updated product with SKU: " . ($anar_product->id ?? 'Unknown'));

@@ -1,6 +1,10 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.7] - 1404/02/08
+- fix : issue about sync variable products with 1 variant 
+
+
 ## [0.3.6] - 1404/02/07
 - new : add async real-time product updates on loading product page and checkout
 - new : add labelPrice to products as regular price

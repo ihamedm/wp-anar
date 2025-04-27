@@ -213,12 +213,14 @@ class Sync {
         $processed_products_ids = [];
 
         foreach ($products as $updateProduct) {
-            if (count($updateProduct->variants) == 1) {
-                $updated_wc_id = $this->processSimpleProduct($updateProduct);
-                $processed_products_ids [] = '#'.$updated_wc_id;
-            } else {
+
+
+            if (isset($updateProduct->attributes) && !empty($updateProduct->attributes)) {
                 $updated_wc_id = $this->processVariableProduct($updateProduct);
                 $processed_products_ids [] = 'v#'.$updated_wc_id;
+            } else {
+                $updated_wc_id = $this->processSimpleProduct($updateProduct);
+                $processed_products_ids [] = '#'.$updated_wc_id;
             }
 
 
