@@ -74,6 +74,12 @@ class SystemStatus{
         $sync = \Anar\Sync::get_instance();
         
         return [
+            'anar_versions' => [
+                'label' => 'Anar Versions',
+                'value' => ANAR_PLUGIN_VERSION,
+                'status' => 'good',
+                'group' => 'Anar Information'
+            ],
             'anar_products' => [
                 'label' => 'Anar Products Count',
                 'value' => $product_data->count_anar_products(),

@@ -135,6 +135,7 @@ class CronJobs {
     }
 
 
+
     public function fetch_updated_data_from_anar_job() {
         // (new Notifications)->count_unread_notifications();
         (new ProductData())->count_anar_products(true);
@@ -147,10 +148,13 @@ class CronJobs {
     public function daily_jobs() {
         $logger = new Logger();
         $logger->cleanup_logs();
-        
+
+        $usage_data = UsageData::instance();
+        $usage_data->send();
 
         $sync_outdated = SyncOutdated::get_instance();
         $sync_outdated->process_outdated_products_job();
+
     }
 
 

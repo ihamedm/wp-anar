@@ -169,7 +169,9 @@ function awca_translator($string){
     } elseif ($string === 'post') {
         return 'پست';
     } elseif ($string === 'express') {
-        return 'اکسپرس';
+        return 'پیشتاز';
+    } elseif ($string === 'afterFare') {
+        return 'afterFare';
     } elseif ($string === 'tipax') {
         return 'تیپاکس';
     } elseif ($string === 'chapar') {
@@ -185,6 +187,43 @@ function awca_translator($string){
     } else {
         return $string;
     }
+}
+
+function anar_get_states($state_code) {
+    $states  = [
+        'ABZ' => 'البرز',
+        'ADL' => 'اردبیل',
+        'EAZ' => 'آذربایجان شرقی',
+        'WAZ' => 'آذربایجان غربی',
+        'BHR' => 'بوشهر',
+        'CHB' => 'چهارمحال و بختیاری',
+        'FRS' => 'فارس',
+        'GIL' => 'گیلان',
+        'GLS' => 'گلستان',
+        'HDN' => 'همدان',
+        'HRZ' => 'هرمزگان',
+        'ILM' => 'ایلام',
+        'ESF' => 'اصفهان',
+        'KRN' => 'کرمان',
+        'KRH' => 'کرمانشاه',
+        'NKH' => 'خراسان شمالی',
+        'RKH' => 'خراسان رضوی',
+        'SKH' => 'خراسان جنوبی',
+        'KHZ' => 'خوزستان',
+        'KBD' => 'کهگیلویه و بویراحمد',
+        'KRD' => 'کردستان',
+        'LRS' => 'لرستان',
+        'MKZ' => 'مرکزی',
+        'MZN' => 'مازندران',
+        'GZN' => 'قزوین',
+        'QHM' => 'قم',
+        'SMN' => 'سمنان',
+        'SBN' => 'سیستان و بلوچستان',
+        'THR' => 'تهران',
+        'YZD' => 'یزد',
+        'ZJN' => 'زنجان',
+    ];
+    return $states[$state_code] ?? false;
 }
 
 

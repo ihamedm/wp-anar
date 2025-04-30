@@ -122,22 +122,34 @@ class Order {
         if (isset($prepare_response['statusCode']) && $prepare_response['statusCode'] !== 200) {
             // Handle error
             $order->add_order_note('سفارش از سمت انار تایید نشد. خطا: ' . $prepare_response['message']);
-            //awca_log(print_r($prepare_response, true));
             return false;
         } else {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
-            //awca_log('prepare success, total price is: ' . print_r($prepare_response, true));
         }
 
         // Prepare data for the second API call
-        $address = $order->get_address('billing'); // Get shipping address
+        $address = $order->get_address('billing'); // Get billing address
+
+        // Get country and state codes
+        $country_code = $address['country'] ?? '';
+        $state_code = $address['state'] ?? '';
+
+
+        // Get the full state name
+        if(class_exists('PWS_Core')){
+            $anar_state = anar_get_states($address['state']);
+            $state_name = $anar_state ?? $address['state'];
+        }else{
+            $wc_states = WC()->countries->get_states( $country_code );
+            $state_name = $wc_states[$state_code] ?? $state_code;
+        }
 
         $create_data = [
-            'type' => 'retail', // Adjust if necessary
+            'type' => 'retail',
             'items' => $items,
             'address' => [
                 'postalCode' => $address['postcode'],
-                'detail' => $address['state'] .' ' . $address['city'] .' '. $address['address_1'] .' '. $address['address_2'],
+                'detail' => $state_name .' ' . $address['city'] .' '. $address['address_1'] .' '. $address['address_2'],
                 'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
                 'transFereeMobile' => $address['phone'],
             ],
@@ -303,7 +315,6 @@ class Order {
             awca_is_hpos_enable() ? "on" : "off"
         );
 
-        awca_log('ANAR_IS_ENABLE_CREATE_ORDER: ' . ANAR_IS_ENABLE_CREATE_ORDER);
         if(ANAR_IS_ENABLE_CREATE_ORDER == 'yes'):
             if( $this->get_order_anar_data($order_id) ):?>
             <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">

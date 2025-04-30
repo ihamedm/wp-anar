@@ -134,7 +134,7 @@ class CronJob_Process_Products {
                 $start_time = current_time('timestamp'); // Current timestamp
                 update_option( 'awca_cron_create_products_start_time', $start_time);
                 update_option( 'awca_proceed_products', 0);
-                $this->add_to_awake_list();
+                //$this->add_to_awake_list();
             }
 
 

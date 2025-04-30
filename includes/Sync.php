@@ -263,6 +263,7 @@ class Sync {
 
                     $this->updateProductStockAndPrice($product, $updateProduct, $variant);
                     $this->updateProductMetadata($productId, $variant);
+                    $this->updateProductShipments($productId, $updateProduct);
 
                     return $productId;
                 } catch (\Exception $e) {
@@ -334,6 +335,7 @@ class Sync {
                         }
 
                         $this->updateProductMetadata($parentId, $variant);
+                        $this->updateProductShipments($parentId, $updateProduct);
                     }
                 } catch (\Exception $e) {
                     $this->log("Error processing variant {$anar_variation_id}: " . $e->getMessage(), 'debug');
@@ -376,7 +378,7 @@ class Sync {
             $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
             $product->set_stock_quantity($variantStock);
             // Set stock status based on quantity (optional but good practice)
-            $product->set_manage_stock(true); // Ensure stock management is on
+            $product->set_manage_stock(true);
             if ($variantStock > 0) {
                 $product->set_stock_status('instock');
             } else {
@@ -458,6 +460,15 @@ class Sync {
         }
 
         delete_post_meta($wcProductParentId, '_anar_pending');
+    }
+
+    public function updateProductShipments($wcProductParentId, $anarProduct)
+    {
+        $prepared_product = ProductManager::product_serializer($anarProduct);
+        if(isset($prepared_product['shipments']) && isset($prepared_product['shipments_ref'])){
+            update_post_meta($wcProductParentId, '_anar_shipments', $prepared_product['shipments']);
+            update_post_meta($wcProductParentId, '_anar_shipments_ref', $prepared_product['shipments_ref']);
+        }
     }
 
 
