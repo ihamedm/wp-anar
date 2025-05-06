@@ -135,7 +135,7 @@ class Gallery{
                             $gallery_image_urls = array_slice($gallery_image_urls, 0, $max_images);
                         }
 
-                        $result = $this->image_downloader->set_product_gallery($product_id, $gallery_image_urls, $max_images);
+                        $result = $this->image_downloader->set_product_gallery($product_id, $gallery_image_urls, $max_images); // Pass product_id here
                         if (!is_wp_error($result)) {
                             $total_downloaded += count($gallery_image_urls);
                         } else {

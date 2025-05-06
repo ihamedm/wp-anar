@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.8
+ * Version:          	0.3.9
  * Author:            	تیم توسعه 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -131,7 +131,6 @@ class Wp_Anar
         $this->hooks();
         $this->instances();
 
-
     }
 
 
@@ -187,7 +186,7 @@ class Wp_Anar
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_VERSION', '1.7');
-        define('ANAR_CRON_VERSION', '1.11');
+        define('ANAR_CRON_VERSION', '1.4');
 
 
         define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
@@ -265,7 +264,7 @@ class Wp_Anar
         new Wizard\Category();
         new Wizard\Attributes();
         Wizard\ProductManager::get_instance();
-        CronJob_Process_Products::get_instance();
+        Import::get_instance();
 
         new Woocommerce();
         Sync::get_instance();

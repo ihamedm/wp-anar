@@ -2,10 +2,8 @@
 
 namespace Anar\Admin;
 
-use Anar\Background_Process_Products;
-use Anar\Background_Process_Thumbnails;
 use Anar\Core\Activation;
-use Anar\CronJob_Process_Products;
+use Anar\Import;
 use Anar\ProductData;
 
 class Menus{
@@ -192,7 +190,7 @@ class Menus{
 
         // Only add the menu item if the transient exists
         if (awca_is_import_products_running()) {
-            $cronJob = CronJob_Process_Products::get_instance();
+            $cronJob = Import::get_instance();
             $progress = $cronJob->get_progress_data();
             
             if ($progress['total'] == 0 || $productData->count_anar_products() == 0) {

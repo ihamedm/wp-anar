@@ -2,7 +2,7 @@
 namespace Anar\Wizard;
 
 use Anar\Core\Logger;
-use Anar\CronJob_Process_Products;
+use Anar\Import;
 use Anar\ProductData;
 use voku\CssToInlineStyles\Exception;
 use WC_Product_Simple;
@@ -65,7 +65,7 @@ class ProductManager{
 
             // allow to start create product cronjob
             if(!$has_more){
-                CronJob_Process_Products::unlock_create_products_cron();
+                Import::unlock_create_products_cron();
             }
 
             wp_send_json($response);

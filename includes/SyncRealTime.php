@@ -45,7 +45,7 @@ class SyncRealTime {
     }
 
     private function log($message, $level = 'info') {
-        $this->logger->log($message, 'syncProduct', $level);
+        $this->logger->log($message, 'realTimeSync', $level);
     }
 
     public function add_product_id_meta_tag() {

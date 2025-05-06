@@ -7,7 +7,7 @@ use Anar\Core\Logger;
 use Anar\Wizard\ProductManager;
 use WP_Query;
 
-class CronJob_Process_Products {
+class Import {
 
     /**
      * @var string

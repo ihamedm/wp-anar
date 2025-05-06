@@ -1,7 +1,8 @@
 <?php
 namespace Anar\Core;
 
-use Anar\CronJob_Process_Products;
+use ActionScheduler;
+use Anar\Import;
 use Anar\Notifications;
 use Anar\Payments;
 use Anar\ProductData;
@@ -37,7 +38,7 @@ class CronJobs {
 
 
         if (!wp_next_scheduled('awca_create_products')
-            && !CronJob_Process_Products::is_create_products_cron_locked()
+            && !Import::is_create_products_cron_locked()
         ) {
             wp_schedule_event(time(), 'every_one_min', 'awca_create_products');
         }
@@ -64,6 +65,18 @@ class CronJobs {
             wp_schedule_event(time(), 'daily', 'anar_daily_jobs');
         }
 
+        if (!wp_next_scheduled('anar_cleanup_logs')) {
+            wp_schedule_event(time(), 'daily', 'anar_cleanup_logs');
+        }
+
+        if (!wp_next_scheduled('anar_cleanup_action_scheduler')) {
+            wp_schedule_event(time(), 'hourly', 'anar_cleanup_action_scheduler');
+        }
+
+        if (!wp_next_scheduled('anar_sync_outdated')) {
+            wp_schedule_event(time(), 'daily', 'anar_sync_outdated');
+        }
+
 
     }
 
@@ -79,7 +92,10 @@ class CronJobs {
         add_action('awca_fetch_updated_data_from_anar_cron', [$this, 'fetch_updated_data_from_anar_job']);
 
         // Assign the daily log cleanup job
-        add_action('anar_daily_jobs', [$this, 'daily_jobs']);
+        add_action('anar_daily_jobs', [$this, 'anar_daily_jobs']);
+        add_action('anar_cleanup_logs', [$this, 'cleanup_logs']);
+        add_action('anar_cleanup_action_scheduler', [$this, 'cleanup_action_scheduler']);
+        add_action('anar_sync_outdated', [$this, 'sync_outdated']);
 
     }
 
@@ -106,7 +122,7 @@ class CronJobs {
 
 
     public function create_products_job(){
-        $cron_product_generator = CronJob_Process_Products::get_instance();
+        $cron_product_generator = Import::get_instance();
 
         // First check if there's a stuck process
         $cron_product_generator->check_for_stuck_processes();
@@ -139,23 +155,30 @@ class CronJobs {
     public function fetch_updated_data_from_anar_job() {
         // (new Notifications)->count_unread_notifications();
         (new ProductData())->count_anar_products(true);
-        //(new Payments())->count_unpaid_orders_count();
-
     }
 
 
 
-    public function daily_jobs() {
+    public function cleanup_logs(){
         $logger = new Logger();
         $logger->cleanup_logs();
+    }
 
+    public function cleanup_action_scheduler(){
+        $cleaner = new Cleaner();
+        $cleaner->cleanup_action_scheduler();
+    }
+
+    public function anar_daily_jobs(){
         $usage_data = UsageData::instance();
         $usage_data->send();
+    }
 
+    public function sync_outdated(){
         $sync_outdated = SyncOutdated::get_instance();
         $sync_outdated->process_outdated_products_job();
-
     }
+
 
 
     public function reschedule_events() {

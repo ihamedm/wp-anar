@@ -241,7 +241,7 @@ function awca_log($message, $prefix = 'general', $level = null) {
 
 
 function awca_is_import_products_running(){
-    return !Anar\CronJob_Process_Products::is_create_products_cron_locked();
+    return !Anar\Import::is_create_products_cron_locked();
 }
 
 

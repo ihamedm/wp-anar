@@ -144,18 +144,30 @@ class Order {
             $state_name = $wc_states[$state_code] ?? $state_code;
         }
 
+        $address_detail = $state_name .' ' . $address['city'] .' '. $address['address_1'] .' '. $address['address_2'];
+
+        // Remove <br> and full name from formatted address
+        $formatted_address = $order->get_formatted_billing_address();
+        $formatted_address = str_replace('<br/>', ', ', $formatted_address);
+        $formatted_address = str_replace('<br>', ', ', $formatted_address);
+        $formatted_address = preg_replace('/^[^,]+,\s*/', '', $formatted_address);
+        
+        // Remove postcode from end of address if it exists
+        if (!empty($address['postcode'])) {
+            $formatted_address = trim(str_replace($address['postcode'], '', $formatted_address), ', ');
+        }
+
         $create_data = [
             'type' => 'retail',
             'items' => $items,
             'address' => [
                 'postalCode' => $address['postcode'],
-                'detail' => $state_name .' ' . $address['city'] .' '. $address['address_1'] .' '. $address['address_2'],
+                'detail' => $formatted_address,
                 'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
                 'transFereeMobile' => $address['phone'],
             ],
             'shipments' => $this->prepare_shipments($order) // Prepare shipment data from response
         ];
-
 
         // Second API call to create the order
         $create_response = $this->call_api('https://api.anar360.com/wp/orders/', $create_data);

@@ -1,10 +1,13 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.9] - 1404/02/
+
+
 ## [0.3.8] - 1404/02/10
 - fix : issue about state name send to anar orders when PWS plugin installed
 - fix : improved updating shipments 
-    
+
 
 ## [0.3.7] - 1404/02/08
 - fix : issue about sync variable products with 1 variant 

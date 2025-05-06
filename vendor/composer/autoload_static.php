@@ -10,7 +10,6 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         'A' => 
         array (
             'Anar\\Wizard\\' => 12,
-            'Anar\\Tests\\' => 11,
             'Anar\\Lib\\BackgroundProcessing\\' => 30,
             'Anar\\Lib\\' => 9,
             'Anar\\Init\\' => 10,
@@ -24,10 +23,6 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         'Anar\\Wizard\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/wizard',
-        ),
-        'Anar\\Tests\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/tests',
         ),
         'Anar\\Lib\\BackgroundProcessing\\' => 
         array (

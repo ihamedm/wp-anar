@@ -68,11 +68,13 @@ class Sync {
             return;
 
         if ($this->isSyncInProgress()) {
-            $this->log('Sync '.$this->jobID.' already in progress, exiting to prevent overlap.');
+            // Keep this log as it's an early exit condition
+            $this->log('Sync job already in progress, exiting to prevent overlap.');
             return;
         }
 
         if(awca_is_import_products_running()){
+             // Keep this log as it's an early exit condition
             $this->log('Importing in progress, skipping sync.');
             return;
         }
@@ -86,8 +88,9 @@ class Sync {
                 if(!$this->haveActiveFullSync() && $msSinceLastSync < $this->restBetweenFullSyncs){
                     $minutes = round(($this->restBetweenFullSyncs - $msSinceLastSync ) / 60, 2);
                     set_transient('anar_since_next_full_sync', $minutes, 3600);
+                    // Keep this log as it's an early exit condition
                     $this->log(
-                        sprintf('still %s Minutes left since next fullSync. %s',
+                        sprintf('Still %s Minutes left until the next full sync. Last sync: %s',
                             $minutes,
                             $lastSyncTime
                         )
@@ -97,41 +100,51 @@ class Sync {
             }
         }
 
-
+        // Set Job ID early to use in logs
         $this->set_jobID();
-
-        $this->lockSync();
 
         // Capture the start time before beginning the sync process
         $this->setStartTime();
 
+        $this->lockSync(); // Lock after setting Job ID and start time
+
+        $completed = false; // Initialize completion status
+
         try {
+            // Log Start or Continue *after* locking
             if($this->fullSync && $this->haveActiveFullSync()){
-                $this->log('-------------------------------- Continue Sync '.$this->jobID.' --------------------------------');
+                $this->log('-------------------------------- ' . ($this->haveActiveFullSync() ? 'Continue' : 'Start') . ' Sync Job: '.$this->jobID.' --------------------------------');
             }else{
-                $this->log('-------------------------------- Start Sync '.$this->jobID.' --------------------------------');
-
-                if(!$this->fullSync)
-                    $this->log('## Sync products that changes since '.($this->updatedSince / 60000).' minutes ago ...');
+                 $this->log('-------------------------------- Start Sync Job: '.$this->jobID.' --------------------------------');
+                 if(!$this->fullSync)
+                     $this->log('## Syncing products changed since '.($this->updatedSince / 60000).' minutes ago...');
             }
+            $this->log('## Triggered by [ '.$this->triggerBy.' ] ' . ($this->fullSync ? ' [ Full Sync ]' : '') );
 
 
-            $this->log('## Trigger by [ '.$this->triggerBy.' ] ' . ($this->fullSync ? ' [ full sync ]' : '') );
             $completed = $this->processPages();
 
             // Only perform final cleanup if truly complete
             if ($completed) {
+                $this->log("Sync job {$this->jobID} completed processing pages.");
                 // After processing all pages in a full sync, check for removed products
                 if ($this->fullSync) {
                     ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
                 }
                 $this->setLastSyncTime();
-                $this->complete_full_sync_job();
+                $this->complete_full_sync_job(); // Mark the full sync job as complete if applicable
+            } else {
+                 $this->log("Sync job {$this->jobID} did not complete all pages in this run.");
             }
 
         } finally {
+            // Log the total time and finish marker *before* unlocking
+            $totalTimeMessage = $this->getTotalTimeMessage(); // Get the formatted time message
+            $status = $completed ? 'Completed' : 'Finished Run (Incomplete)';
+            $this->log('-------------------------------- '.$status.' Sync Job: '.$this->jobID.' ('.$totalTimeMessage.') --------------------------------');
+
             $this->unlockSync();
-            $this->logTotalTime(); // Log the total time at the end
+
         }
     }
 
@@ -490,6 +503,7 @@ class Sync {
     }
 
 
+
     private function set_jobID(){
         $abandoned_job = $this->checkForAbandonedJobs();
 
@@ -582,13 +596,21 @@ class Sync {
         }
     }
 
-    // Calculate and log total time taken for sync process
-    public function logTotalTime() {
-        $elapsedTime = strtotime(current_time('mysql')) - strtotime($this->getStartTime());
-        $minutes = round($elapsedTime / 60, 2);
-        $this->log("## Sync done. Total sync time: {$minutes} minute(s).");
-        $this->log('-------------------------------- End Sync '.$this->jobID.' --------------------------------');
+    /**
+     * Calculates the total execution time and returns a formatted message string.
+     *
+     * @return string Formatted total time message.
+     */
+    private function getTotalTimeMessage() {
+        if ($this->startTime) {
+            $endTime = microtime(true);
+            $executionTime = round($endTime - $this->startTime, 2);
+            return "Total Time: {$executionTime}s";
+        }
+        return "Total Time: N/A";
     }
+
+
 
     // AJAX handler for syncing products price and stocks
     public function syncProductsPriceAndStocksAjax() {
