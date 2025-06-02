@@ -1,132 +1,118 @@
-/**
- * All of the CSS for your public-facing functionality should be
- * included in this file.
- */
-
-.anar-shipments-checkout{
-    flex-direction: row;
-    text-align: right;
-    padding-bottom: 16px;
-    align-items: end !important;
-    justify-content: space-between;
-}
-.anar-shipments-checkout th{
-    margin: 0;
-    padding: 0;
-    width: 100%;
-}
-.anar-shipments-checkout td{
-    margin: 0;
-    padding: 0;
-    width: 100%;
-}
-.anar-shipments-checkout .package{
-    width : 100%;
-    background: #efefef;
-    padding: 12px;
-    border-radius: 0 0 8px 8px;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-}
-
-.anar-shipments-checkout .package span{
-    display:block;
-    width: 25%;
-    background: #fff;
-    padding: 8px;
-    border-radius: 5px;
+.anar-shipments-user-notice-row td {
+    padding: 8px 0;
     text-align: center;
-    font-size: 12px;
 }
-.anar-shipments-checkout .form-row{
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: start;
-    justify-content: start;
-    margin-bottom: 0 !important;
-}
-
-.anar-shipments-checkout {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    border:1px dashed #ccc;
-    border-radius: 8px;
-    padding: 16px;
-    margin: 8px 0;
-}
-.anar-shipments-checkout .anar-delivery-option{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-.anar-shipments-checkout .anar-delivery-option:hover {
-    border-color:#ccc;
-}
-.anar-shipments-checkout .anar-delivery-option label {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0 8px;
-    justify-content: start;
-    align-items: stretch;
-    margin: 0 !important;
-    padding: 8px !important;
-    text-align: right;
-}
-
-
-.anar-shipments-checkout .anar-delivery-option label:hover {
-    cursor:pointer;
-}
-.anar-shipments-checkout .anar-delivery-option input[type="radio"] {
-
-}
-
-.anar-shipments-checkout .anar-delivery-option.selected {
-    border-color: #000;
-}
-.anar-shipments-checkout .anar-delivery-option .label{
-    font-size:14px;
-    font-weight: bold;
-    color:#111111;
-}
-.anar-shipments-checkout .anar-delivery-option .estimated-time{
-    font-size:12px;
-    color:#666;
-    display:block;
-    order: 3;
-}
-.anar-shipments-checkout .anar-delivery-option .price{
-    display:block;
-    background: #eee;
-    color:#333;
-    border-radius:4px;
-    padding:2px 4px;
-    font-size:12px;
-    text-align:center;
-    margin:0;
-}
-
-.anar-delivery-option.free-shipping .price {
-    color: #4CAF50;
-}
-
-.anar-delivery-option.free-shipping .estimated-time {
-    color: #4CAF50;
-    font-weight: bold;
-}
-
-.anar-shipments-user-notice p{
+.anar-shipments-user-notice-row td p {
     border: 1px solid blue;
     border-radius: 8px;
     background: rgba(0, 0, 255, 0.06);
     color: blue;
     padding: 10px;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
+}
+
+
+.anar-shipments-package-row td {
+    padding: 0;
+}
+
+.anar-shipments-package-content {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 8px 0;
+    
+    text-align: right;
+    box-sizing: border-box;
+    width: 100%;
+}
+.anar-shipments-package-content.vertical-view{
+    flex-direction: column;
+}
+
+.anar-shipments-package-content .anar-package-items-list {
+    flex: 1 1 auto;
+}
+
+.anar-shipments-package-content .anar-delivery-options-area {
+    flex: 1 1 auto;
+}
+
+.anar-shipments-package-content .anar-delivery-options-area .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin-bottom: 0 !important;
+}
+
+
+.anar-delivery-options-area .anar-delivery-option {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.anar-delivery-options-area .anar-delivery-option:hover {
+    border-color: #ccc;
+}
+.anar-delivery-options-area .anar-delivery-option label {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    justify-content: flex-start;
+    align-items: stretch;
+    margin: 0 !important;
+    padding: 8px !important;
+    text-align: right;
+    width: 100%;
+}
+.anar-delivery-options-area .anar-delivery-option label:hover {
+    cursor: pointer;
+}
+.anar-delivery-options-area .anar-delivery-option input[type="radio"] {
+}
+.anar-delivery-options-area .anar-delivery-option.selected {
+    border-color: #000;
+}
+.anar-delivery-options-area .anar-delivery-option .label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #111111;
+}
+.anar-delivery-options-area .anar-delivery-option .estimated-time {
+    font-size: 12px;
+    color: #666;
+    display: block;
+    order: 3;
+}
+.anar-delivery-options-area .anar-delivery-option .price {
+    display: block;
+    background: #eee;
+    color: #333;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
     text-align: center;
     margin: 0;
+}
+
+.anar-delivery-options-area .anar-delivery-option.free-shipping .price {
+    color: #4CAF50;
+}
+
+.anar-delivery-options-area .anar-delivery-option.free-shipping .estimated-time {
+    color: #4CAF50;
+    font-weight: bold;
 }
 
 
@@ -162,6 +148,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     margin-right: 4px;
+    white-space: nowrap;
 }
 
 .anar-package-items-list ul.package-data-list{
@@ -249,4 +236,11 @@
     font-size: 12px;
     display: none; /* Initially hidden */
     z-index: 1000; /* Make sure it appears above other elements */
+}
+
+
+@media (max-width: 768px){
+    .anar-shipments-package-content{
+        flex-direction: column;
+    }
 }

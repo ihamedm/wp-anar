@@ -14,19 +14,26 @@ class Import {
      */
     public $logger = null;
     private static $instance = null;
-    private int $stuck_process_timeout = 300; // 5 minutes
-    private int $heartbeat_timeout = 480; // 8 minutes
+    private int $stuck_process_timeout = 180; // 3 minutes
+    private int $heartbeat_timeout = 300; // 5 minutes
     private Image_Downloader $image_downloader;
+    private JobManager $job_manager;
 
 
-    private function __construct()
+    public function __construct()
     {
         $this->logger = new Logger();
+        $this->job_manager = JobManager::get_instance();
 
         //add_action( 'admin_notices', array( $this, 'admin_notice' ) );
         add_action('admin_notices', [$this, 'show_removed_products_notice']);
 
         $this->image_downloader = new Image_Downloader();
+        
+        // Initialize failed products tracking if not exists
+        if (!get_option('awca_failed_products')) {
+            update_option('awca_failed_products', array());
+        }
     }
 
 
@@ -44,14 +51,12 @@ class Import {
 
 
     public function process_the_row() {
-
         if(self::is_create_products_cron_locked()){
             return;
         }
 
         if(self::is_process_a_row_on_progress()){
             $this->log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
-
             return;
         }
 
@@ -62,8 +67,18 @@ class Import {
         // Set a limit slightly below your server's PHP execution time
         $max_execution_time = 240;
         $rows_processed = 0;
+        $batch_size = 5; // Process 5 products at a time
+        $sleep_interval = 1; // Sleep for 1 second between batches
 
-        do{
+        // Get the job ID at the start of the process
+        $job_id = $this->get_jobID();
+        if (!$job_id) {
+            $this->log('No active job ID found. Starting new import process.', 'info');
+        } else {
+            $this->log('Continuing import process with job ID: ' . $job_id, 'info');
+        }
+
+        do {
             try {
                 global $wpdb;
 
@@ -81,15 +96,41 @@ class Import {
                 $this->log("start to create products of row {$row['page']}");
                 self::set_process_a_row_on_progress();
 
+                // Create job only for the first page if no job exists
+                if (!$job_id && $row['page'] == 1) {
+                    // Create new job for first page
+                    $awca_products = maybe_unserialize($row['response']);
+                    if ($awca_products && isset($awca_products->total)) {
+                        $job = $this->job_manager->create_job('anar_api', $awca_products->total);
+                        if ($job) {
+                            $job_id = $job['job_id'];
+                            $this->set_jobID($job_id);
+                            $this->log("Created new import job: {$job_id} with total products: {$awca_products->total}", 'info');
+                        }
+                    }
+                }
+
+                // Process products in smaller batches
                 $this->create_products(array(
                     'row_id' => $row['id'],
                     'row_page_number' => $row['page'],
+                    'batch_size' => $batch_size,
+                    'sleep_interval' => $sleep_interval,
+                    'job_id' => $job_id
                 ));
 
                 $rows_processed++;
 
+                // Sleep between rows to reduce CPU load
+                if ($rows_processed < 10) {
+                    sleep($sleep_interval);
+                }
+
             } catch (\Exception $e) {
                 $this->log('Error processing row: ' . $e->getMessage(), 'error');
+                if ($job_id) {
+                    $this->job_manager->complete_job($job_id, 'failed', $e->getMessage());
+                }
                 self::set_process_row_complete();
                 delete_transient('awca_create_product_row_start_time');
                 break;
@@ -101,10 +142,7 @@ class Import {
             // Check if we're approaching the time limit
             $elapsed_time = microtime(true) - $start_time;
 
-            // Continue as long as we haven't exceeded the time limit and have processed fewer than X rows
-            // You can add a max rows per run limit if needed
-        }while($elapsed_time < $max_execution_time && $rows_processed < 10);
-
+        } while($elapsed_time < $max_execution_time && $rows_processed < 10);
     }
 
 
@@ -115,140 +153,200 @@ class Import {
      * @param array $item The item to process.
      * @return mixed
      */
-    protected function create_products( $item ) {
+    protected function create_products($item) {
         global $wpdb;
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
-        // Start transaction at the beginning of the method
-        $wpdb->query('START TRANSACTION');
-
         try {
-            // Check if the item contains the necessary data
-            if ( ! isset( $item['row_id'] ) ) {
+            if (!isset($item['row_id'])) {
                 $this->log('Invalid row data, skipping.', 'warning');
-                $wpdb->query('ROLLBACK');
                 return false;
             }
 
             if ($item['row_page_number'] == 1) {
-                $start_time = current_time('timestamp'); // Current timestamp
-                update_option( 'awca_cron_create_products_start_time', $start_time);
-                update_option( 'awca_proceed_products', 0);
-                //$this->add_to_awake_list();
+                $start_time = current_time('timestamp');
+                update_option('awca_cron_create_products_start_time', $start_time);
+                update_option('awca_proceed_products', 0);
             }
 
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item['row_id']), ARRAY_A);
 
-            // Retrieve the full row data from the database using the ID
-            $row = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", $item['row_id']), ARRAY_A );
-
-            if ( ! $row ) {
+            if (!$row) {
                 $this->log("No data found for ID {$item['row_id']}, skipping.");
                 return false;
             }
 
-
-            // Extract necessary data from the item
             $page = $row['page'];
-            $import_jobID = $this->set_jobID($page);
+            $job_id = $item['job_id'];
+            
+            if (!$job_id) {
+                $this->log("No job ID provided for page {$page}, skipping job updates.", 'warning');
+            }
+
             $serialized_response = $row['response'];
 
-            $this->log("-------- Background cron Task Start ,jobID {$import_jobID} , page {$page} -------");
+            $this->log("-------- Background cron Task Start, jobID {$job_id}, page {$page} -------", );
 
-            // deserialize the response
             $awca_products = maybe_unserialize($serialized_response);
-            if ($awca_products === false) {
-                $this->log("Failed to deserialize the response for page $page.", 'error');
+            if ($awca_products === false || !isset($awca_products->items)) {
+                $this->log("Failed to deserialize or invalid response for page $page.", 'error');
                 return false;
             }
 
-            if (!isset($awca_products->items)) {
-                $this->log("deserialized data does not contain 'items' for page $page.", 'error');
-                return false;
-            }
-
-            // Get necessary options and mappings
             $attributeMap = get_option('attributeMap');
-            $combinedCategories = get_option('combinedCategories');
             $categoryMap = get_option('categoryMap');
 
-            $created_product_ids = [];
-            $exist_product_ids = [];
+            // Initialize counters for this page
+            $page_created_products = 0;
+            $page_exist_products = 0;
+            $page_failed_products = 0;
             update_option('awca_total_products', $awca_products->total);
             $proceed_products = get_option('awca_proceed_products', 0);
 
-            // Update heartbeat every few products
-            $heartbeat_counter = 0;
+            // Process products in batches
+            $batch_size = isset($item['batch_size']) ? $item['batch_size'] : 5;
+            $sleep_interval = isset($item['sleep_interval']) ? $item['sleep_interval'] : 1;
+            $total_products = count($awca_products->items);
+            $batches = array_chunk($awca_products->items, $batch_size);
 
-            // Loop through products and create them in WooCommerce
-            foreach ($awca_products->items as $product_item) {
-                $prepared_product = ProductManager::product_serializer($product_item);
+            foreach ($batches as $batch_index => $batch) {
+                $batch_created = 0;
+                $batch_exist = 0;
+                $batch_failed = 0;
 
-                $product_creation_data = array(
-                    'name' => $prepared_product['name'],
-                    'regular_price' => $prepared_product['regular_price'],
-                    'description' => $prepared_product['description'],
-                    'image' => $prepared_product['image'],
-                    'categories' => $prepared_product['categories'],
-                    'category' => $prepared_product['category'],
-                    'stock_quantity' => $prepared_product['stock_quantity'],
-                    'gallery_images' => $prepared_product['gallery_images'],
-                    'attributes' => $prepared_product['attributes'],
-                    'variants' => $prepared_product['variants'],
-                    'sku' => $prepared_product['sku'],
-                    'shipments' => $prepared_product['shipments'],
-                    'shipments_ref' => $prepared_product['shipments_ref'],
-                );
-
-                // Create or update the product
-                $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
-
-                $product_id = $product_creation_result['product_id'];
-                if ($product_creation_result['created']) {
-                    $created_product_ids[] = $product_id;
-                    $this->image_downloader->set_product_thumbnail($product_id, $prepared_product['image']);
-                } else {
-                    $exist_product_ids[] = $product_id;
-                }
-
-                $proceed_products++;
-                update_option('awca_proceed_products', $proceed_products);
-
-                $this->log('Product create progress - Created: ' . count($created_product_ids) . ', Exist: ' . count($exist_product_ids));
-
-                // Update heartbeat every 5 products
-                if ($heartbeat_counter % 5 === 0) {
+                foreach ($batch as $product_item) {
                     set_transient('awca_create_product_heartbeat', time(), 10 * MINUTE_IN_SECONDS);
+                    
+                    $wpdb->query('START TRANSACTION');
+                    
+                    try {
+                        $prepared_product = ProductManager::product_serializer($product_item);
+                        $sku = $prepared_product['sku'];
+                        
+                        // Check if this product should be skipped due to previous failures
+                        if ($this->handle_failed_product($sku)) {
+                            $this->log("Skipping product SKU {$sku} due to previous failures", 'warning');
+                            $batch_failed++;
+                            $wpdb->query('ROLLBACK');
+                            continue;
+                        }
+                        
+                        $product_creation_data = array(
+                            'name' => $prepared_product['name'],
+                            'regular_price' => $prepared_product['regular_price'],
+                            'description' => $prepared_product['description'],
+                            'image' => $prepared_product['image'],
+                            'categories' => $prepared_product['categories'],
+                            'category' => $prepared_product['category'],
+                            'stock_quantity' => $prepared_product['stock_quantity'],
+                            'gallery_images' => $prepared_product['gallery_images'],
+                            'attributes' => $prepared_product['attributes'],
+                            'variants' => $prepared_product['variants'],
+                            'sku' => $sku,
+                            'shipments' => $prepared_product['shipments'],
+                            'shipments_ref' => $prepared_product['shipments_ref'],
+                        );
+
+                        $this->log('--------------------------------------------', 'debug');
+                        $this->log('Start to process product sku: ' . $sku, 'debug');
+
+                        $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
+
+                        $product_id = $product_creation_result['product_id'];
+                        if ($product_creation_result['created']) {
+                            $batch_created++;
+                            $this->image_downloader->set_product_thumbnail($product_id, $prepared_product['image']);
+                            $this->log('Created new product - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
+                            // Clear failed status if product was successfully created
+                            $this->clear_failed_product($sku);
+                        } else {
+                            $batch_exist++;
+                            $this->log('Product already exists - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
+                            // Clear failed status if product exists
+                            $this->clear_failed_product($sku);
+                        }
+
+                        $proceed_products++;
+                        update_option('awca_proceed_products', $proceed_products);
+
+                        $wpdb->query('COMMIT');
+                        
+                        // Clear object from memory
+                        unset($prepared_product);
+                        unset($product_creation_data);
+                        
+                    } catch (\Exception $e) {
+                        $wpdb->query('ROLLBACK');
+                        $this->log('Error creating product: ' . $e->getMessage() . ' - SKU: ' . $prepared_product['sku'], 'error');
+                        $batch_failed++;
+                        // Track the failed product
+                        $this->handle_failed_product($prepared_product['sku']);
+                        continue;
+                    }
                 }
-                $heartbeat_counter++;
+
+                // Update page counters
+                $page_created_products += $batch_created;
+                $page_exist_products += $batch_exist;
+                $page_failed_products += $batch_failed;
+
+                // Update job progress after each batch
+                if ($job_id) {
+                    $this->log("Updating job {$job_id} progress - Processed: {$proceed_products}, Created: {$page_created_products}, " . 
+                        "Existing: {$page_exist_products}, Failed: {$page_failed_products}", 'debug');
+                    
+                    $this->job_manager->update_job_progress(
+                        $job_id,
+                        $proceed_products,
+                        $page_created_products,
+                        $page_exist_products,
+                        $page_failed_products
+                    );
+                }
+
+                // Sleep between batches to reduce CPU load
+                if ($batch_index < count($batches) - 1) {
+                    sleep($sleep_interval);
+                }
+
+                // Force garbage collection after each batch
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
             }
 
             // Mark the page as processed
-            $update_result = $wpdb->update(
+            $wpdb->update(
                 $table_name,
                 array('processed' => 1),
                 array('id' => $item['row_id']),
                 array('%d'),
                 array('%d')
             );
-
-            if ($update_result === false) {
-                throw new \Exception("Failed to update row status for page {$page}");
-            }
-
-            // If we got here, commit the transaction
-            $wpdb->query('COMMIT');
-            $this->log("Page $page processed and marked as complete.");
-
-            // Continue processing
+            
+            // Clear process-related transients
+            delete_transient('awca_create_product_row_on_progress');
+            delete_transient('awca_create_product_row_start_time');
+            delete_transient('awca_create_product_heartbeat');
+            
+            $this->log("Page $page processed and marked as complete. Total products created: {$page_created_products}, " . 
+                "Total existing: {$page_exist_products}, Total failed: {$page_failed_products}");
             return true;
 
-        }catch (\Exception $e) {
-            // If anything goes wrong, roll back the transaction
-            $wpdb->query('ROLLBACK');
+        } catch (\Exception $e) {
             $this->log("Error processing page {$page}: " . $e->getMessage(), 'error');
+            
+            // Update job status if there's an error
+            if ($job_id) {
+                $this->job_manager->complete_job($job_id, 'failed', $e->getMessage());
+            }
+            
+            delete_transient('awca_create_product_row_on_progress');
+            delete_transient('awca_create_product_row_start_time');
+            delete_transient('awca_create_product_heartbeat');
+            
             return false;
         }
-
     }
 
 
@@ -265,36 +363,6 @@ class Import {
         } else {
             $this->log('set status completed in Anar done successfully. $response:' . print_r($response['body'], true));
         }
-    }
-
-    private function add_to_awake_list(){
-        // Cloudflare Worker URL
-        $worker_url = 'https://awake.anarwp.workers.dev/';
-
-        $args = array(
-            'headers' => array(
-                'x-url' => site_url('wp-cron.php'),
-                'Content-Type' => 'application/json',
-            ),
-            'method' => 'POST',
-        );
-
-        // Make the HTTP request to the Cloudflare Worker
-        $response = wp_remote_post($worker_url, $args);
-
-        // Handle the response
-        if (is_wp_error($response)) {
-            // There was an error
-            $error_message = $response->get_error_message();
-            error_log("Cloudflare Worker API call failed: $error_message");
-            return false; // Or handle the error as needed
-        }
-
-        // Get the body of the response
-        $response_body = wp_remote_retrieve_body($response);
-        $this->log('add_to_awake_list:' . json_decode($response_body, true));
-
-        return false;
     }
 
 
@@ -366,11 +434,16 @@ class Import {
         $this->lock_create_products_cron();
 
         $import_jobID = $this->get_jobID();
+        if ($import_jobID) {
+            // Complete the job
+            $this->job_manager->complete_job($import_jobID, 'completed');
+        }
+
         ProductManager::handle_removed_products_from_anar('import', $import_jobID);
 
         delete_option('awca_proceed_products');
-        delete_transient('awca_cron_create_products_job_id');
-        delete_option('awca_product_save_lock'); // open the lock of getting product from anar (Stepper)
+        delete_transient('anar_import_products_job_id');
+        delete_option('awca_product_save_lock');
         $this->log("------------------------ completed import job {$import_jobID} ----------------------");
         $this->log('Background Complete method : All products have been processed.');
 
@@ -386,7 +459,7 @@ class Import {
             $seconds = $total_time % 60;
             delete_option('awca_cron_create_products_start_time');
 
-            $this->log("Background process of Product creation completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
+            $this->log("Import products completed. Total time taken: {$hours} hours, {$minutes} minutes, {$seconds} seconds.");
         }
 
     }
@@ -395,7 +468,7 @@ class Import {
     public function set_jobID($page){
         if($page == 1){
             $new_jobID = uniqid('awca_job_');
-            set_transient('awca_cron_create_products_job_id', $new_jobID, 7200);
+            set_transient('anar_import_products_job_id', $new_jobID, 7200);
 
             return $new_jobID;
         }
@@ -403,7 +476,7 @@ class Import {
     }
 
     public function get_jobID(){
-        return get_transient('awca_cron_create_products_job_id');
+        return get_transient('anar_import_products_job_id');
     }
 
 
@@ -420,7 +493,6 @@ class Import {
 
     public static function unlock_create_products_cron(){
         update_option('awca_create_product_cron_lock', 'unlock');
-        awca_log('create products unlocked [ start creating products ].');
         CronJobs::get_instance()->reschedule_events();
     }
 
@@ -504,6 +576,49 @@ class Import {
             'processed' => $proceed_products,
             'estimated_minutes' => $estimate_minutes
         ];
+    }
+
+    /**
+     * Track failed product and determine if it should be skipped
+     * 
+     * @param string $sku Product SKU
+     * @param int $max_retries Maximum number of retries before skipping
+     * @return bool True if product should be skipped, false otherwise
+     */
+    private function handle_failed_product($sku, $max_retries = 3) {
+        $failed_products = get_option('awca_failed_products', array());
+        
+        if (!isset($failed_products[$sku])) {
+            $failed_products[$sku] = array(
+                'attempts' => 1,
+                'last_attempt' => time()
+            );
+        } else {
+            $failed_products[$sku]['attempts']++;
+            $failed_products[$sku]['last_attempt'] = time();
+        }
+        
+        update_option('awca_failed_products', $failed_products);
+        
+        if ($failed_products[$sku]['attempts'] >= $max_retries) {
+            $this->log("Product SKU {$sku} has failed {$max_retries} times. Skipping permanently.", 'warning');
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Clear failed product tracking
+     * 
+     * @param string $sku Product SKU
+     */
+    private function clear_failed_product($sku) {
+        $failed_products = get_option('awca_failed_products', array());
+        if (isset($failed_products[$sku])) {
+            unset($failed_products[$sku]);
+            update_option('awca_failed_products', $failed_products);
+        }
     }
 
 }

@@ -12,13 +12,14 @@ class Db{
         awca_log('New DB Version: ' . ANAR_DB_VERSION);
 
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
+        $jobs_table_name = $wpdb->prefix . 'anar_jobs';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // Check if table exists
+        // Check if main table exists
         $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
 
         if (!$table_exists) {
-            // Create table using direct SQL
+            // Create main table using direct SQL
             $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             response longtext NOT NULL,
@@ -37,6 +38,45 @@ class Db{
                 update_option('awca_db_version', ANAR_DB_VERSION);
             } else {
                 awca_log('Failed to create table ' . $table_name . '. Error: ' . $wpdb->last_error);
+            }
+        }
+
+        // Check if jobs table exists
+        $jobs_table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $jobs_table_name)) === $jobs_table_name;
+
+        if (!$jobs_table_exists) {
+            // Create jobs table
+            $sql = "CREATE TABLE IF NOT EXISTS $jobs_table_name (
+                id bigint(20) NOT NULL AUTO_INCREMENT,
+                job_id varchar(50) NOT NULL,
+                status varchar(20) NOT NULL DEFAULT 'pending',
+                source varchar(100) NOT NULL,
+                total_products int(11) NOT NULL DEFAULT 0,
+                processed_products int(11) NOT NULL DEFAULT 0,
+                created_products int(11) NOT NULL DEFAULT 0,
+                existing_products int(11) NOT NULL DEFAULT 0,
+                failed_products int(11) NOT NULL DEFAULT 0,
+                start_time datetime DEFAULT NULL,
+                end_time datetime DEFAULT NULL,
+                last_heartbeat datetime DEFAULT NULL,
+                error_log text DEFAULT NULL,
+                retry_count int(11) NOT NULL DEFAULT 0,
+                created_at datetime DEFAULT CURRENT_TIMESTAMP,
+                updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY  (id),
+                UNIQUE KEY job_id (job_id),
+                KEY status (status),
+                KEY source (source),
+                KEY created_at (created_at)
+            ) $charset_collate;";
+
+            // Execute the SQL directly
+            $result = $wpdb->query($sql);
+
+            if ($result !== false) {
+                awca_log('Table ' . $jobs_table_name . ' created successfully.');
+            } else {
+                awca_log('Failed to create table ' . $jobs_table_name . '. Error: ' . $wpdb->last_error);
             }
         } else {
             // Table exists, check if we need to update schema

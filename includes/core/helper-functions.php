@@ -165,7 +165,7 @@ function awca_translator($string){
     if ($string === 'bike') {
         return 'پیک موتوری';
     }elseif($string === 'bikeCOD'){
-        return 'پرداخت کرایه در مقصد';
+        return 'پیک موتوری (کرایه در مقصد)';
     } elseif ($string === 'post') {
         return 'پست';
     } elseif ($string === 'express') {
@@ -174,6 +174,8 @@ function awca_translator($string){
         return 'afterFare';
     } elseif ($string === 'tipax') {
         return 'تیپاکس';
+    } elseif ($string === 'tipaxCOD') {
+        return 'تیپاکس (کرایه در مقصد)';
     } elseif ($string === 'chapar') {
         return 'چاپار';
     } elseif ($string === 'unpaid') {

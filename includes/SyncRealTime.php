@@ -5,6 +5,7 @@ namespace Anar;
 use Anar\Core\Logger;
 use Anar\Sync;
 use Anar\ApiDataHandler;
+use Anar\Wizard\ProductManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
@@ -164,6 +165,7 @@ class SyncRealTime {
             }
         } else {
             $this->log("Failed to fetch fresh data for Product ID {$product_id} (SKU: {$anar_sku}).", 'warning'); // Keep warning for fetch failure
+            ProductManager::set_product_as_deprecated($product_id, 'realTimeSync', 'realTimeSync');
             return 'fetch_failed';
         }
     }
@@ -198,11 +200,11 @@ class SyncRealTime {
                 wp_send_json_success(['message' => 'Product checked, no update needed.', 'status' => $status]);
                 break;
             case 'fetch_failed':
-                wp_send_json_error(['message' => 'Failed to fetch fresh product data from API.'], 502);
+                wp_send_json_success(['message' => 'Failed to fetch fresh product data from API. set product as out-of-stock'], 404);
                 break;
             case 'update_failed':
             default:
-                wp_send_json_error(['message' => 'Failed to apply update after fetching data.'], 500);
+                wp_send_json_success(['message' => 'Failed to apply update after fetching data.'], 500);
                 break;
         }
 

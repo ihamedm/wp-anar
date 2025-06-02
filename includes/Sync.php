@@ -129,7 +129,7 @@ class Sync {
                 $this->log("Sync job {$this->jobID} completed processing pages.");
                 // After processing all pages in a full sync, check for removed products
                 if ($this->fullSync) {
-                    ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
+                    //ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
                 }
                 $this->setLastSyncTime();
                 $this->complete_full_sync_job(); // Mark the full sync job as complete if applicable
@@ -153,8 +153,11 @@ class Sync {
         $start_time = time();
         $max_execution_time = $this->max_execution_time;
         $syncCompleted = false;
+        
+        // Increase batch size for full sync to reduce API calls
+        $batch_size = $this->fullSync ? 50 : $this->limit;
+        
         while (true) {
-
             // Check if we're approaching the execution time limit
             if (time() - $start_time > $max_execution_time) {
                 if ($this->fullSync) {
@@ -179,7 +182,11 @@ class Sync {
                 }
             }
 
-            $api_args = array('page' => $this->page, 'limit' => $this->limit, 'since' => $this->updatedSince * -1);
+            $api_args = array(
+                'page' => $this->page, 
+                'limit' => $batch_size, 
+                'since' => $this->updatedSince * -1
+            );
 
             if($this->fullSync)
                 unset($api_args['since']);
@@ -200,11 +207,25 @@ class Sync {
                 $this->log(sprintf('## Find %s products for update.' , $awcaProducts->total));
             }
 
-            $this->processProducts($awcaProducts->items);
+            // Process products in smaller chunks to avoid memory issues
+            $chunk_size = 50;
+            $items = array_chunk($awcaProducts->items, $chunk_size);
+            
+            foreach ($items as $chunk) {
+                $this->processProducts($chunk);
+                
+                // Check execution time after each chunk
+                if (time() - $start_time > $max_execution_time) {
+                    if ($this->fullSync) {
+                        $this->log("Approaching execution time limit after processing chunk, saving progress.", 'warning');
+                        break 2;
+                    }
+                }
+            }
 
             $this->syncedCounter += count($awcaProducts->items);
 
-            if (count($awcaProducts->items) < $this->limit) {
+            if (count($awcaProducts->items) < $batch_size) {
                 $this->log(sprintf('##items of this page is %s , its last page.' , count($awcaProducts->items)));
                 $syncCompleted = true;
                 break;
@@ -215,39 +236,76 @@ class Sync {
             if($this->fullSync){
                 set_transient($this->jobID .'_paged', $this->page, 3600);
             }
-
         }
 
         return $syncCompleted;
     }
 
     public function processProducts($products) {
-
         $processed_products_ids = [];
+        $batch_meta_updates = [];
+        $current_time = current_time('mysql');
 
         foreach ($products as $updateProduct) {
+            try {
+                if (isset($updateProduct->attributes) && !empty($updateProduct->attributes)) {
+                    $updated_wc_id = $this->processVariableProduct($updateProduct);
+                    $processed_products_ids[] = 'v#' . $updated_wc_id;
+                } else {
+                    $updated_wc_id = $this->processSimpleProduct($updateProduct);
+                    $processed_products_ids[] = '#' . $updated_wc_id;
+                }
 
+                // Prepare batch meta updates
+                if ($updated_wc_id && is_numeric($updated_wc_id)) {
+                    $batch_meta_updates[] = array(
+                        'post_id' => $updated_wc_id,
+                        'meta_key' => '_anar_last_sync_time',
+                        'meta_value' => $current_time
+                    );
 
-            if (isset($updateProduct->attributes) && !empty($updateProduct->attributes)) {
-                $updated_wc_id = $this->processVariableProduct($updateProduct);
-                $processed_products_ids [] = 'v#'.$updated_wc_id;
-            } else {
-                $updated_wc_id = $this->processSimpleProduct($updateProduct);
-                $processed_products_ids [] = '#'.$updated_wc_id;
+                    if ($this->fullSync) {
+                        $batch_meta_updates[] = array(
+                            'post_id' => $updated_wc_id,
+                            'meta_key' => '_anar_sync_job_id',
+                            'meta_value' => $this->jobID
+                        );
+                    }
+
+                    $batch_meta_updates[] = array(
+                        'post_id' => $updated_wc_id,
+                        'meta_key' => '_anar_pending',
+                        'meta_value' => '',
+                        'delete' => true
+                    );
+                }
+
+                $this->log(sprintf('#%s', $updated_wc_id), 'debug');
+
+            } catch (\Exception $e) {
+                $this->log("Error processing product: " . $e->getMessage(), 'error');
+                continue;
             }
+        }
 
-
-            $this->log(sprintf('#%s' , $updated_wc_id), 'debug');
-
+        // Batch update meta values
+        if (!empty($batch_meta_updates)) {
+            foreach ($batch_meta_updates as $update) {
+                if (isset($update['delete']) && $update['delete']) {
+                    delete_post_meta($update['post_id'], $update['meta_key']);
+                } else {
+                    update_post_meta($update['post_id'], $update['meta_key'], $update['meta_value']);
+                }
+            }
         }
 
         $this->log(sprintf("%s - Sync %s Products from page %s",
             $this->jobID,
             count($processed_products_ids),
-            $this->page,
-            )
-        );
+            $this->page
+        ));
     }
+
 
     public function processSimpleProduct($updateProduct) {
         try {
@@ -275,8 +333,11 @@ class Sync {
                     }
 
                     $this->updateProductStockAndPrice($product, $updateProduct, $variant);
+
                     $this->updateProductMetadata($productId, $variant);
+                    $this->updateProductVariantMetaData($productId, $variant);
                     $this->updateProductShipments($productId, $updateProduct);
+
 
                     return $productId;
                 } catch (\Exception $e) {
@@ -291,7 +352,6 @@ class Sync {
             return "Error processing simple product: " . $e->getMessage();
         }
     }
-
 
 
     public function processVariableProduct($updateProduct) {
@@ -349,6 +409,7 @@ class Sync {
 
                         $this->updateProductMetadata($parentId, $variant);
                         $this->updateProductShipments($parentId, $updateProduct);
+                        $this->updateProductVariantMetaData($wp_variation_productId, $variant);
                     }
                 } catch (\Exception $e) {
                     $this->log("Error processing variant {$anar_variation_id}: " . $e->getMessage(), 'debug');
@@ -385,70 +446,69 @@ class Sync {
      * @return void
      */
     public function updateProductStockAndPrice($product, $updateProduct, $variant) {
-
-        if ($product) {
-            // --- Stock Update ---
-            $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
-            $product->set_stock_quantity($variantStock);
-            // Set stock status based on quantity (optional but good practice)
-            $product->set_manage_stock(true);
-            if ($variantStock > 0) {
-                $product->set_stock_status('instock');
-            } else {
-                $product->set_stock_status('outofstock');
-            }
-
-            // --- Price Update (if enabled) ---
-            if (get_option('anar_conf_feat__optional_price_sync', 'no') == 'no') {
-                // Get potential regular and sale prices from API variant data
-                $apiPrice = $variant->price ?? null; // Potential Sale Price
-                $apiLabelPrice = $variant->labelPrice ?? null; // Potential Regular Price
-
-                // Convert prices to WooCommerce currency (handle nulls gracefully)
-                $wcPrice = ($apiPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiPrice) : null;
-                $wcLabelPrice = ($apiLabelPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiLabelPrice) : null;
-
-                $finalRegularPrice = '';
-                $finalSalePrice = '';
-                $finalActivePrice = '';
-
-                // Determine prices based on API values provided
-                if ($wcLabelPrice !== null && $wcLabelPrice > 0 && $wcPrice !== null && $wcLabelPrice > $wcPrice) {
-                    // Scenario 1: Both labelPrice and price exist, and labelPrice > price.
-                    // Treat labelPrice as Regular Price, price as Sale Price.
-                    $finalRegularPrice = $wcLabelPrice;
-                    $finalSalePrice = $wcPrice;
-                    $finalActivePrice = $wcPrice; // Active price is the sale price
-                } elseif ($wcPrice !== null) {
-                    // Scenario 2: Only price exists (or labelPrice is not valid for a sale scenario).
-                    // Treat price as the Regular Price, no Sale Price.
-                    $finalRegularPrice = $wcPrice;
-                    $finalSalePrice = ''; // Ensure sale price is empty
-                    $finalActivePrice = $wcPrice; // Active price is the regular price
-                } else {
-                     // Scenario 3: Neither price is valid (or both are 0/null). Set empty prices.
-                     // This might happen if a product is temporarily unavailable or has no price set in Anar.
-                     $finalRegularPrice = '';
-                     $finalSalePrice = '';
-                     $finalActivePrice = '';
-                     // Optionally log a warning here if prices are expected but missing/invalid
-                     $this->log("Warning: Product ID {$product->get_id()} received invalid/missing price data from Anar (Price: {$apiPrice}, LabelPrice: {$apiLabelPrice}). Setting empty prices.", 'warning');
-                }
-
-                // Set WooCommerce product prices
-                $product->set_regular_price($finalRegularPrice);
-                $product->set_sale_price($finalSalePrice);
-                $product->set_price($finalActivePrice); // Set the active price correctly
-            }
-
-            // --- Save Product ---
-            $product->save();
-            // Log successful update
-            // $this->log("Updated stock/price for Product ID {$product->get_id()}.", 'debug');
-
+        // Update stock
+        $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
+        $product->set_stock_quantity($variantStock);
+        // Set stock status based on quantity (optional but good practice)
+        $product->set_manage_stock(true);
+        if ($variantStock > 0) {
+            $product->set_stock_status('instock');
         } else {
-             $this->log("Error: Attempted to update stock/price for a non-existent product object.", 'error');
+            $product->set_stock_status('outofstock');
         }
+
+        // Get potential regular and sale prices from API variant data
+        $apiPrice = $variant->price ?? null; // Potential Sale Price
+        $apiLabelPrice = $variant->labelPrice ?? null; // Potential Regular Price
+
+        // Convert prices to WooCommerce currency (handle nulls gracefully)
+        $wcPrice = ($apiPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiPrice) : null;
+        $wcLabelPrice = ($apiLabelPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiLabelPrice) : null;
+
+        // Determine prices based on API values provided
+        if ($wcLabelPrice !== null && $wcLabelPrice > 0 && $wcPrice !== null && $wcLabelPrice > $wcPrice) {
+            // Scenario 1: Both labelPrice and price exist, and labelPrice > price.
+            // Treat labelPrice as Regular Price, price as Sale Price.
+            $finalRegularPrice = $wcLabelPrice;
+            $finalSalePrice = $wcPrice;
+            $finalActivePrice = $wcPrice; // Active price is the sale price
+        } elseif ($wcPrice !== null) {
+            // Scenario 2: Only price exists (or labelPrice is not valid for a sale scenario).
+            // Treat price as the Regular Price, no Sale Price.
+            $finalRegularPrice = $wcPrice;
+            $finalSalePrice = ''; // Ensure sale price is empty
+            $finalActivePrice = $wcPrice; // Active price is the regular price
+        } else {
+             // Scenario 3: Neither price is valid (or both are 0/null). Set empty prices.
+             // This might happen if a product is temporarily unavailable or has no price set in Anar.
+             $finalRegularPrice = '';
+             $finalSalePrice = '';
+             $finalActivePrice = '';
+             // Optionally log a warning here if prices are expected but missing/invalid
+             $this->log("Warning: Product ID {$product->get_id()} received invalid/missing price data from Anar (Price: {$apiPrice}, LabelPrice: {$apiLabelPrice}). Setting empty prices.", 'warning');
+        }
+
+        // Set WooCommerce product prices
+        $product->set_regular_price($finalRegularPrice);
+        $product->set_sale_price($finalSalePrice);
+        $product->set_price($finalActivePrice); // Set the active price correctly
+
+        // --- Save Product ---
+        $product->save();
+        
+        wp_cache_delete($product->get_id(), 'post_meta');
+
+        // Clear all relevant caches
+        wp_cache_delete($product->get_id(), 'posts');
+        wp_cache_delete($product->get_id(), 'product');
+        
+        // Clear WooCommerce specific caches
+        if (function_exists('wc_delete_product_transients')) {
+            wc_delete_product_transients($product->get_id());
+        }
+        
+        // Clear object cache for the product
+        clean_post_cache($product->get_id());
     }
 
     /**
@@ -458,21 +518,35 @@ class Sync {
      */
     public function updateProductMetadata($wcProductParentId, $variant) {
         update_post_meta($wcProductParentId, '_anar_last_sync_time', current_time('mysql'));
-        update_post_meta($wcProductParentId, '_anar_prices',
-            [
-                'price' => $variant->price,
-                'labelPrice' => $variant->labelPrice,
-                'priceForResell' => $variant->priceForResell,
-                'resellerProfit' => $variant->resellerProfit,
-                'sellerDiscount' => $variant->sellerDiscount,
-            ]
-        );
 
         if ($this->fullSync) {
             update_post_meta($wcProductParentId, '_anar_sync_job_id', $this->jobID);
         }
 
         delete_post_meta($wcProductParentId, '_anar_pending');
+    }
+
+
+    /**
+     *
+     * used for both simple product and variant of variable product
+     *
+     * @param $wcProductVariantId
+     * @param $variant
+     * @return void
+     */
+    public function updateProductVariantMetaData($wcProductVariantId, $variant) {
+        update_post_meta($wcProductVariantId, '_anar_prices',
+            [
+                'price' => $variant->price,
+                'labelPrice' => $variant->labelPrice,
+                'priceForResell' => $variant->priceForResell,
+                'resellerProfit' => $variant->resellerProfit,
+                'sellerDiscount' => $variant->sellerDiscount,
+                'minPriceForResell' => $variant->minPriceForResell,
+                'maxPriceForResell' => $variant->maxPriceForResell,
+            ]
+        );
     }
 
     public function updateProductShipments($wcProductParentId, $anarProduct)
@@ -501,7 +575,6 @@ class Sync {
         }
         return false;
     }
-
 
 
     private function set_jobID(){

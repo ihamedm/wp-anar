@@ -1,8 +1,31 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
-## [0.3.9] - 1404/02/
+## [0.3.11] - 1404/03/12
+- feat : slow Import method for low resources hosts
+- feat : option to switch between slow/fast import
+- feat : option to control how many products must update on each batch 
+- feat : check some php requirements to have better compatibility on low resource hosts
+- feat : new sync strategy to decrease resource usage: sync existence products every 24 hours + sync realtime per user product views
+- feat : monitor and free up resources during import and sync
+- feat : add jobManager methods to better control import process 
+- fix : better strategy for deprecate and pending products
+- fix : some shipping names
+- fix : change import strategy to prevent stuck on low resource hosts
+- fix : handle removed products on realtime sync
+- fix : remove some dev logs from public js
+- fix : remove unneeded data on anar orders details on WordPress order edit screen
+- fix : log file links have problem on system status
+- remove : full and partial sync completely disable to free up resources
 
+
+## [0.3.10] - 1404/02/29
+- fix : improve styles of anar shipping methods on checkout
+- fix : improve some anar shipment names
+- fix : remove some dev js logs
+
+## [0.3.9] - 1404/02/16
+- fix : issue with orders state name on some websites
 
 ## [0.3.8] - 1404/02/10
 - fix : issue about state name send to anar orders when PWS plugin installed

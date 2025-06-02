@@ -3,6 +3,7 @@
 namespace Anar\Init;
 
 use Anar\core\CronJobs;
+use Anar\core\SyncOutdated;
 
 /**
  * Fired during plugin deactivation
@@ -42,6 +43,9 @@ class Uninstall
         self::remove_options();
         self::clear_scheduled();
 
+        // Unschedule outdated sync cron
+        $sync_outdated = \Anar\SyncOutdated::get_instance();
+        $sync_outdated->unschedule_cron();
     }
 
 
@@ -63,12 +67,13 @@ class Uninstall
         delete_option('anar_active_full_sync_jobID');
         delete_option('awca_cron_create_products_start_time');
         delete_option('awca_proceed_products');
-
+        delete_option('anar_last_sync_outdated_time');
 
         delete_transient('awca_create_product_row_on_progress');
         delete_transient('awca_sync_all_products_lock');
         delete_transient('awca_create_product_row_start_time');
         delete_transient('awca_create_product_heartbeat');
+        delete_transient('awca_sync_outdated_lock');
     }
 
 

@@ -2,21 +2,27 @@
 // Get saved options
 
 $activate_anar_order_feat = get_option('anar_conf_feat__create_orders', 'yes');
+$activate_anar_slow_import_feat = get_option('anar_conf_feat__slow_import', 'no');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
 $anar_full_sync_schedule = get_option('anar_full_sync_schedule', 5);
+$anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 30);
 
 // Handle form submission
 if (isset($_POST['save_anar_settings'])) {
     // Sanitize and save the values
     $activate_anar_order_feat = $_POST['anar_conf_feat__create_orders'] ?? 'yes';
+    $activate_anar_slow_import_feat = $_POST['anar_conf_feat__slow_import'] ?? 'no';
     $anar_log_level = $_POST['anar_log_level'] ?? 'info';
     $anar_full_sync_schedule = intval($_POST['anar_full_sync_schedule']);
+    $anar_sync_outdated_batch_size = intval($_POST['anar_sync_outdated_batch_size']);
 
 
+    update_option('anar_conf_feat__slow_import', $activate_anar_slow_import_feat);
     update_option('anar_conf_feat__create_orders', $activate_anar_order_feat);
     update_option('anar_log_level', $anar_log_level);
     update_option('anar_full_sync_schedule', $anar_full_sync_schedule);
+    update_option('anar_sync_outdated_batch_size', $anar_sync_outdated_batch_size);
 
     // Success message
     echo '<div class="updated"><p>تنظیمات ذخیره شد.</p></div>';
@@ -66,6 +72,24 @@ if(isset($_GET['anar_optional_price_sync'])){
                 </label>
                 <p class="description">در صورت فعال سازی یک دکمه ثبت سفارش در انار در صفحه ویرایش سفارش اضافه خواهد شد که بطور اتوماتیک یک سفارش در انار براش شما ثبت خواهد کرد.</p>
             </td>
+        </tr>
+
+        <tr>
+            <th><label for="anar_conf_feat__slow_import">فعالسازی همگام سازی آهسته؟</label></th>
+            <td>
+                <label>
+                    <select name="anar_conf_feat__slow_import" id="anar_conf_feat__slow_import">
+                        <option value="no" <?php selected($activate_anar_slow_import_feat, 'no'); ?>>خیر</option>
+                        <option value="yes" <?php selected($activate_anar_slow_import_feat, 'yes'); ?>>بله</option>
+                    </select>
+                </label>
+                <p class="description">این گزینه برای هاست هایی که منابع کمتری دارند مناسب است. در هر دقیقه فقط ۳۰ محصول ساخته می شود .</p>
+            </td>
+        </tr>
+
+        <tr>
+            <th><label for="anar_sync_outdated_batch_size">تعداد محصول در هر جاب</label></th>
+            <td><input type="number" name="anar_sync_outdated_batch_size" id="anar_sync_outdated_batch_size" value="<?php echo esc_attr($anar_sync_outdated_batch_size); ?>" class="small-text" min="5"> محصول</td>
         </tr>
 
         <tr>

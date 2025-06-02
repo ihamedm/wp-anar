@@ -1,13 +1,10 @@
 <?php
 namespace Anar\Core;
 
-use ActionScheduler;
 use Anar\Import;
-use Anar\Notifications;
-use Anar\Payments;
+use Anar\ImportSlow;
 use Anar\ProductData;
 use Anar\Sync;
-use Anar\SyncOutdated;
 use Anar\SyncTools;
 
 class CronJobs {
@@ -20,7 +17,6 @@ class CronJobs {
         }
         return self::$instance;
     }
-
 
     private function __construct() {
         // Only run schedule_events once
@@ -36,29 +32,19 @@ class CronJobs {
         // create custom interval that not exist by default on cron_schedules
         add_filter('cron_schedules', [$this, 'add_custom_cron_interval']);
 
+        // Get the appropriate import class based on the option
+        $import_class = $this->get_import_class();
 
         if (!wp_next_scheduled('awca_create_products')
-            && !Import::is_create_products_cron_locked()
+            && !$import_class::is_create_products_cron_locked()
         ) {
             wp_schedule_event(time(), 'every_one_min', 'awca_create_products');
         }
-
-
-        if (!wp_next_scheduled('awca_sync_products_cron')) {
-            wp_schedule_event(time(), 'every_two_min', 'awca_sync_products_cron');
-        }
-
-
-        if (!wp_next_scheduled('awca_full_sync_products_cron')) {
-            wp_schedule_event(time(), 'every_two_min', 'awca_full_sync_products_cron');
-        }
-
 
         // Schedule the unread notifications count event
         if (!wp_next_scheduled('awca_fetch_updated_data_from_anar_cron')) {
             wp_schedule_event(time(), 'hourly', 'awca_fetch_updated_data_from_anar_cron');
         }
-
 
         // Schedule the log cleanup job to run daily
         if (!wp_next_scheduled('anar_daily_jobs')) {
@@ -72,35 +58,17 @@ class CronJobs {
         if (!wp_next_scheduled('anar_cleanup_action_scheduler')) {
             wp_schedule_event(time(), 'hourly', 'anar_cleanup_action_scheduler');
         }
-
-        if (!wp_next_scheduled('anar_sync_outdated')) {
-            wp_schedule_event(time(), 'daily', 'anar_sync_outdated');
-        }
-
-
     }
 
     public function assign_jobs() {
-
         add_action('awca_create_products', [$this, 'create_products_job']);
-
-        add_action('awca_sync_products_cron', [$this, 'sync_updated_products_job']);
-
-        add_action('awca_full_sync_products_cron', [$this, 'sync_all_products_job']);
-
-        // Assign the action for counting unread notifications
         add_action('awca_fetch_updated_data_from_anar_cron', [$this, 'fetch_updated_data_from_anar_job']);
-
-        // Assign the daily log cleanup job
         add_action('anar_daily_jobs', [$this, 'anar_daily_jobs']);
         add_action('anar_cleanup_logs', [$this, 'cleanup_logs']);
         add_action('anar_cleanup_action_scheduler', [$this, 'cleanup_action_scheduler']);
-        add_action('anar_sync_outdated', [$this, 'sync_outdated']);
-
     }
 
     public function add_custom_cron_interval($schedules){
-
         $schedules['every_one_min'] = array(
             'interval'  => 60,
             'display'   => 'هر یک دقیقه'
@@ -116,13 +84,26 @@ class CronJobs {
             'display'   => 'هر سه دقیقه'
         );
 
+        $schedules['every_five_min'] = array(
+            'interval'  => 300,
+            'display'   => 'هر ۵ دقیقه'
+        );
 
         return $schedules;
     }
 
+    /**
+     * Get the appropriate import class based on the slow import option
+     * 
+     * @return string The class name to use (Import or ImportSlow)
+     */
+    private function get_import_class() {
+        return get_option('anar_conf_feat__slow_import', 'no') == 'yes' ? 'Anar\ImportSlow' : 'Anar\Import';
+    }
 
     public function create_products_job(){
-        $cron_product_generator = Import::get_instance();
+        $import_class = $this->get_import_class();
+        $cron_product_generator = $import_class::get_instance();
 
         // First check if there's a stuck process
         $cron_product_generator->check_for_stuck_processes();
@@ -131,33 +112,9 @@ class CronJobs {
         $cron_product_generator->process_the_row();
     }
 
-
-    public function sync_updated_products_job() {
-
-        $sync = new Sync();
-        $sync->syncProducts();
-
-    }
-
-    public function sync_all_products_job() {
-
-        $sync = new Sync();
-        $sync->fullSync = true;
-        $sync->syncProducts();
-
-        $sync_tools = SyncTools::get_instance();
-        $sync_tools->get_api_total_products_number();
-
-    }
-
-
-
     public function fetch_updated_data_from_anar_job() {
-        // (new Notifications)->count_unread_notifications();
         (new ProductData())->count_anar_products(true);
     }
-
-
 
     public function cleanup_logs(){
         $logger = new Logger();
@@ -174,26 +131,17 @@ class CronJobs {
         $usage_data->send();
     }
 
-    public function sync_outdated(){
-        $sync_outdated = SyncOutdated::get_instance();
-        $sync_outdated->process_outdated_products_job();
-    }
-
-
-
     public function reschedule_events() {
         awca_log('reschedule cron jobs');
         $this->deactivate();
         $this->schedule_events();
     }
 
-
-
     public function deactivate() {
         wp_clear_scheduled_hook('awca_sync_products_cron');
         wp_clear_scheduled_hook('awca_fetch_updated_data_from_anar_cron');
         wp_clear_scheduled_hook('awca_create_products');
+        wp_clear_scheduled_hook('awca_full_sync_products_cron');
+        wp_clear_scheduled_hook('anar_sync_outdated');
     }
-
-
 }

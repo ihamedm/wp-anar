@@ -87,7 +87,7 @@ jQuery(document).ready(function($) {
                                 <td>
                                     ${getStatusIcon(item.status)}
                                     ${item.is_link 
-                                        ? `<a href="${item.value}" class="report-link" target="_blank">
+                                        ? `<a href="${item.url}" class="report-link" target="_blank">
                                              ${item.value}
                                              <span class="dashicons dashicons-external"></span>
                                            </a>`

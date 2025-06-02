@@ -4,11 +4,9 @@ namespace Anar\Wizard;
 use Anar\Core\Logger;
 use Anar\Import;
 use Anar\ProductData;
-use voku\CssToInlineStyles\Exception;
 use WC_Product_Simple;
 use WC_Product_Variable;
 use WC_Product_Variation;
-use WP_Query;
 
 class ProductManager{
 
@@ -30,7 +28,6 @@ class ProductManager{
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
-        add_action( 'wp_ajax_awca_set_vendor_for_anar_products_ajax', [$this, 'set_vendor_for_anar_products_ajax'] );
 
     }
 
@@ -318,70 +315,104 @@ class ProductManager{
 
 
     public static function create_product_variations($wc_parent_product_id, $variations, $attributes, $attributeMap) {
-        foreach ($variations as $variation_data) {
-            $variation = new WC_Product_Variation();
-            $variation->set_parent_id($wc_parent_product_id);
-            $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
-            $variation->set_stock_quantity($variation_data->stock);
-            $variation->set_manage_stock(true);
+        // Process variations in batches of 5
+        $batch_size = 5;
+        $total_variations = count($variations);
+        $batches = array_chunk($variations, $batch_size);
+        
+        self::log("Starting to create {$total_variations} variations for product #{$wc_parent_product_id} in " . count($batches) . " batches", 'debug');
+        
+        foreach ($batches as $batch_index => $batch) {
+            // Start transaction for this batch
+            global $wpdb;
+            $wpdb->query('START TRANSACTION');
+            
+            try {
+                foreach ($batch as $variation_data) {
+                    $variation = new WC_Product_Variation();
+                    $variation->set_parent_id($wc_parent_product_id);
+                    $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
+                    $variation->set_stock_quantity($variation_data->stock);
+                    $variation->set_manage_stock(true);
 
-            $variation_attributes = array();
-            if (!empty($attributes)) {
-                $theseAttributesCalculated = [];
-                foreach ($variation_data->attributes as $attr_key => $attr_value) {
-                    $attr_name = $attributes[$attr_key]['name']; // Use the name directly from $attributes dictionary
+                    $variation_attributes = array();
+                    if (!empty($attributes)) {
+                        $theseAttributesCalculated = [];
+                        foreach ($variation_data->attributes as $attr_key => $attr_value) {
+                            $attr_name = $attributes[$attr_key]['name'];
 
-                    // if need to map
-                    if ($attributeMap != null && $attributeMap != '' ) {
+                            // if need to map
+                            if ($attributeMap != null && $attributeMap != '' ) {
+                                if(isset($attributeMap[$attr_name])){
+                                    $mapped_attribute = $attributeMap[$attr_name];
+                                }elseif(isset($attributeMap[$attr_key])){
+                                    $mapped_attribute = $attributeMap[$attr_key];
+                                }else{
+                                    continue;
+                                }
 
-                        if(isset($attributeMap[$attr_name])){
-                            $mapped_attribute = $attributeMap[$attr_name];
-                        }elseif(isset($attributeMap[$attr_key])){
-                            $mapped_attribute = $attributeMap[$attr_key];
-                        }else{
-                            continue; // Skip if mapping is incomplete
+                                if (isset($mapped_attribute['name'])) {
+                                    $attr_name = $mapped_attribute['name'];
+                                } else {
+                                    continue;
+                                }
+
+                                if (isset($mapped_attribute['map'])) {
+                                    $attr_slug = ($mapped_attribute['map'] == "select") ? $mapped_attribute['key'] : $mapped_attribute['map'];
+                                } else {
+                                    $attr_slug = $attr_name;
+                                }
+
+                                $attr_slug = sanitize_title($attr_slug);
+                            } else {
+                                $attr_slug = sanitize_title($attr_name);
+                            }
+
+                            $theseAttributesCalculated['pa_' . $attr_slug] = sanitize_title($attr_value);
                         }
-
-                        // Double check for find attribute
-                        if (isset($mapped_attribute['name'])) {
-                            $attr_name = $mapped_attribute['name'];
-                        } else {
-                            continue; // Skip if mapping is incomplete
-                        }
-
-                        if (isset($mapped_attribute['map'])) {
-                            $attr_slug = ($mapped_attribute['map'] == "select") ? $mapped_attribute['key'] : $mapped_attribute['map'];
-                        } else {
-                            $attr_slug = $attr_name; // Fall back to attribute name
-                        }
-
-                        // Ensure consistent slug creation
-                        $attr_slug = sanitize_title($attr_slug);
-                    } else {
-                        // Use the attribute name directly for slug creation, if not in attributeMap
-                        $attr_slug = sanitize_title($attr_name);
                     }
 
-                    $theseAttributesCalculated['pa_' . $attr_slug] = sanitize_title($attr_value);
+                    if(isset($theseAttributesCalculated)) {
+                        $variation->set_attributes($theseAttributesCalculated);
+                    }
+
+                    $variation->save();
+
+                    $variation_id = $variation->get_id();
+
+                    if ($variation_id) {
+                        update_post_meta($variation_id, '_anar_sku', $variation_data->_id);
+                        update_post_meta($variation_id, '_anar_variant_id', $variation_data->_id);
+                    } else {
+                        self::log("Failed to save variation for product ID: " . $wc_parent_product_id, 'error');
+                    }
+                    
+                    // Clear object from memory
+                    unset($variation);
                 }
-
-            }
-
-            if(isset($theseAttributesCalculated)) {
-                $variation->set_attributes($theseAttributesCalculated);
-            }
-
-            $variation->save();
-
-            $variation_id = $variation->get_id(); // Get the ID of the saved variation
-
-            if ($variation_id) {
-                update_post_meta($variation_id, '_anar_sku', $variation_data->_id);
-                update_post_meta($variation_id, '_anar_variant_id', $variation_data->_id);
-            } else {
-                self::log("Failed to save variation for product ID: " . $wc_parent_product_id, 'error');
+                
+                // Commit this batch
+                $wpdb->query('COMMIT');
+                
+                // Log progress
+                $processed = min(($batch_index + 1) * $batch_size, $total_variations);
+                self::log("Created batch {$batch_index} of variations for product #{$wc_parent_product_id} ({$processed}/{$total_variations})", 'debug');
+                
+                // Force garbage collection after each batch
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
+                
+            } catch (\Exception $e) {
+                // Rollback this batch on error
+                $wpdb->query('ROLLBACK');
+                self::log("Error creating variation batch {$batch_index} for product #{$wc_parent_product_id}: " . $e->getMessage(), 'error');
+                // Continue with next batch
+                continue;
             }
         }
+        
+        self::log("Completed creating {$total_variations} variations for product #{$wc_parent_product_id}", 'debug');
     }
 
 
@@ -439,7 +470,7 @@ class ProductManager{
 
 
             foreach ($products as $product) {
-                self::set_product_out_of_stock($product, $job_id, $log_file);
+                self::set_product_as_deprecated($product, $job_id, $log_file);
             }
         }
     }
@@ -452,7 +483,7 @@ class ProductManager{
      * @param string $job_id The job ID to mark as deprecated
      * @return bool True if deprecation was successful, false otherwise
      */
-    public static function set_product_out_of_stock($product_id, $job_id, $log_file, $deprecate = false) {
+    public static function set_product_as_deprecated($product_id, $job_id, $log_file, $deprecate = false) {
         try {
             $wc_product = wc_get_product($product_id);
 
@@ -490,7 +521,7 @@ class ProductManager{
             // Update parent product (works for both simple and variable)
             $wc_product->set_stock_quantity(0);
             $wc_product->set_stock_status('outofstock');
-            $wc_product->set_status('draft');
+//            $wc_product->set_status('draft');
             $wc_product->save();
 
             return true;
@@ -547,8 +578,6 @@ class ProductManager{
                 'message' => 'شما مجوز این کار را ندارید!'
             ));
         }
-
-//        self::log(print_r($_POST, true));
 
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 100;
@@ -689,78 +718,4 @@ class ProductManager{
         delete_transient('wc_featured_products');
     }
 
-
-
-    public function set_vendor_for_anar_products_ajax() {
-
-        if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'anar_set_vendor_ajax_nonce')) {
-            wp_send_json_error(array(
-                'message' => 'فرم نامعتبر است.'
-            ));
-        }
-
-
-        // Check dokan installation
-        if (!class_exists('WeDevs_Dokan')) {
-            wp_send_json_error(array(
-                'message' => 'پلاگین دکان غیر فعال است. نمی توانید از این ابزار استفاده کنید.'
-            ));
-        }
-
-
-        // Check user capabilities
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error(array(
-                'message' => 'شما مجوز این کار را ندارید!'
-            ));
-        }
-
-        if (empty($_POST['vendor_id'])) {
-            wp_send_json_error(array(
-                'message' => 'یک فروشنده انتخاب کنید.'
-            ));
-        }
-
-        $vendor_id = $_POST['vendor_id'];
-
-
-        // Get all products that have our custom meta key
-        $args = array(
-            'post_type'      => 'product',
-            'posts_per_page' => -1,
-            'fields'         => 'ids',
-            'meta_query'     => array(
-                array(
-                    'key'     => '_anar_products',
-                    'compare' => 'EXISTS'
-                )
-            )
-        );
-
-        $products = get_posts($args);
-
-        if (empty($products)) {
-            wp_send_json_error(array(
-                'message' => 'هیچ محصولی پیدا نشد!'
-            ));
-        }
-
-        $updated_count = 0;
-
-        foreach ($products as $product) {
-            // Set the vendor ID using Dokan's method
-            $product = wc_get_product($product);
-            if($product){
-                dokan_override_product_author($product, $vendor_id);
-            }
-            $updated_count++;
-        }
-
-
-        wp_send_json_success(array(
-            'message' => sprintf('%d محصول بروزرسانی شد.', $updated_count)
-        ));
-
-
-    }
 }

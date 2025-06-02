@@ -4,8 +4,8 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.9
- * Author:            	تیم توسعه 360
+ * Version:          	0.3.11
+ * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
  * Tested up to: 		6.7.2
@@ -32,6 +32,7 @@ namespace Anar;
 
 // If this file is called directly, abort.
 
+use Anar\Init\Checks;
 use Anar\Init\Install;
 use Anar\Init\Reset;
 use Anar\Init\Uninstall;
@@ -103,7 +104,7 @@ class Wp_Anar
     private $update_checker;
 
 	/**
-	 * Access this plugin’s working instance
+	 * Access this plugin's working instance
 	 *
 	 * @wp-hook plugins_loaded
 	 * @return  object of this class
@@ -185,8 +186,8 @@ class Wp_Anar
         define('ANAR_PLUGIN_URL', self::$plugin_url);
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
-        define('ANAR_DB_VERSION', '1.7');
-        define('ANAR_CRON_VERSION', '1.4');
+        define('ANAR_DB_VERSION', '1.8');
+        define('ANAR_CRON_VERSION', '1.9');
 
 
         define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
@@ -250,9 +251,9 @@ class Wp_Anar
 
     public function instances()
     {
+        Init\Checks::get_instance();
         new Core\Activation();
         new Core\Assets();
-//        Init\Checks::get_instance();
         Core\CronJobs::get_instance();
 
         new Admin\Menus();
@@ -264,9 +265,11 @@ class Wp_Anar
         new Wizard\Category();
         new Wizard\Attributes();
         Wizard\ProductManager::get_instance();
-        Import::get_instance();
 
-        new Woocommerce();
+        new Product\Edit();
+        new Product\Lists();
+        new Product\Front();
+
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
@@ -285,7 +288,6 @@ class Wp_Anar
 
         Orders_List::get_instance();
         Order::get_instance();
-
     }
 
 

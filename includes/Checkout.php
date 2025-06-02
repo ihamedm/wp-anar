@@ -180,7 +180,8 @@ class Checkout {
                 $pack_index = 0;
                 $anar_shipments_alert = '';
                 if(count($ship) > 1){
-                    echo '<tr class="anar-shipments-user-notice"><td><p>کالاهای انتخابی شما از چند انبار مختلف ارسال می شوند.</p></td></tr>';
+                    // MODIFIED: Add a class to the <tr> and use colspan on the <td>
+                    echo '<tr class="anar-shipments-user-notice-row"><td colspan="2"><p>کالاهای انتخابی شما از چند انبار مختلف ارسال می شوند.</p></td></tr>';
                 }
                 foreach ($ship as $key => $v) {
                     $pack_index++;
@@ -267,16 +268,18 @@ class Checkout {
                     }
 
                     ?>
-                    <tr class="anar-shipments-checkout">
-                        <th>
-                            <div class="anar-package-items-list">
-                                <?php
-                                echo $product_list_markup;
-                                ?>
+                    <tr class="anar-shipments-package-row">
+                        <td colspan="2">
+                            <div class="anar-shipments-package-content <?php echo count($product_uniques) > 2 ? 'vertical-view' : '';?>">
+                                <div class="anar-package-items-list">
+                                    <?php
+                                    echo $product_list_markup;
+                                    ?>
+                                </div>
+                                <div class="anar-delivery-options-area">
+                                    <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
+                                </div>
                             </div>
-                        </th>
-                        <td>
-                            <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
                         </td>
                     </tr>
                     <?php

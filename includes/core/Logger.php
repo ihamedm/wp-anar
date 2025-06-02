@@ -286,7 +286,7 @@ class Logger {
                     'name' => $filename,
                     'size' => size_format($size, 2),
                     'modified' => wp_date('Y-m-d H:i:s', filemtime($file)),
-                    'url' => content_url('wp-anar-logs/' . $filename),
+                    'url' => str_replace(WP_CONTENT_DIR, content_url(), $file),
                     'writable' => $writable
                 ];
                 

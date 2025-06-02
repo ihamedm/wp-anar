@@ -127,27 +127,19 @@ class Order {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
         }
 
+
+
         // Prepare data for the second API call
         $address = $order->get_address('billing'); // Get billing address
 
-        // Get country and state codes
-        $country_code = $address['country'] ?? '';
-        $state_code = $address['state'] ?? '';
 
+//        add_filter('woocommerce_localisation_address_formats', function ($formats) {
+//            $formats['IR'] = "{state} , {city} , {address_1} , {address_2}";
+//            return $formats;
+//        });
 
-        // Get the full state name
-        if(class_exists('PWS_Core')){
-            $anar_state = anar_get_states($address['state']);
-            $state_name = $anar_state ?? $address['state'];
-        }else{
-            $wc_states = WC()->countries->get_states( $country_code );
-            $state_name = $wc_states[$state_code] ?? $state_code;
-        }
-
-        $address_detail = $state_name .' ' . $address['city'] .' '. $address['address_1'] .' '. $address['address_2'];
-
-        // Remove <br> and full name from formatted address
         $formatted_address = $order->get_formatted_billing_address();
+        // Remove <br> and full name from formatted address
         $formatted_address = str_replace('<br/>', ', ', $formatted_address);
         $formatted_address = str_replace('<br>', ', ', $formatted_address);
         $formatted_address = preg_replace('/^[^,]+,\s*/', '', $formatted_address);
@@ -156,6 +148,7 @@ class Order {
         if (!empty($address['postcode'])) {
             $formatted_address = trim(str_replace($address['postcode'], '', $formatted_address), ', ');
         }
+
 
         $create_data = [
             'type' => 'retail',
@@ -166,7 +159,7 @@ class Order {
                 'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
                 'transFereeMobile' => $address['phone'],
             ],
-            'shipments' => $this->prepare_shipments($order) // Prepare shipment data from response
+            'shipments' => $this->prepare_shipments($order)
         ];
 
         // Second API call to create the order
@@ -591,7 +584,6 @@ class Order {
                            
                             </li>
                             <li><b>وضعیت سفارش: </b>%s</li>
-                            <li><b>وضعیت پرداخت: </b>%s</li>
                             <li><b>شیوه ارسال: </b>%s</li>
                             <li><b>زمان تقریبی ارسال: </b>%s</li>
                             <li><b>کد رهگیری: </b>%s</li>
@@ -611,7 +603,6 @@ class Order {
                         awca_get_formatted_price($package['price']['delivery']),
                         awca_get_formatted_price($package['price']['payable']),
                         awca_translator($package['status']),
-                        awca_translator($package['paymentStatus']),
                         awca_translator($package['delivery']['deliveryType']),
                         $package['delivery']['estimatedTime'],
                         $package['trackingNumber'],
@@ -626,7 +617,6 @@ class Order {
                     wp_send_json_error(["message" => $message]);
                 }
             }// end loop orders
-
 
 
             // if order unpaid we need to create payment modal and button

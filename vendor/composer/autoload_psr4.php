@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Anar\\Wizard\\' => array($baseDir . '/includes/wizard'),
+    'Anar\\Product\\' => array($baseDir . '/includes/product'),
     'Anar\\Lib\\BackgroundProcessing\\' => array($baseDir . '/includes/lib/BackgroundProcessing'),
     'Anar\\Lib\\' => array($baseDir . '/includes/lib'),
     'Anar\\Init\\' => array($baseDir . '/includes/init'),
