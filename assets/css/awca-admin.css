@@ -446,6 +446,25 @@ input#plugin_activation_button {
 .anar-label-sm{
   font-size:11px;
 }
+.anar-shop-url:link,
+.anar-shop-url:visited{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #efefef;
+  padding: 6px ;
+  border-radius: 4px;
+  gap: 6px;
+  color:#333;
+  text-decoration: none;
+}
+.anar-shop-url span{
+  font-size: 12px;
+  font-weight: 400;
+  font-family: Courier, "courier new", monospace;
+  color: #999;
+}
 
 /******
 *************************************

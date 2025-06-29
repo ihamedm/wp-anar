@@ -109,6 +109,8 @@ class ProductData{
             );
         }
 
+
+
         // If variation found, return it
         if ($variation_id) {
             // Verify the post exists and is a product variation

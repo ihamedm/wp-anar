@@ -135,8 +135,10 @@ class SyncOutdated {
         
         $products = [];
         foreach ($query->posts as $product_id) {
+            ProductManager::restore_product_deprecation($product_id);
             $anar_sku = get_post_meta($product_id, '_anar_sku', true);
 
+            /**
             if(!$anar_sku){
                 $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
                 if($anar_sku_backup){
@@ -145,6 +147,7 @@ class SyncOutdated {
                     $anar_sku = $anar_sku_backup;
                 }
             }
+             **/
 
             if ($anar_sku) {
                 $products[] = [

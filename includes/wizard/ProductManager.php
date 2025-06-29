@@ -537,6 +537,7 @@ class ProductManager{
     public static function restore_product_deprecation($product_id, $log = '') {
         $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
         $anar_products_backup = get_post_meta($product_id, '_anar_products_backup', true);
+        $wc_product = wc_get_product($product_id);
 
         if($anar_sku_backup && $anar_products_backup){
             update_post_meta($product_id, '_anar_sku', $anar_sku_backup);
@@ -544,6 +545,17 @@ class ProductManager{
             delete_post_meta($product_id, '_anar_deprecated');
         }
 
+
+        if($wc_product->is_type('variable')) {
+            $variations = $wc_product->get_children();
+
+            foreach ($variations as $variation_id) {
+                $v_anar_sku_backup = get_post_meta($variation_id, '_anar_sku_backup', true);
+                $v_anar_products_backup = get_post_meta($variation_id, '_anar_products_backup', true);
+                update_post_meta($variation_id, '_anar_sku', $v_anar_sku_backup);
+                update_post_meta($variation_id, '_anar_products', $v_anar_products_backup);
+            }
+        }
     }
 
 

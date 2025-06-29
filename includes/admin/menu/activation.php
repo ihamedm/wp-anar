@@ -6,10 +6,13 @@
 
                 <h2 class="text-center">برای فعال‌سازی پلاگین ابتدا کلید احراز هویتی خودتان را در فیلد زیر وارد کنید.</h2>
                 <form method="post" action="<?php echo admin_url('admin-ajax.php'); ?>" class="plugin_activation_form" id="plugin_activation_form">
-                    <?php if (Anar\core\Activation::validate_saved_activation_key_from_anar()) : ?>
-                        <div class="alert">
-                            <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+                    <?php if (Anar\core\Activation::validate_token()) : ?>
+                        <div class="alert alert-success">
                             <strong>پیام:</strong> توکن شما معتبر و سمت انار مورد تایید است
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning">
+                            <strong>پیام:</strong>توکن معتبر نیست.
                         </div>
                     <?php endif; ?>
                     <label for="activation_code">وارد کردن کلید احراز هویتی :</label>
@@ -27,7 +30,7 @@
                     <?php
                     $shop_url = get_option('_anar_shop_url', false);
                     if(!empty($shop_url)) {
-                        echo '<strong>'.$shop_url.'</strong>';
+                        printf('<a class="anar-shop-url" href="%s" target="_blank">فروشگاه شما در انار<span>%s</span></a>', $shop_url, $shop_url);
                     }
                     $subscription_plan = get_option('_anar_subscription_plan', false);
                     if(!empty($subscription_plan)) {
@@ -47,8 +50,17 @@
                         }
                     }
                     $subscription_remaining = get_option('_anar_subscription_remaining', false);
-                    if(!empty($subscription_remaining)) {
-                        echo '<p>'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
+                    if(in_array($subscription_plan, ['free', 'pro'])){
+                        if(!empty($subscription_remaining)) {
+                            $remaining_days = round(($subscription_remaining / 86400000));
+                            if($remaining_days < 1) {
+                                echo '<p class="alert alert-warning">اشتراک شما منقضی شده است. لطفا اشتراک خود را از پنل انار تمدید کنید.</p>';
+                            }else{
+                                echo '<p class="alert alert-success">'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
+                            }
+                        }
+                    }else{
+                        echo '<p class="alert alert-warning">شما اشتراک پایه انار دارید.<br> برای استفاده از پلاگین باید <strong>اشتراک حرفه ایی</strong> خریداری کنید.</p>';
                     }
                     ?>
 

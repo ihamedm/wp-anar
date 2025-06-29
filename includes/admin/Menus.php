@@ -12,7 +12,7 @@ class Menus{
 
     public function __construct(){
         
-        $this->is_activated = Activation::validate_saved_activation_key_from_anar();
+        $this->is_activated = Activation::is_active();
         
         add_action('admin_menu', [$this, 'add_menu_pages']);
         add_action('admin_bar_menu', [$this, 'product_creation_cron_progress_to_toolbar'], 999);

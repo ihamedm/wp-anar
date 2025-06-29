@@ -127,8 +127,10 @@ class Sync {
 
     public function syncProducts($ajax_call = false) {
 
-        if(!Activation::validate_saved_activation_key_from_anar())
+        if(!Activation::is_active()){
+            $this->log('Anar is not active, Token is invalid!');
             return;
+        }
 
         if ($this->isSyncInProgress()) {
             // Keep this log as it's an early exit condition
@@ -413,7 +415,7 @@ class Sync {
                         throw new \Exception("Failed to get WooCommerce product with ID: {$productId}");
                     }
 
-                    $this->updateProductStockAndPrice($product, $updateProduct, $variant);
+                    $this->updateProductStockAndPrice($product, $updateProduct, $variant, $productId);
 
                     $this->updateProductMetadata($productId, $variant);
                     $this->updateProductVariantMetaData($productId, $variant);
@@ -449,6 +451,7 @@ class Sync {
 
             // first set outofstock all wc_product variation, because maybe some variant on anar removed buy reseller
             $wc_parent_product_id = ProductData::get_simple_product_by_anar_sku($updateProduct->id);
+
             if (is_wp_error($wc_parent_product_id)) {
                 throw new \Exception($wc_parent_product_id->get_error_message());
             }
@@ -469,7 +472,6 @@ class Sync {
 
                     $anar_variation_id = $variant->_id;
                     $wp_variation_productId = ProductData::get_product_variation_by_anar_sku($anar_variation_id);
-
                     if (is_wp_error($wp_variation_productId)) {
                         if($wp_variation_productId->get_error_code() == 404){
                             // @todo create the variation
@@ -484,13 +486,13 @@ class Sync {
                             throw new \Exception("Failed to get WooCommerce product variation with ID: {$wp_variation_productId}");
                         }
 
-                        $this->updateProductStockAndPrice($product, $updateProduct, $variant);
 
                         // Store parent ID for later use
                         if ($parentId == 0) {
                             $parentId = $product->get_parent_id();
                         }
 
+                        $this->updateProductStockAndPrice($product, $updateProduct, $variant, $parentId);
                         $this->updateProductMetadata($parentId, $variant);
                         $this->updateProductVariantMetaData($wp_variation_productId, $variant);
 
@@ -532,7 +534,7 @@ class Sync {
      * @param object $variant The specific variant data from Anar API (contains stock, price, labelPrice).
      * @return void
      */
-    public function updateProductStockAndPrice($product, $updateProduct, $variant) {
+    public function updateProductStockAndPrice($product, $updateProduct, $variant, $parentId) {
         // Update stock
         $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
         $product->set_stock_quantity($variantStock);
@@ -543,6 +545,7 @@ class Sync {
         } else {
             $product->set_stock_status('outofstock');
         }
+
 
         // Get potential regular and sale prices from API variant data
         $apiPrice = $variant->price ?? null; // Potential Sale Price
