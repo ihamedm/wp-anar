@@ -26,7 +26,8 @@ class SyncOutdated {
     private $max_execution_time = 240;
     private $batch_size;
     private $outdated_threshold = '1 day';
-    private $cron_hook = 'anar_sync_outdated_products_cron';
+    private $cron_hook = 'anar_sync_outdated_products';
+    private $job_manager;
 
     public static function get_instance() {
         if (!isset(self::$instance)) {
@@ -37,22 +38,19 @@ class SyncOutdated {
 
     public function __construct() {
         $this->logger = new Logger();
+        $this->job_manager = JobManager::get_instance();
+        $this->schedule_cron();
 
         $this->batch_size = get_option('anar_sync_outdated_batch_size', 30);
 
-        // Register AJAX handler
-        add_action('wp_ajax_anar_sync_outdated_products', array($this, 'sync_outdated_products_ajax'));
+        // Register AJAX handlers
+        add_action('wp_ajax_anar_clear_sync_times', array($this, 'clear_sync_times_ajax'));
         
-        // Register cron hook
-        add_action($this->cron_hook, array($this, 'process_outdated_products_job'));
+        // Register cron hooks
+        add_action($this->cron_hook, array($this, 'process_outdated_products_cronjob'));
         
         // Add custom cron interval
         add_filter('cron_schedules', array($this, 'add_cron_interval'));
-        
-        // Schedule the cron if not already scheduled
-        if (!wp_next_scheduled($this->cron_hook)) {
-            wp_schedule_event(time(), 'every_five_min', $this->cron_hook);
-        }
     }
 
     /**
@@ -66,11 +64,21 @@ class SyncOutdated {
         return $schedules;
     }
 
+
+    /**
+     * Schedule the cron job if not already scheduled
+     */
+    public function schedule_cron() {
+        if (!wp_next_scheduled($this->cron_hook)) {
+            wp_schedule_event(time(), 'every_five_min', $this->cron_hook);
+        }
+    }
+
     /**
      * Unschedule the cron job
      * Call this method when deactivating the plugin
      */
-    public function unschedule_cron() {
+    public function unscheduled_cron() {
         $timestamp = wp_next_scheduled($this->cron_hook);
         if ($timestamp) {
             wp_unschedule_event($timestamp, $this->cron_hook);
@@ -94,8 +102,15 @@ class SyncOutdated {
             'meta_query' => array(
                 'relation' => 'AND',
                 array(
-                    'key' => '_anar_sku',
-                    'compare' => 'EXISTS'
+                    'relation' => 'OR',
+                    array(
+                        'key' => '_anar_sku',
+                        'compare' => 'EXISTS'
+                    ),
+                    array(
+                        'key' => '_anar_sku_backup',
+                        'compare' => 'EXISTS'
+                    ),
                 ),
                 array(
                     'relation' => 'OR',
@@ -121,6 +136,16 @@ class SyncOutdated {
         $products = [];
         foreach ($query->posts as $product_id) {
             $anar_sku = get_post_meta($product_id, '_anar_sku', true);
+
+            if(!$anar_sku){
+                $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
+                if($anar_sku_backup){
+                    ProductManager::restore_product_deprecation($product_id);
+                    $this->log('Product #' . $product_id . ' was deprecated. restored to check again.');
+                    $anar_sku = $anar_sku_backup;
+                }
+            }
+
             if ($anar_sku) {
                 $products[] = [
                     'ID' => $product_id,
@@ -150,15 +175,16 @@ class SyncOutdated {
             $data = json_decode($response_body);
 
             if ($response_code === 200 && $data) {
-                $sync = new Sync();
+                $sync = Sync::get_instance();
                 if (isset($data->attributes) && !empty($data->attributes)) {
-                    $sync->processVariableProduct($data);
+                    $sync->processVariableProduct($data, true);
                 } else {
-                    $sync->processSimpleProduct($data);
+                    $sync->processSimpleProduct($data, true);
                 }
 
                 update_post_meta($product_data['ID'], '_anar_last_try_time', current_time('mysql'));
-                $this->log('product updated successfully, #' . $product_data['ID'] . '  SKU: ' . $data->id, 'info');
+                
+                $this->log('Updated, #' . $product_data['ID'] . '  SKU: ' . $data->id, 'info');
 
                 return true;
             } elseif ($response_code === 404) {
@@ -176,20 +202,20 @@ class SyncOutdated {
     /**
      * Main method to process outdated products
      */
-    public function process_outdated_products_job() {
-        if ($this->isSyncInProgress()) {
-            $this->log("Another sync process is already running. Skipping this execution.");
-            return;
-        }
-
-        $this->lockSync();
-        $start_time = time();
-        $processed = 0;
-        $failed = 0;
-
+    public function process_outdated_products_cronjob() {
         try {
             $products = $this->get_outdated_products();
             
+            // If no products need sync, just return
+            if (empty($products)) {
+                $this->log("No products need sync at this time");
+                return;
+            }
+            
+            $start_time = time();
+            $processed = 0;
+            $failed = 0;
+
             foreach ($products as $product) {
                 if (time() - $start_time > $this->max_execution_time) {
                     $this->log("Approaching execution time limit. Processed: {$processed}, Failed: {$failed}");
@@ -207,54 +233,57 @@ class SyncOutdated {
             
         } catch (\Exception $e) {
             $this->log("Error during sync process: " . $e->getMessage(), 'error');
-        } finally {
-            $this->unlockSync();
         }
     }
 
     /**
-     * AJAX handler for manual sync
+     * AJAX handler for clearing sync times
      */
-    public function sync_outdated_products_ajax() {
+    public function clear_sync_times_ajax() {
         if (!current_user_can('manage_woocommerce')) {
             wp_send_json_error('شما این مجوز را ندارید!');
             wp_die();
         }
 
         try {
-            $products = $this->get_outdated_products();
-            $processed = 0;
-            $failed = 0;
+            global $wpdb;
 
-            foreach ($products as $product) {
-                if ($this->process_product($product)) {
-                    $processed++;
-                } else {
-                    $failed++;
-                }
+            // Get total count of products with _anar_sku
+            $total_products = $wpdb->get_var("
+                SELECT COUNT(DISTINCT post_id) 
+                FROM {$wpdb->postmeta} 
+                WHERE meta_key = '_anar_sku'
+            ");
+
+            if ($total_products === null) {
+                wp_send_json_error('خطا در دریافت تعداد محصولات');
+                return;
             }
 
-            wp_send_json([
-                'success' => true,
-                'processed' => $processed,
-                'failed' => $failed,
-                'total' => count($products)
+            // Delete all _anar_last_try_time meta data
+            $deleted = $wpdb->delete(
+                $wpdb->postmeta,
+                array('meta_key' => '_anar_last_try_time')
+            );
+
+            if ($deleted === false) {
+                wp_send_json_error('خطا در پاک کردن زمان‌های بروزرسانی');
+                return;
+            }
+
+            $this->log("Cleared sync times for {$deleted} products", 'info');
+
+            wp_send_json_success([
+                'message' => 'زمان‌های بروزرسانی با موفقیت پاک شدند',
+                'total_products' => $total_products,
+                'cleared_count' => $deleted
             ]);
 
         } catch (\Exception $e) {
-            wp_send_json_error($e->getMessage());
+            wp_send_json_error([
+                'message' => $e->getMessage()
+            ]);
         }
     }
 
-    private function isSyncInProgress() {
-        return get_transient('awca_sync_outdated_lock');
-    }
-
-    private function lockSync() {
-        set_transient('awca_sync_outdated_lock', time(), 300); // Lock for 5 minutes
-    }
-
-    private function unlockSync() {
-        delete_transient('awca_sync_outdated_lock');
-    }
 }

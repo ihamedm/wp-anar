@@ -67,7 +67,7 @@ class Menus{
                 [$this, 'payments_page_content']
             );
 
-
+/*
         if(ANAR_IS_ENABLE_NOTIF_PAGE)
             add_submenu_page(
                 'wp-anar',
@@ -77,7 +77,7 @@ class Menus{
                 'notifications',
                 [$this, 'notifications_page_content']
             );
-
+*/
         add_submenu_page(
             'wp-anar',
             'ابزارها',
@@ -152,7 +152,7 @@ class Menus{
 
             <h2 class="nav-tab-wrapper">
                 <a href="?page=tools&tab=tools" class="nav-tab <?php echo $active_tab === 'tools' ? 'nav-tab-active' : ''; ?>">ابزارها</a>
-                <a href="?page=tools&tab=features" class="nav-tab <?php echo $active_tab === 'features' ? 'nav-tab-active' : ''; ?>">امکانات</a>
+                <a href="?page=tools&tab=features" class="nav-tab <?php echo $active_tab === 'features' ? 'nav-tab-active' : ''; ?>">تنظیمات</a>
                 <a href="?page=tools&tab=status" class="nav-tab <?php echo $active_tab === 'status' ? 'nav-tab-active' : ''; ?>">وضعیت سیستم</a>
             </h2>
 

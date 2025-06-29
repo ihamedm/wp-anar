@@ -39,6 +39,7 @@ class ProductManager{
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $api_data_handler = new \Anar\ApiDataHandler('products', 'https://api.anar360.com/wp/products');
         $result = $api_data_handler->fetchAndStoreApiResponseByPage($page);
+
         if ($result !== false) {
             if($page == 1){
                 // lock to prevent run again until all product created , after that we unset this lock
@@ -530,6 +531,25 @@ class ProductManager{
             self::$logger->log("Error deprecating product #{$product_id}: " . $e->getMessage(), $log_file);
             return false;
         }
+    }
+
+
+    public static function restore_product_deprecation($product_id, $log = '') {
+        $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
+        $anar_products_backup = get_post_meta($product_id, '_anar_products_backup', true);
+
+        if($anar_sku_backup && $anar_products_backup){
+            update_post_meta($product_id, '_anar_sku', $anar_sku_backup);
+            update_post_meta($product_id, '_anar_products', $anar_products_backup);
+            delete_post_meta($product_id, '_anar_deprecated');
+        }
+
+    }
+
+
+    public static function update_product_logs($product_id, $new_log) {
+        $logs = get_post_meta($product_id, '_anar_logs', true);
+        update_post_meta($product_id, '_anar_logs', $logs .'<hr>'. $new_log);
     }
 
 

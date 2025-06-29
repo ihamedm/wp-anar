@@ -42,7 +42,8 @@ class Edit{
         $anar_shipments = get_post_meta($post->ID, '_anar_prices', true);
         $anar_sku = get_post_meta($post->ID, '_anar_sku', true);
 
-        $anar_url = "https://anar360.com/earning-income/product/{$anar_sku}";
+        $anar_shop_url = get_option('_anar_shop_url', 'https://anar360.com/earning-income');
+        $anar_url = $anar_shop_url ."/product/{$anar_sku}";
 
         $wc_product = wc_get_product($post->ID);
 

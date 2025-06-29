@@ -23,6 +23,35 @@
 
                     <input type="hidden" name="action" value="awca_handle_token_activation_ajax" />
                     <?php wp_nonce_field('awca_handle_token_activation_ajax_nonce', 'awca_handle_token_activation_ajax_field'); ?>
+
+                    <?php
+                    $shop_url = get_option('_anar_shop_url', false);
+                    if(!empty($shop_url)) {
+                        echo '<strong>'.$shop_url.'</strong>';
+                    }
+                    $subscription_plan = get_option('_anar_subscription_plan', false);
+                    if(!empty($subscription_plan)) {
+                        switch($subscription_plan){
+                            case 'basic':
+                                echo '<strong>پلن پایه</strong>';
+                                break;
+                            case 'pro':
+                                echo '<strong>پلن حرفه ایی</strong>';
+                                break;
+                            case 'free':
+                                echo '<strong>پلن رایگان</strong>';
+                                break;
+                            default:
+                                echo '<strong>'.$subscription_plan.'</strong>';
+                                break;
+                        }
+                    }
+                    $subscription_remaining = get_option('_anar_subscription_remaining', false);
+                    if(!empty($subscription_remaining)) {
+                        echo '<p>'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
+                    }
+                    ?>
+
                     <div class="stepper_button_container">
                         <button type="submit" class="plugin_activation_button stepper_btn" id="next_stepper_btn plugin_activation_button">
                             اتصال                            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">

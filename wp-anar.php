@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.11
+ * Version:          	0.3.13
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -32,7 +32,6 @@ namespace Anar;
 
 // If this file is called directly, abort.
 
-use Anar\Init\Checks;
 use Anar\Init\Install;
 use Anar\Init\Reset;
 use Anar\Init\Uninstall;
@@ -149,7 +148,6 @@ class Wp_Anar
 
         add_Action('admin_init', [$this, 'check_woocommerce_activate']);
         $this->check_and_update_db();
-        $this->check_and_update_cron();
         $this->plugin_update_check();
         $this->wc_hpos_compatibility();
     }
@@ -186,8 +184,8 @@ class Wp_Anar
         define('ANAR_PLUGIN_URL', self::$plugin_url);
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
-        define('ANAR_DB_VERSION', '1.8');
-        define('ANAR_CRON_VERSION', '1.9');
+        define('ANAR_DB_VERSION', '1.10');
+        define('ANAR_CRON_VERSION', '1.13');
 
 
         define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
@@ -252,6 +250,7 @@ class Wp_Anar
     public function instances()
     {
         Init\Checks::get_instance();
+        Init\Update::get_instance();
         new Core\Activation();
         new Core\Assets();
         Core\CronJobs::get_instance();
@@ -273,6 +272,7 @@ class Wp_Anar
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
+        SyncForce::get_instance();
         SyncRealTime::get_instance();
 
         //new Multi_Seller();
@@ -341,23 +341,6 @@ class Wp_Anar
 
         if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") !== $table_name) {
             Init\Db::make_tables();
-        }
-    }
-
-
-
-    /**
-     * reinitialize cron schedules if we have changes on cron-job functions
-     * @return void
-     */
-    public function check_and_update_cron() {
-        $installed_cron_version = get_option('awca_cron_version');
-
-        if ($installed_cron_version !== ANAR_CRON_VERSION) {
-            $cron_jobs = Core\CronJobs::get_instance();
-            $cron_jobs->reschedule_events();
-
-            update_option('awca_cron_version', ANAR_CRON_VERSION);
         }
     }
 

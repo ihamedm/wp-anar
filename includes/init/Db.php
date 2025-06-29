@@ -59,7 +59,7 @@ class Db{
                 start_time datetime DEFAULT NULL,
                 end_time datetime DEFAULT NULL,
                 last_heartbeat datetime DEFAULT NULL,
-                error_log text DEFAULT NULL,
+                error_logs text DEFAULT NULL,
                 retry_count int(11) NOT NULL DEFAULT 0,
                 created_at datetime DEFAULT CURRENT_TIMESTAMP,
                 updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -76,9 +76,9 @@ class SyncRealTime {
             $sync = $this->sync_instance;
 
             if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
-                $sync->processVariableProduct($anar_product);
+                $sync->processVariableProduct($anar_product, true);
             } else {
-                $sync->processSimpleProduct($anar_product);
+                $sync->processSimpleProduct($anar_product, true);
             }
 
 

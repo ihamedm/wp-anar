@@ -5,7 +5,7 @@ $activate_anar_order_feat = get_option('anar_conf_feat__create_orders', 'yes');
 $activate_anar_slow_import_feat = get_option('anar_conf_feat__slow_import', 'no');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
-$anar_full_sync_schedule = get_option('anar_full_sync_schedule', 5);
+$anar_full_sync_schedule_hours = get_option('anar_full_sync_schedule_hours', 6);
 $anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 30);
 
 // Handle form submission
@@ -14,14 +14,14 @@ if (isset($_POST['save_anar_settings'])) {
     $activate_anar_order_feat = $_POST['anar_conf_feat__create_orders'] ?? 'yes';
     $activate_anar_slow_import_feat = $_POST['anar_conf_feat__slow_import'] ?? 'no';
     $anar_log_level = $_POST['anar_log_level'] ?? 'info';
-    $anar_full_sync_schedule = intval($_POST['anar_full_sync_schedule']);
+    $anar_full_sync_schedule_hours = intval($_POST['anar_full_sync_schedule_hours']);
     $anar_sync_outdated_batch_size = intval($_POST['anar_sync_outdated_batch_size']);
 
 
     update_option('anar_conf_feat__slow_import', $activate_anar_slow_import_feat);
     update_option('anar_conf_feat__create_orders', $activate_anar_order_feat);
     update_option('anar_log_level', $anar_log_level);
-    update_option('anar_full_sync_schedule', $anar_full_sync_schedule);
+    update_option('anar_full_sync_schedule_hours', $anar_full_sync_schedule_hours);
     update_option('anar_sync_outdated_batch_size', $anar_sync_outdated_batch_size);
 
     // Success message
@@ -61,7 +61,7 @@ if(isset($_GET['anar_optional_price_sync'])){
             </td>
         </tr>
 
-        <tr>
+        <tr style="display: none">
             <th><label for="anar_conf_feat__create_orders">ثبت سفارش انار</label></th>
             <td>
                 <label>
@@ -75,7 +75,7 @@ if(isset($_GET['anar_optional_price_sync'])){
         </tr>
 
         <tr>
-            <th><label for="anar_conf_feat__slow_import">فعالسازی همگام سازی آهسته؟</label></th>
+            <th><label for="anar_conf_feat__slow_import">همگام سازی آهسته؟</label></th>
             <td>
                 <label>
                     <select name="anar_conf_feat__slow_import" id="anar_conf_feat__slow_import">
@@ -89,12 +89,21 @@ if(isset($_GET['anar_optional_price_sync'])){
 
         <tr>
             <th><label for="anar_sync_outdated_batch_size">تعداد محصول در هر جاب</label></th>
-            <td><input type="number" name="anar_sync_outdated_batch_size" id="anar_sync_outdated_batch_size" value="<?php echo esc_attr($anar_sync_outdated_batch_size); ?>" class="small-text" min="5"> محصول</td>
+            <td><input type="number" name="anar_sync_outdated_batch_size" id="anar_sync_outdated_batch_size" value="<?php echo esc_attr($anar_sync_outdated_batch_size); ?>" class="small-text" min="5">
+            محصول در هر جاب بروزرسانی روزانه آپدیت شود
+            </td>
         </tr>
 
         <tr>
-            <th><label for="anar_full_sync_schedule">همگام سازی قیمت و موجودی هر</label></th>
-            <td><input type="number" name="anar_full_sync_schedule" id="anar_full_sync_schedule" value="<?php echo esc_attr($anar_full_sync_schedule); ?>" class="small-text" min="5"> دقیقه</td>
+            <th><label for="anar_full_sync_schedule_hours">بروزرسانی اجباری کل محصولات</label></th>
+            <td>
+                <label>
+                    <input type="number" name="anar_full_sync_schedule_hours" id="anar_full_sync_schedule_hours" value="<?php echo esc_attr($anar_full_sync_schedule_hours); ?>" class="small-text" min="1"> ساعت
+                </label>
+                <p class="description">این متد بروزرسانی، علاوه بر بروزرسانی های لحظه ایی قیمت و موجودی که هنگام افزودن به سبد خرید توسط مشتری انجام می شود ،کل محصولات را اجبارا بروزرسانی میکند. </p>
+                <p class="description" style="background: rgba(255,0,0,0.13); padding: 4px 12px 6px;border-radius: 5px;"><strong style="color:red">توجه</strong> : فقط در صورتی این عدد را کوچکتر از ۶ ساعت تنظیم کنید که هاست شما منابع کافی داشته باشد، چون این پردازش نسبتا سنگین است و مداوم انجام می شود.</p>
+            </td>
+
         </tr>
 
     </table>

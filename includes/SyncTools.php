@@ -23,7 +23,7 @@ class SyncTools{
     public function __construct() {
         $this->baseApiUrl = 'https://api.anar360.com/wp/products';
         $this->logger = new Logger();
-        $this->sync = new Sync();
+        $this->sync = Sync::get_instance();
 
         add_action('wp_ajax_anar_find_not_synced_products', array($this, 'find_not_synced_products_ajax_callback'));
 

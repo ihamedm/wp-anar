@@ -47,7 +47,7 @@ class Sync {
         $this->syncedCounter = 0;
         $this->triggerBy = 'Cronjob';
         $this->max_execution_time = 240; // 4 minutes (to stay safely under 5 min limit)
-        $this->restBetweenFullSyncs = get_option('anar_full_sync_schedule', 5) * 60;
+        $this->restBetweenFullSyncs = get_option('anar_full_sync_schedule_hours', 6) * 3600;
 
         $this->logger = new Logger();
 
@@ -59,10 +59,73 @@ class Sync {
             // Hooking the method into AJAX actions
             add_action('wp_ajax_awca_sync_products_price_and_stocks', array($this, 'syncProductsPriceAndStocksAjax'));
         }
+
+        // Register cron schedule and hook
+        add_filter('cron_schedules', array($this, 'add_cron_interval'));
+        add_action('anar_sync_products', array($this, 'run_sync_cron'));
+        add_action('anar_full_sync_products', array($this, 'run_full_sync_cron'));
+
+        $this->schedule_cron();
     }
 
+    /**
+     * Add custom cron interval
+     */
+    public function add_cron_interval($schedules) {
+        $schedules['anar_sync_interval'] = array(
+            'interval' => 600, // 10 minutes in seconds
+            'display'  => 'هر ۱۰ دقیقه'
+        );
+        return $schedules;
+    }
 
-    public function syncProducts() {
+    /**
+     * Run sync process via cron
+     */
+    public function run_sync_cron() {
+        $this->triggerBy = 'Cronjob';
+        $this->fullSync = false;
+        $this->limit = 100;
+        $this->syncProducts();
+    }
+
+    /**
+     * Run full sync process via cron
+     */
+    public function run_full_sync_cron() {
+        $this->triggerBy = 'FullSyncCronjob';
+        $this->fullSync = true;
+        $this->syncProducts();
+    }
+
+    /**
+     * Schedule the cron jobs if not already scheduled
+     */
+    public function schedule_cron() {
+        if (!wp_next_scheduled('anar_sync_products')) {
+            wp_schedule_event(time(), 'anar_sync_interval', 'anar_sync_products');
+        }
+        if (!wp_next_scheduled('anar_full_sync_products')) {
+            wp_schedule_event(time(), 'anar_sync_interval', 'anar_full_sync_products');
+        }
+    }
+
+    /**
+     * Unschedule the cron jobs
+     */
+    public function unschedule_cron() {
+        $timestamp = wp_next_scheduled('anar_sync_products');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'anar_sync_products');
+        }
+        
+        $timestamp = wp_next_scheduled('anar_full_sync_products');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'anar_full_sync_products');
+        }
+    }
+
+    public function syncProducts($ajax_call = false) {
 
         if(!Activation::validate_saved_activation_key_from_anar())
             return;
@@ -82,6 +145,10 @@ class Sync {
 
         // only check cool down for fullSync jobs
         if($this->fullSync){
+
+            $this->log('Full Sync Cronjob temporary disabled!');
+            return;
+
             $lastSyncTime = $this->getLastSyncTime();
             if($lastSyncTime){
                 $msSinceLastSync = strtotime(current_time('mysql')) - strtotime($lastSyncTime);
@@ -127,12 +194,13 @@ class Sync {
             // Only perform final cleanup if truly complete
             if ($completed) {
                 $this->log("Sync job {$this->jobID} completed processing pages.");
-                // After processing all pages in a full sync, check for removed products
-                if ($this->fullSync) {
-                    //ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
-                }
                 $this->setLastSyncTime();
-                $this->complete_full_sync_job(); // Mark the full sync job as complete if applicable
+
+                if ($this->fullSync) {
+                    // After processing all pages in a full sync, check for removed products
+                    //ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
+                    $this->complete_full_sync_job(); // Mark the full sync job as complete if applicable
+                }
             } else {
                  $this->log("Sync job {$this->jobID} did not complete all pages in this run.");
             }
@@ -145,6 +213,14 @@ class Sync {
 
             $this->unlockSync();
 
+            if($ajax_call){
+                $response = array(
+                    'success' => true,
+                    'message' => sprintf('همگام سازی %s محصول با موفقیت انجام شد', $this->syncedCounter),
+                );
+                wp_send_json($response);
+            }
+
         }
     }
 
@@ -155,7 +231,7 @@ class Sync {
         $syncCompleted = false;
         
         // Increase batch size for full sync to reduce API calls
-        $batch_size = $this->fullSync ? 50 : $this->limit;
+        $batch_size = $this->limit;
         
         while (true) {
             // Check if we're approaching the execution time limit
@@ -200,6 +276,7 @@ class Sync {
             }
 
             if (empty($awcaProducts->items)) {
+                $this->log('we dont have any products on this page');
                 break;
             }
 
@@ -207,9 +284,17 @@ class Sync {
                 $this->log(sprintf('## Find %s products for update.' , $awcaProducts->total));
             }
 
+            if (count($awcaProducts->items)  == 0 ) {
+                $this->log('we dont have any items, its last page.');
+                $syncCompleted = true;
+                break;
+            }
+
             // Process products in smaller chunks to avoid memory issues
             $chunk_size = 50;
             $items = array_chunk($awcaProducts->items, $chunk_size);
+
+
             
             foreach ($items as $chunk) {
                 $this->processProducts($chunk);
@@ -225,11 +310,7 @@ class Sync {
 
             $this->syncedCounter += count($awcaProducts->items);
 
-            if (count($awcaProducts->items) < $batch_size) {
-                $this->log(sprintf('##items of this page is %s , its last page.' , count($awcaProducts->items)));
-                $syncCompleted = true;
-                break;
-            }
+
 
             $this->page++;
 
@@ -307,7 +388,7 @@ class Sync {
     }
 
 
-    public function processSimpleProduct($updateProduct) {
+    public function processSimpleProduct($updateProduct, $full = false) {
         try {
             if (!is_array($updateProduct->variants) || empty($updateProduct->variants)) {
                 throw new \Exception("No variants found in the product data");
@@ -336,7 +417,10 @@ class Sync {
 
                     $this->updateProductMetadata($productId, $variant);
                     $this->updateProductVariantMetaData($productId, $variant);
-                    $this->updateProductShipments($productId, $updateProduct);
+
+                    if($full){
+                        $this->updateProductShipments($productId, $updateProduct);
+                    }
 
 
                     return $productId;
@@ -354,7 +438,7 @@ class Sync {
     }
 
 
-    public function processVariableProduct($updateProduct) {
+    public function processVariableProduct($updateProduct, $full = false) {
         $wp_variation_productId = '';
         $parentId = 0;
 
@@ -408,8 +492,11 @@ class Sync {
                         }
 
                         $this->updateProductMetadata($parentId, $variant);
-                        $this->updateProductShipments($parentId, $updateProduct);
                         $this->updateProductVariantMetaData($wp_variation_productId, $variant);
+
+                        if($full){
+                            $this->updateProductShipments($parentId, $updateProduct);
+                        }
                     }
                 } catch (\Exception $e) {
                     $this->log("Error processing variant {$anar_variation_id}: " . $e->getMessage(), 'debug');
@@ -690,15 +777,12 @@ class Sync {
         $this->triggerBy = 'Manual';
         if(isset($_POST['full_sync']) && $_POST['full_sync'] == 'on') {
             $this->fullSync = true;
+            $this->limit = 100;
+            $this->restBetweenFullSyncs = 60;
         }
 
-        $this->syncProducts();
+        $this->syncProducts(true);
 
-        $response = array(
-            'success' => true,
-            'message' => sprintf('همگام سازی %s محصول با موفقیت انجام شد', $this->syncedCounter),
-        );
-        wp_send_json($response);
     }
 
 

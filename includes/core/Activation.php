@@ -85,6 +85,18 @@ class Activation{
         $tokenValidation = ApiDataHandler::tryGetAnarApiResponse("https://api.anar360.com/wp/auth/validate");
         if ($tokenValidation !== null) {
             if (isset($tokenValidation->success) && $tokenValidation->success === true) {
+
+                if(isset($tokenValidation->shopUrl)){
+                    update_option('_anar_shop_url', $tokenValidation->shopUrl);
+                }
+                if(isset($tokenValidation->subscriptionPlan)){
+                    update_option('_anar_subscription_plan', $tokenValidation->subscriptionPlan);
+                }
+                if(isset($tokenValidation->subscriptionRemaining)){
+                    update_option('_anar_subscription_remaining', $tokenValidation->subscriptionRemaining);
+                }
+
+
                 return true;
             }
         }

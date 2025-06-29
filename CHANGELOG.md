@@ -1,6 +1,9 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.13] - 1404/04/07
+- feat : restore deprecation on syncOutdated
+
 ## [0.3.11] - 1404/03/12
 - feat : slow Import method for low resources hosts
 - feat : option to switch between slow/fast import

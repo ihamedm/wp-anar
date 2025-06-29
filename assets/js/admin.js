@@ -7,5 +7,5 @@ import './publish-drafts';
 import './tool-ajax-form';
 import './not-synced';
 import './system-reports';
-import './sync-outdated';
+import './sync-force';
 import './dl-gallery';

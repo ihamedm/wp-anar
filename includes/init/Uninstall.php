@@ -45,7 +45,7 @@ class Uninstall
 
         // Unschedule outdated sync cron
         $sync_outdated = \Anar\SyncOutdated::get_instance();
-        $sync_outdated->unschedule_cron();
+        $sync_outdated->unscheduled_cron();
     }
 
 

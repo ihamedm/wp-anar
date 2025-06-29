@@ -86,7 +86,7 @@ class Order {
         }
         if($anar_order_number){
             awca_log('anar order created before successfully: #' . $anar_order_number);
-            return false;
+            return ['success' => false , 'message' => 'سفارش قبلا ساخته شده است.'];
         }
 
 
@@ -114,7 +114,7 @@ class Order {
 
         if (is_wp_error($prepare_response)) {
             $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
-            return false;
+            return ['success' => false , 'message' => 'خطا در برقراری ارتباط با سرور انار.'];
         }
 
         // Decode & Return the response data if everything is okay
@@ -122,7 +122,7 @@ class Order {
         if (isset($prepare_response['statusCode']) && $prepare_response['statusCode'] !== 200) {
             // Handle error
             $order->add_order_note('سفارش از سمت انار تایید نشد. خطا: ' . $prepare_response['message']);
-            return false;
+            return ['success' => false , 'message' => 'سفارش از سمت انار تایید نشد.'];
         } else {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
         }
@@ -132,6 +132,10 @@ class Order {
         // Prepare data for the second API call
         $address = $order->get_address('billing'); // Get billing address
 
+
+        if ($address['phone'] == ''){
+            return ['success' => false , 'message' => 'شماره موبایل خریدار اجباری است'];
+        }
 
 //        add_filter('woocommerce_localisation_address_formats', function ($formats) {
 //            $formats['IR'] = "{state} , {city} , {address_1} , {address_2}";
@@ -159,15 +163,17 @@ class Order {
                 'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
                 'transFereeMobile' => $address['phone'],
             ],
-            'shipments' => $this->prepare_shipments($order)
+            'externalId' => $order->get_id(),
+            'shipments' => $this->prepare_shipments($order),
         ];
+
 
         // Second API call to create the order
         $create_response = $this->call_api('https://api.anar360.com/wp/orders/', $create_data);
 
         if (is_wp_error($create_response)) {
             $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
-            return false;
+            return ['success' => false , 'message' => 'خطا در برقراری ارتباط با سرور انار.'];
         }
 
         // Decode the response body
@@ -184,7 +190,7 @@ class Order {
             }
 
             $order->add_order_note('ساخت سفارش در پنل انار انجام نشد: ' . $error_message);
-            return false;
+            return ['success' => false , 'message' => 'ساخت سفارش در پنل انار انجام نشد'];
         }
 
         // Save useful data in order meta
@@ -204,7 +210,7 @@ class Order {
         // update anar unpaid orders on wpdb to show alert
         (new Payments())->count_unpaid_orders_count();
 
-        return true;
+        return ['success' => true , 'message' => 'ساخت سفارش در پنل انار با موفقیت انجام شد'];
     }
 
 
@@ -253,10 +259,10 @@ class Order {
         foreach ($shipping_data as $shipping) {
             // Assuming each shipping entry has the necessary keys
             $shipments[] = [
-                'shipmentId' => $shipping['shipmentId'], // Use the shipmentId from saved data
-                'deliveryId' => $shipping['deliveryId'], // Use the delivery ID from saved data
-                'shipmentsReferenceId' => $shipping['shipmentsReferenceId'], // Reference ID for the shipment
-                'description' => $customer_note, // Add the customer note as the description
+                'shipmentId' => $shipping['shipmentId'],
+                'deliveryId' => $shipping['deliveryId'],
+                'shipmentsReferenceId' => $shipping['shipmentsReferenceId'],
+                'description' => esc_html($customer_note),
             ];
         }
 
@@ -496,10 +502,12 @@ class Order {
             wp_send_json_error( array( 'message' => 'order_id required') );
         }
 
-        if($this->create_anar_order($_POST['order_id'])){
+        $creation_result = $this->create_anar_order($_POST['order_id']);
+
+        if($creation_result['success']){
             wp_send_json_success(array('message' => 'سفارش با موفقیت در پنل انار ثبت شد.'));
         }else{
-            wp_send_json_error(array('message' => 'خطا در ثبت ثبت سفارش در پنل انار. مجدد انجام دهید.'));
+            wp_send_json_error(array('message' => $creation_result['message']));
         }
 
     }

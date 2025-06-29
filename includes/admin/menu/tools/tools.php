@@ -5,7 +5,7 @@ $active_tools_group = $_GET['group'] ?? 'sync';
 <div id="anar-tools" class="tab-content">
 
     <ul class="subsubsub" style="float:none">
-        <li><a href="?page=tools&tab=tools&group=sync" class="<?php echo $active_tools_group === 'sync' ? 'current' : ''; ?>">همگام سازی اتوماتیک</a></li> |
+        <li><a href="?page=tools&tab=tools&group=sync" class="<?php echo $active_tools_group === 'sync' ? 'current' : ''; ?>">بروزرسانی قیمت و موجودی</a></li> |
         <li><a href="?page=tools&tab=tools&group=products" class="<?php echo $active_tools_group === 'products' ? 'current' : ''; ?>">محصولات</a></li> |
         <?php if (class_exists('WeDevs_Dokan')):?>
             <li><a href="?page=tools&tab=tools&group=dokan" class="<?php echo $active_tools_group === 'dokan' ? 'current' : ''; ?>">دکان</a></li> |
