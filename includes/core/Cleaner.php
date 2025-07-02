@@ -39,7 +39,7 @@ class Cleaner{
                     LEFT JOIN {$wpdb->prefix}actionscheduler_claims ac ON ac.claim_id = a.claim_id
                     LEFT JOIN {$wpdb->prefix}actionscheduler_logs am ON am.action_id = a.action_id
                     WHERE a.status = %s 
-                    AND a.scheduled_date_gmt < DATE_SUB(NOW(), INTERVAL 1 HOUR)",
+                    AND a.scheduled_date_gmt < DATE_SUB(NOW(), INTERVAL 1 DAY)",
                     'complete'
                 )
             );

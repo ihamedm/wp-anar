@@ -1448,7 +1448,8 @@ select::-ms-expand {
   flex-direction: column;
   border-bottom: 1px solid #eee;
   padding: 12px 0;
-  margin:0
+  margin:0;
+  cursor: pointer;
 }
 .anar-tool .access-menu li:last-child{
   border:none

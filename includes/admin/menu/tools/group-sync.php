@@ -11,8 +11,8 @@
                 <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&sync=late&hours_ago=1'));?>" target="_blank">محصولات آپدیت نشده</a>
                 <small>محصولاتی که یک ساعت اخیر آپدیت نشده اند</small>
             </li>
-            <li>
-                <span id="clear-sync-times-btn" style="cursor: pointer">بروزرسانی اجباری</span>
+            <li id="clear-sync-times-btn">
+                <span  style="cursor: pointer">بروزرسانی اجباری</span>
                 <small>بروزرسانی کل محصولات زودتر از برنامه</small>
             </li>
 

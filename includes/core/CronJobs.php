@@ -56,7 +56,7 @@ class CronJobs {
         }
 
         if (!wp_next_scheduled('anar_cleanup_action_scheduler')) {
-            wp_schedule_event(time(), 'hourly', 'anar_cleanup_action_scheduler');
+            wp_schedule_event(time(), 'daily', 'anar_cleanup_action_scheduler');
         }
     }
 

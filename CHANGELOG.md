@@ -1,6 +1,11 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.15] - 1404/04/
+- fix : change scheduler cleanup to once pr day
+- fix : restore deprecated variation products set _anar_sku as null
+
+
 ## [0.3.14] - 1404/04/08
 - fix : _anar_sku of deprecated variable products not restored properly
 

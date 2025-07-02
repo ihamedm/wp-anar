@@ -551,9 +551,15 @@ class ProductManager{
 
             foreach ($variations as $variation_id) {
                 $v_anar_sku_backup = get_post_meta($variation_id, '_anar_sku_backup', true);
-                $v_anar_products_backup = get_post_meta($variation_id, '_anar_products_backup', true);
-                update_post_meta($variation_id, '_anar_sku', $v_anar_sku_backup);
-                update_post_meta($variation_id, '_anar_products', $v_anar_products_backup);
+                $v_anar_variant_id = get_post_meta($variation_id, '_anar_variant_id', true);
+
+                // @todo : remove in future, backward compatibility to fix a bug that we set _anar_products for variation product
+                delete_post_meta($variation_id, '_anar_products');
+                if($v_anar_sku_backup){
+                    update_post_meta($variation_id, '_anar_sku', $v_anar_sku_backup);
+                }elseif($v_anar_variant_id){
+                    update_post_meta($variation_id, '_anar_sku', $v_anar_variant_id);
+                }
             }
         }
     }
@@ -567,20 +573,21 @@ class ProductManager{
 
     public static function set_product_variation_out_of_stock($wc_variation_id, $deprecate = false) {
         $variation = wc_get_product($wc_variation_id);
-        if ($variation) {
-            // Update variation stock status
-            $variation->set_stock_quantity(0);
-            $variation->set_stock_status('outofstock');
-            $variation->save();
+        if ($variation instanceof WC_Product_Variation) {
+            try {
+                $variation->set_stock_quantity(0);
+                $variation->set_stock_status('outofstock');
+                $variation->save();
 
-            if($deprecate){
-                // make a backup from sku then delete
-                self::backup_anar_meta_data($wc_variation_id);
-
-                // Clean up variation meta
-                delete_post_meta($wc_variation_id, '_anar_sku');
-                delete_post_meta($wc_variation_id, '_anar_products');
+                if ($deprecate) {
+                    self::backup_anar_meta_data($wc_variation_id);
+                    delete_post_meta($wc_variation_id, '_anar_sku');
+                }
+            } catch (\Exception $e) {
+                awca_log($wc_variation_id, 'Error setting out of stock: ' . $e->getMessage(), 'debug');
             }
+        } else {
+            awca_log($wc_variation_id, 'Invalid variation or not found.', 'debug');
         }
     }
 
