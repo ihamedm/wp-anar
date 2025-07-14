@@ -111,130 +111,7 @@ import {paginateLinks} from "./functions";
       }
     },
 
-    fetchNotifications: function (page, limit){
-      var anarNotifications =  jQuery('#awca_notification_list')
-      if(anarNotifications.length !== 0){
 
-        var loadingIcon = anarNotifications.find('.spinner-loading')
-        var msgType = 'error'
-
-        jQuery.ajax({
-          url: awca_ajax_object.ajax_url,
-          type: "POST",
-          dataType: "json",
-          data: {
-            action: 'awca_fetch_notifications_ajax',
-            page: page,
-            limit: limit
-          },
-          beforeSend: function () {
-            loadingIcon.show();
-          },
-          success: function (response) {
-            if (response.success) {
-              anarNotifications.html(response.data.output)
-              msgType = 'success'
-              paginateNotifications(response.data.total, response.data.page, response.data.limit)
-            }
-            awca_toast(response.data.message, msgType);
-          },
-          error: function (xhr, status, err) {
-            awca_toast(xhr.responseText)
-            loadingIcon.hide();
-
-          },
-          complete: function () {
-            loadingIcon.hide();
-          },
-        });
-
-        function paginateNotifications(total, page, limit) {
-          var pagination = jQuery('#awca_pagination');
-          var totalPages = Math.ceil(total / limit);
-          var paginationHtml = '';
-
-          for (var i = 1; i <= totalPages; i++) {
-            paginationHtml += '<button class="pagination-btn" data-page="' + i + '">' + i + '</button>';
-          }
-
-          pagination.html(paginationHtml);
-
-          pagination.find('.pagination-btn').on('click', function () {
-            this.fetchNotifications(jQuery(this).data('page'), limit);
-          });
-        }
-
-      }
-
-    },
-
-    fetchPendingPayments: function (page, limit){
-      var anarPayments =  jQuery('#awca_payments')
-      if(anarPayments.length !== 0){
-
-        var loadingIcon = anarPayments.find('.spinner-loading')
-        var payableEl = anarPayments.find('#awca_payable')
-        var listEl = anarPayments.find('#awca_payment_list')
-        var loadingFrame = anarPayments.find('#awca-loading-frame')
-        var msgType = 'error'
-
-        jQuery.ajax({
-          url: awca_ajax_object.ajax_url,
-          type: "POST",
-          dataType: "json",
-          data: {
-            action: 'awca_fetch_payments_ajax',
-            page: page,
-            limit: limit
-          },
-          beforeSend: function () {
-            loadingFrame.show();
-          },
-          success: function (response) {
-            if (response.success) {
-              listEl.html(response.data.output)
-              payableEl.html(response.data.payable)
-              paginatePendingPayments(response.data.total, page, limit)
-              msgType = 'success'
-            }
-            awca_toast(response.data.message, msgType);
-          },
-          error: function (xhr, status, err) {
-            awca_toast(xhr.responseText)
-            loadingFrame.hide();
-
-          },
-          complete: function () {
-            loadingFrame.hide();
-          },
-        });
-
-      }
-
-      function paginatePendingPayments(total, page, limit) {
-        var pagination = jQuery('#awca_pagination');
-        var totalPages = Math.ceil(total / limit);
-
-        // Generate pagination links using WordPress-style pagination
-        var paginationHtml = paginateLinks({
-          current: page,
-          total: totalPages,
-          base: '#page-%#%', // Placeholder for pagination links
-          format: '?page=%#%', // URL structure for pages
-          prev_text: '&laquo;', // Previous page link text
-          next_text: '&raquo;', // Next page link text
-        });
-
-        pagination.html(paginationHtml);
-
-        // Handle pagination clicks
-        pagination.find('a').on('click', function (e) {
-          e.preventDefault();
-          var newPage = jQuery(this).data('page');
-          AnarHandler.fetchPendingPayments(newPage, limit);
-        });
-      }
-    },
 
     clearSelect: function(target, type = "varient"){
       const selects = jQuery(".varient_selcet");
@@ -566,8 +443,6 @@ import {paginateLinks} from "./functions";
           $('#' + elementID).toggle()
         })
 
-        AnarHandler.fetchNotifications(1, 10);
-        AnarHandler.fetchPendingPayments(1, 10)
         AnarHandler.refreshData()
         AnarHandler.moveToProperStep()
 

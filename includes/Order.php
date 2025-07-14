@@ -110,7 +110,7 @@ class Order {
         ];
 
         // First API call to prepare the order
-        $prepare_response = $this->call_api('https://api.anar360.com/wp/orders/prepare', $prepare_data);
+        $prepare_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/prepare', $prepare_data);
 
         if (is_wp_error($prepare_response)) {
             $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
@@ -135,6 +135,9 @@ class Order {
 
         if ($address['phone'] == ''){
             return ['success' => false , 'message' => 'شماره موبایل خریدار اجباری است'];
+        }
+        if ($address['postcode'] == ''){
+            return ['success' => false , 'message' => 'کد پستی خریدار اجباری است'];
         }
 
 //        add_filter('woocommerce_localisation_address_formats', function ($formats) {
@@ -167,10 +170,8 @@ class Order {
             'shipments' => $this->prepare_shipments($order),
         ];
 
-
         // Second API call to create the order
-        $create_response = $this->call_api('https://api.anar360.com/wp/orders/', $create_data);
-
+        $create_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/', $create_data);
         if (is_wp_error($create_response)) {
             $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
             return ['success' => false , 'message' => 'خطا در برقراری ارتباط با سرور انار.'];
@@ -178,6 +179,7 @@ class Order {
 
         // Decode the response body
         $create_response = json_decode(wp_remote_retrieve_body($create_response), true);
+        //awca_log(print_r($create_response, true));
 
         if (!isset($create_response['success']) || !$create_response['success']) {
             // Handle error
@@ -208,14 +210,9 @@ class Order {
         $order->save();
 
         // update anar unpaid orders on wpdb to show alert
-        (new Payments())->count_unpaid_orders_count();
+        //(new Payments())->count_unpaid_orders_count();
 
         return ['success' => true , 'message' => 'ساخت سفارش در پنل انار با موفقیت انجام شد'];
-    }
-
-
-    private function call_api($url, $data) {
-        return ApiDataHandler::postAnarApi($url, $data);
     }
 
 

@@ -94,6 +94,8 @@
             )); ?>
         </div>
 
+        <div class="awca-alert-area"></div>
+
     <?php endif;?>
 
 </div>

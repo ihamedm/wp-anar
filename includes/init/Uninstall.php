@@ -59,7 +59,7 @@ class Uninstall
         delete_option('awca_db_version');
         delete_option('awca_cron_version');
         delete_option('_awca_unpaid_orders');
-        delete_option('awca_unread_notifications');
+        delete_option('anar_unread_notifications');
         delete_option('awca_last_sync_time');
         delete_option('awca_total_products');
         delete_option('awca_proceed_products');

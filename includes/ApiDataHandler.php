@@ -76,6 +76,7 @@ class ApiDataHandler
             'body' => json_encode($data),
             'headers' => [
                 'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
                 'Authorization' => $token,
                 'wp-header' => get_site_url()
             ],

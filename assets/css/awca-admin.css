@@ -178,6 +178,11 @@
   cursor: not-allowed;
 }
 
+
+.pagination-btn{
+  padding: 0 4px;
+}
+
 .awca-button.primary{
 
 }
@@ -1162,6 +1167,7 @@ select::-ms-expand {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  gap:8px;
 }
 
 #awca_pagination a {
@@ -1170,6 +1176,9 @@ select::-ms-expand {
   border: 1px solid #ddd;
   text-decoration: none;
   color: #0073aa;
+}
+.pagination-btn{
+  padding: 2px 10px !important;
 }
 
 #awca_pagination a:hover {
@@ -1180,8 +1189,8 @@ select::-ms-expand {
 #awca_pagination .current {
   padding: 5px 10px;
   margin: 0 5px;
-  border: 1px solid #0073aa;
-  background-color: #0073aa;
+  border: 1px solid #000;
+  background-color: #000;
   color: white;
   pointer-events: none;
 }
@@ -1530,6 +1539,56 @@ select::-ms-expand {
   width: 100% !important;
 }
 
+
+#awca_notification_list{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#awca_notification_list .item{
+  background: #fff;
+  border:1px solid #eee;
+  padding: 16px;
+  border-radius: 8px;
+}
+#awca_notification_list .item.unread{
+  border-color: #dcdcdc;
+}
+#awca_notification_list .item header{
+  display: flex;
+  justify-content: space-between;
+}
+#awca_notification_list .item .meta{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+#awca_notification_list .item .label{
+  background: #e5f7ff;
+  border-radius: 100px;
+  padding: 2px 8px 4px;
+  font-size: 12px !important;
+}
+
+#awca_notification_list .item.product-out-of-stock .label{
+  background: #ffdfdf;
+}
+#awca_notification_list .item.product-re-stock .label{
+  background: #9ff784;
+}
+#awca_notification_list .item.wordpress .label{
+  background: #96588a;
+  color:#fff;
+}
+
+#awca_notification_list .item.unread .content{
+  font-weight: bold;
+}
+#awca_notification_list .item date{
+  font-size: 12px;
+  color: #999;
+}
 
 /*Animations*/
 

@@ -3,6 +3,7 @@ namespace Anar\Core;
 
 use Anar\Import;
 use Anar\ImportSlow;
+use Anar\Notifications;
 use Anar\ProductData;
 use Anar\Sync;
 use Anar\SyncTools;
@@ -114,6 +115,7 @@ class CronJobs {
 
     public function fetch_updated_data_from_anar_job() {
         (new ProductData())->count_anar_products(true);
+        (new Notifications())->count_unread_notifications();
     }
 
     public function cleanup_logs(){

@@ -3,6 +3,8 @@ import {awca_toast} from "./functions";
 jQuery(document).ready(function($) {
 
     var productListTable = $('.awca_product_list_table')
+    var stepButton = $('.stepper_button_container')
+    var paginationWrapper = $('.pagination')
 
     if(productListTable.length !== 0){
         var currentPage = 1;
@@ -27,31 +29,40 @@ jQuery(document).ready(function($) {
                 success: function(response) {
                     if (response.success) {
                         var products = response.data.items;
-                        var tbody = productListTable.find('.list');
-                        var rows = '';
 
-                        $.each(products, function(index, product) {
-                            rows += '<tr class="item">';
-                            rows += '<td>' + (((currentPage - 1) * perPage) + (index+1) ) + '</td>';
-                            rows += '<td><img class="awca_product_images" src="' + (product.mainImage ? product.mainImage : '') + '" alt="' + product.title + '"></td>';
-                            rows += '<td class="awca_product_title">' + product.title + '</td>';
-                            rows += '<td style="cursor: pointer;" >' + makeShortDescription(product.description ?? '') + '...</td>';
-                            rows += '<td style="cursor: pointer;" >مشاهده</td>';
-                            rows += '<td class="awca_product_price">' + product.variants[0].priceForResell + ' تومان</td>';
-                            rows += '<td class="awca_product_price">' + product.variants[0].price + ' تومان</td>';
-                            rows += '<td style="cursor: pointer;" onclick="awca_complete_desc(\'' + JSON.stringify(product.shipments) + '\', \'روش‌های ارسال محصول\')">مشاهده</td>' ;
-                            rows += '</tr>';
-                        });
+                        if(products && products.length > 0) {
 
-                        tbody.html(rows);
+                            var tbody = productListTable.find('.list');
+                            var rows = '';
 
-                        totalPages = Math.ceil(response.data.total / perPage); // Calculate total pages
+                            $.each(products, function (index, product) {
+                                rows += '<tr class="item">';
+                                rows += '<td>' + (((currentPage - 1) * perPage) + (index + 1)) + '</td>';
+                                rows += '<td><img class="awca_product_images" src="' + (product.mainImage ? product.mainImage : '') + '" alt="' + product.title + '"></td>';
+                                rows += '<td class="awca_product_title">' + product.title + '</td>';
+                                rows += '<td style="cursor: pointer;" >' + makeShortDescription(product.description ?? '') + '...</td>';
+                                rows += '<td style="cursor: pointer;" >مشاهده</td>';
+                                rows += '<td class="awca_product_price">' + product.variants[0].priceForResell + ' تومان</td>';
+                                rows += '<td class="awca_product_price">' + product.variants[0].price + ' تومان</td>';
+                                rows += '<td style="cursor: pointer;" onclick="awca_complete_desc(\'' + JSON.stringify(product.shipments) + '\', \'روش‌های ارسال محصول\')">مشاهده</td>';
+                                rows += '</tr>';
+                            });
 
-                        $('#current-page').text(page);
-                        $('#prev-page').prop('disabled', page === 1);
-                        $('#next-page').prop('disabled', products.length === 0);
+                            tbody.html(rows);
 
-                        generatePaginationNumbers(page, totalPages);
+                            totalPages = Math.ceil(response.data.total / perPage); // Calculate total pages
+
+                            $('#current-page').text(page);
+                            $('#prev-page').prop('disabled', page === 1);
+                            $('#next-page').prop('disabled', products.length === 0);
+
+                            generatePaginationNumbers(page, totalPages);
+                        }else{
+                            productListTable.hide()
+                            stepButton.hide()
+                            paginationWrapper.hide()
+                            $('.awca-alert-area').html('<p class="alert alert-warning">شما هنوز حق فروش هیچ محصولی را نگرفته اید. به پنل انار خود مراجعه کنید و حق فروش محصولاتی را که میخواهید بفروشید دریافت کنید.</p>')
+                        }
                     } else {
                         console.log(response.data);
                     }

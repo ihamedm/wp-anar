@@ -67,7 +67,7 @@ class Menus{
                 [$this, 'payments_page_content']
             );
 
-/*
+
         if(ANAR_IS_ENABLE_NOTIF_PAGE)
             add_submenu_page(
                 'wp-anar',
@@ -77,7 +77,7 @@ class Menus{
                 'notifications',
                 [$this, 'notifications_page_content']
             );
-*/
+
         add_submenu_page(
             'wp-anar',
             'ابزارها',

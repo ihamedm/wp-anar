@@ -9,3 +9,4 @@ import './not-synced';
 import './system-reports';
 import './sync-force';
 import './dl-gallery';
+import './notifications';

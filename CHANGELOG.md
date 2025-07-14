@@ -1,7 +1,12 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
-## [0.3.15] - 1404/04/
+## [0.3.16] - 1404/04/
+- feat : notification center
+- fix : required postcode on create anar order
+
+
+## [0.3.15] - 1404/04/11
 - fix : change scheduler cleanup to once pr day
 - fix : restore deprecated variation products set _anar_sku as null
 
