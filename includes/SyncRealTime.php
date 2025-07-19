@@ -136,7 +136,7 @@ class SyncRealTime {
      * @param int $product_id The WordPress Product or Variation ID.
      * @return string Status code: 'updated', 'skipped_cooldown', 'skipped_not_anar', 'fetch_failed', 'update_failed'.
      */
-    private function process_product_update($product_id) {
+    public function sync_product_with_anar($product_id) {
         $anar_sku = get_post_meta($product_id, '_anar_sku', true);
         if (empty($anar_sku)) {
             $this->log("Skipping Product ID {$product_id}: Not an Anar product (no _anar_sku).", 'debug');
@@ -170,6 +170,7 @@ class SyncRealTime {
         }
     }
 
+
     /**
      * Handles the AJAX request for single product updates.
      */
@@ -188,7 +189,7 @@ class SyncRealTime {
              wp_send_json_error(['message' => "Product with ID {$product_id} not found."], 404);
         }
 
-        $status = $this->process_product_update($product_id);
+        $status = $this->sync_product_with_anar($product_id);
 
         switch ($status) {
             case 'updated':
@@ -239,12 +240,12 @@ class SyncRealTime {
 
         foreach ($cart as $cart_item_key => $cart_item) {
             $product_id = $cart_item['product_id'];
-            $actual_id_to_check = $cart_item['variation_id'] ? $cart_item['variation_id'] : $product_id;
+            //$actual_id_to_check = $cart_item['variation_id'] ? $cart_item['variation_id'] : $product_id;
 
             $results['processed']++;
-            $this->log("Cart Update: Checking product ID: {$actual_id_to_check}", 'debug');
+            $this->log("Cart Update: Checking product ID: {$product_id}", 'debug');
 
-            $status = $this->process_product_update($actual_id_to_check);
+            $status = $this->sync_product_with_anar($product_id);
 
             // Increment the counter corresponding to the status
             if (isset($results[$status])) {
@@ -259,4 +260,6 @@ class SyncRealTime {
         $this->log("Cart product update check finished. Results: " . json_encode($results), 'debug');
         wp_send_json_success($results);
     }
+
+
 }

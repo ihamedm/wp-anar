@@ -536,7 +536,14 @@ class Sync {
      */
     public function updateProductStockAndPrice($product, $updateProduct, $variant, $parentId) {
         // Update stock
-        $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
+       $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
+
+        // temporary patch : check if shipments not set stock to zero
+        if(empty($updateProduct->shipmentsReferenceId) || empty($updateProduct->shipments)) {
+            $variantStock = 0;
+            awca_log("shipments is empty for #" . $product->get_id() ." so set as out-of-stock");
+        }
+
         $product->set_stock_quantity($variantStock);
         // Set stock status based on quantity (optional but good practice)
         $product->set_manage_stock(true);

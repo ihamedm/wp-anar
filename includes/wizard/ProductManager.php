@@ -620,87 +620,85 @@ class ProductManager{
 
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 100;
+        $use_sql = isset($_POST['use_sql']) && $_POST['use_sql'] === 'true';
         $has_more = true;
         $total_published = 0;
         $found_products = 0;
         $this_loop_products = 0;
-
-        // Query arguments to get draft products
-        $query_args = array(
-            'post_type'      => 'product',
-            'post_status'    => 'draft',
-            'fields'         => 'ids',
-            'posts_per_page' => $limit,
-            'meta_query'     => array(
-                array(
-                    'key'     => '_anar_products',
-                    'compare' => 'EXISTS'
+        $product_ids = [];
+        if ($use_sql) {
+            global $wpdb;
+            $offset = ($page - 1) * $limit;
+            $meta_query = "SELECT p.ID FROM {$wpdb->posts} p
+                INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+                WHERE p.post_type = 'product'
+                AND p.post_status = 'draft'
+                AND pm.meta_key = '_anar_products'";
+            if (isset($_POST['skipp_out_of_stocks']) && $_POST['skipp_out_of_stocks'] === 'true') {
+                $meta_query .= " AND EXISTS (SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.ID AND pm2.meta_key = '_stock_status' AND pm2.meta_value = 'instock')";
+            }
+            $meta_query .= " LIMIT %d OFFSET %d";
+            $product_ids = $wpdb->get_col($wpdb->prepare($meta_query, $limit, $offset));
+            $found_products = count($product_ids);
+            $this_loop_products = $found_products;
+            $has_more = $found_products === $limit;
+        } else {
+            // Query arguments to get draft products
+            $query_args = array(
+                'post_type'      => 'product',
+                'post_status'    => 'draft',
+                'fields'         => 'ids',
+                'posts_per_page' => $limit,
+                'meta_query'     => array(
+                    array(
+                        'key'     => '_anar_products',
+                        'compare' => 'EXISTS'
+                    )
                 )
-            )
-        );
-
-        // Add stock status check if needed
-        if (isset($_POST['skipp_out_of_stocks']) && $_POST['skipp_out_of_stocks'] === 'true') {
-            $query_args['meta_query'][] = array(
-                'key'     => '_stock_status',
-                'value'   => 'instock',
-                'compare' => '='
             );
-        }
-
-
-
-        try {
+            // Add stock status check if needed
+            if (isset($_POST['skipp_out_of_stocks']) && $_POST['skipp_out_of_stocks'] === 'true') {
+                $query_args['meta_query'][] = array(
+                    'key'     => '_stock_status',
+                    'value'   => 'instock',
+                    'compare' => '='
+                );
+            }
             $products_query = new \WP_Query($query_args);
-
             $found_products = $products_query->found_posts;
             $this_loop_products = count($products_query->posts);
+            $product_ids = $products_query->posts;
+            $has_more = $this_loop_products === $limit;
+        }
+
+        try {
             $products_to_clear = [];
-
-            if ($products_query->have_posts()) :
-                while ($products_query->have_posts()) :
-                    $products_query->the_post();
-                    $product_id = get_the_ID();
-
-                    // Get the product object
-                    $product = wc_get_product($product_id);
-
-                    if (!$product) {
-                        continue;
-                    }
-
-                    $product->set_status('publish');
-
-                    if ($product->save()) {
-                        $products_to_clear[] = $product_id;
-
-                        // Trigger action for other plugins
-                        do_action('woocommerce_product_published', $product_id, $product);
-                    }
-
-                    $total_published++;
-                    // Clean up product object to free memory
-                    unset($product);
-                endwhile;
-            else:
-                $has_more = false;
-                return;
-            endif;
-
+            foreach ($product_ids as $product_id) {
+                // Get the product object
+                $product = wc_get_product($product_id);
+                if (!$product) {
+                    continue;
+                }
+                $product->set_status('publish');
+                if ($product->save()) {
+                    $products_to_clear[] = $product_id;
+                    // Trigger action for other plugins
+                    do_action('woocommerce_product_published', $product_id, $product);
+                }
+                $total_published++;
+                // Clean up product object to free memory
+                unset($product);
+            }
             // Clear batch cache
             $this->clear_batch_cache($products_to_clear);
-
             // Reset post data
             wp_reset_postdata();
-
             // Clear some memory
             if (function_exists('gc_collect_cycles')) {
                 gc_collect_cycles();
             }
-
             // Final cache clear
             wc_delete_product_transients();
-
         }catch (\Exception $exception){
             $response = [
                 'success' => false,

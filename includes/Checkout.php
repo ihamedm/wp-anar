@@ -2,6 +2,7 @@
 namespace Anar;
 
 use Anar\Core\Logger;
+use mysql_xdevapi\Exception;
 
 class Checkout {
 
@@ -29,6 +30,9 @@ class Checkout {
 
         add_action( 'woocommerce_cart_calculate_fees', [$this, 'calculate_total_shipping_fee'] );
         add_action( 'woocommerce_before_calculate_totals', [$this, 'check_for_cart_products_types']);
+
+        // Remove Anar products without shipping data before checkout
+        add_action('woocommerce_check_cart_items', [ $this, 'remove_anar_products_without_shipping' ], 5);
 
         add_filter( 'woocommerce_package_rates', [$this, 'enable_free_shiping_when_no_standard_products'], 100, 2 );
         add_action( 'wp_head', [$this, 'visually_hide_shipment_rates_no_standard_products']);
@@ -78,7 +82,7 @@ class Checkout {
             $has_standard_product = WC()->session->get('has_standard_product');
             $has_anar_product = WC()->session->get('has_anar_product');
 
-            foreach ($cart_items as $item => $values) {
+            foreach ($cart_items as $cart_item_key => $values) {
                 $_product = wc_get_product($values['data']->get_id());
                 $product_parent_id = $_product->get_parent_id();
 
@@ -92,10 +96,11 @@ class Checkout {
                     // Anar product
 
                     if($_product->is_type('simple')){
-                        $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_id());
+                        $product_id = $_product->get_id();
                     }else{
-                        $anar_shipment_data = ProductData::get_anar_product_shipments($_product->get_parent_id());
+                        $product_id = $_product->get_parent_id();
                     }
+                    $anar_shipment_data = ProductData::get_anar_product_shipments($product_id);
 
                     if ($anar_shipment_data && count($anar_shipment_data) > 0) {
                         $shipment_types_to_display = [];
@@ -154,11 +159,12 @@ class Checkout {
                                         ];
 
                                         // Save relevant shipment data to the session
-                                        $shipment_data[] = [
+                                        $item_shipment_data = [
                                             'shipmentId' => $shipment->_id, // Correctly save the shipment ID
                                             'deliveryId' => $delivery->_id, // Use the delivery ID from the active delivery
                                             'shipmentsReferenceId' => $shipmentsReferenceId,
                                         ];
+                                        $shipment_data[] = $item_shipment_data;
 
                                     }
 
@@ -167,13 +173,19 @@ class Checkout {
 
                         }
 
+                    }else{
+                        // we dont have any shipment data for this cart item so we can't sold it
+                        WC()->cart->remove_cart_item($cart_item_key);
+                        $product_title = $_product->get_name();
+                        wc_add_notice(sprintf(__('محصول "%s" به دلیل عدم وجود روش ارسال از سبد خرید شما حذف شد.', 'wp-anar'), $product_title), 'error');
                     }
                 }
             }
 
             // Store shipment data in session for later use [save on order meta, need for call anar order create API]
-            if(isset($shipment_data))
+            if(isset($shipment_data)){
                 WC()->session->set('anar_shipment_data', $shipment_data);
+            }
 
             // Display Anar shipping methods if Anar products are present
             if ($has_anar_product) {
@@ -287,8 +299,8 @@ class Checkout {
             }else{
 //                @todo show message 'fill form please'
             }
-        } finally {
-            //$this->calculate_total_shipping_fee();
+        } catch (Exception $e) {
+            awca_log($e->getMessage());
         }
 
     }
@@ -677,6 +689,37 @@ class Checkout {
     public function handle_autofill_update() {
         // Force recalculation of totals
         WC()->cart->calculate_totals();
+    }
+
+    /**
+     * Remove Anar products from cart if they have no shipping data
+     */
+    public function remove_anar_products_without_shipping() {
+        $cart = WC()->cart;
+        if (!$cart) return;
+        $removed = false;
+        foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
+            $product_id = $cart_item['product_id'];
+            $product = wc_get_product($product_id);
+            if (!$product) continue;
+            $parent_id = $product->get_parent_id();
+            $anar_meta = $parent_id == 0
+                ? get_post_meta($product_id, self::ANAR_PRODUCT_META, true)
+                : get_post_meta($parent_id, self::ANAR_PRODUCT_META, true);
+            if ($anar_meta) {
+                $shipping_data = \Anar\ProductData::get_anar_product_shipments($product_id);
+                if (empty($shipping_data) || !isset($shipping_data['shipments']) || count($shipping_data['shipments']) === 0) {
+                    $cart->remove_cart_item($cart_item_key);
+                    $removed = true;
+                    $product_title = $product->get_name();
+                    wc_add_notice(sprintf(__('محصول "%s" به دلیل عدم وجود روش ارسال از سبد خرید شما حذف شد.', 'wp-anar'), $product_title), 'error');
+                }
+            }
+        }
+        if ($removed) {
+            // Force cart totals recalculation
+            $cart->calculate_totals();
+        }
     }
 
     private function get_session_data($key, $default = null) {

@@ -222,6 +222,8 @@ class ProductData{
         $shipments_ref = get_post_meta($product_id, '_anar_shipments_ref', true);
 
         if(!$shipments_json || $shipments_json == '' || count(json_decode($shipments_json)) == 0){
+            $Res = (new SyncRealTime())->sync_product_with_anar($product_id);
+//            awca_log('Checkout: show shipments, shipments is empty, Res : ' . $Res);
             return false;
 //            @todo check the usage of this function, replace false with []
         }

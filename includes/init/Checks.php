@@ -16,9 +16,10 @@ class Checks {
     public function __construct() {
         // Add admin notice for missing shipping rates
         add_action('admin_notices', [$this, 'admin_notice_missing_shipping_rates']);
-        //add_action('admin_notices', [$this, 'admin_notice_persian_wc']);
+        add_action('admin_notices', [$this, 'admin_notice_persian_wc']);
         add_action('admin_notices', [$this, 'admin_notice_max_input_vars']);
         add_action('admin_notices', [$this, 'admin_notice_cron_health']);
+        // Remove AJAX and JS hooks
     }
 
     /**
@@ -44,7 +45,7 @@ class Checks {
         if (!$this->is_persian_wc_active()) {
             ?>
             <div class="notice notice-warning is-dismissible" data-notice-id="persian-wc-notice">
-                <p><strong>هشدار افزونه ووکامرس فارسی!</strong> برای عملکرد بهتر فروشگاه، لطفاً افزونه ووکامرس فارسی را نصب و فعال کنید.</p>
+                <p><strong>هشدار افزونه ووکامرس فارسی!</strong> برای نمایش صحیح آدرس خریداران در سفارش های ووکامرس لازم است افزونه ووکامرس فارسی را نصب و فعال کنید.</p>
                 <p><a href="<?php echo admin_url('plugin-install.php?s=persian-woocommerce&tab=search&type=term'); ?>" class="button button-primary">نصب ووکامرس فارسی</a></p>
             </div>
             <?php
@@ -118,9 +119,22 @@ class Checks {
      * Check WordPress cron health and show notice if there are issues
      */
     public function admin_notice_cron_health() {
+        // Handle dismiss via query arg
+        if (isset($_GET['anar_dismiss_cron_notice']) && current_user_can('manage_options')) {
+            update_user_meta(get_current_user_id(), 'anar_cron_notice_dismissed', 1);
+            // Redirect to remove the query arg
+            wp_redirect(remove_query_arg('anar_dismiss_cron_notice'));
+            exit;
+        }
+
         // Only check on specific pages to improve performance
         $screen = get_current_screen();
         if (!$screen || !in_array($screen->id, ['dashboard', 'woocommerce_page_wc-settings'])) {
+            return;
+        }
+
+        // Check if notice was dismissed for this user
+        if (get_user_meta(get_current_user_id(), 'anar_cron_notice_dismissed', true)) {
             return;
         }
 
@@ -149,8 +163,9 @@ class Checks {
      */
     private function show_cron_notice($type, $time_diff = 0) {
         $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg';
+        $dismiss_url = esc_url(add_query_arg('anar_dismiss_cron_notice', 1));
         ?>
-        <div class="notice notice-warning" style="border-left-color: #ffb900; padding: 10px 12px;">
+        <div class="notice notice-warning is-dismissible" style="border-left-color: #ffb900; padding: 10px 12px; position:relative;">
             <p style="display: flex;align-items: center; gap:8px">
                 <img style="width: 24px;" src="<?php echo $anar_fruit_url;?>">
                 <strong>انار۳۶۰ : هشدار وضعیت کران جاب!</strong>
@@ -160,9 +175,7 @@ class Checks {
                     <span>کران جاب در <?php echo floor($time_diff / 3600); ?> ساعت گذشته اجرا نشده است. این می‌تواند باعث مشکلاتی در عملکرد افزونه شود.</span>
                 <?php endif; ?>
             </p>
-            <!--p>
-                <a href="https://wp.anar360.com/installation#cron-settings" class="button button-secondary" target="_blank">راهنمای تنظیم کران جاب</a>
-            </p-->
+            <button type="button" class="notice-dismiss" onclick="location.href='<?php echo $dismiss_url; ?>'"></button>
         </div>
         <?php
     }

@@ -42,7 +42,7 @@ function format_job_date($date_string) {
 }
 ?>
 
-<div class="mini-tool">
+<div class="mini-tool" style="display:none">
 
     <form method="post" action="<?php echo admin_url('admin-ajax.php'); ?>"  id="anar_force_sync_products"
           style="display: flex; flex-direction: column; align-items: center;justify-between: center ; gap: 16px;">

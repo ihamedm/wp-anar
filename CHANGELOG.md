@@ -1,7 +1,17 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
-## [0.3.16] - 1404/04/
+## [0.3.17] - 1404/04/25
+- feat : checking for Persian WordPress plugin installation
+- feat : add button to mark as read notification
+- feat : add sql method to publish products tool
+- fix : add dismiss button to cronjob alert
+- fix : improve counting unread notifications 
+- fix : change menu and tab names more readable for users
+- fix : issue about updating variable products on checkout
+
+
+## [0.3.16] - 1404/04/22
 - feat : notification center
 - fix : required postcode on create anar order
 

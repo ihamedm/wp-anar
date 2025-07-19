@@ -88,21 +88,21 @@ class Menus{
         );
 
         add_submenu_page(
-            'wp-anar', // Parent slug
-            'تنظیمات', // Submenu page title (this will be displayed in the page title)
-            'تنظیمات', // Submenu title (this will be displayed in the menu)
-            'manage_options', // Capability
-            'configs', // Submenu slug (same as main menu)
-            [$this, 'activation_page_content'] // Callback function
+            'wp-anar',
+            'فعالسازی',
+            'فعالسازی',
+            'manage_options',
+            'configs',
+            [$this, 'activation_page_content']
         );
 
         add_submenu_page(
-            'wp-anar', // Parent slug
-            'راهنما و مستندات انار۳۶۰', // Submenu title (this will be displayed in the menu)
-            'راهنما', // Submenu page title (this will be displayed in the page title)
-            'manage_options', // Capability
-            'docs', // Submenu slug (same as main menu)
-            [$this, 'docs_page_content'] // Callback function
+            'wp-anar',
+            'راهنما و مستندات انار۳۶۰',
+            'راهنما',
+            'manage_options',
+            'docs',
+            [$this, 'docs_page_content']
         );
 
     }

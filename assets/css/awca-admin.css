@@ -53,14 +53,15 @@
 
 .awca-wrap-all-tools{
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap :32px;
-  align-content: flex-start;
+  gap: 32px;
+  justify-content: flex-start;
 }
 
 .anar-tools-wrapper{
-  max-width: 80%;
+  max-width: 33%;
+  margin: 0;
 }
 
 

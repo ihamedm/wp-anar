@@ -1,4 +1,4 @@
-<div class="wrapper anar-tools-wrapper" style="margin-top:32px">
+<div class="wrapper anar-tools-wrapper"">
     <h2 class="awca_plugin_titles">انتشار همه محصولات انار</h2>
     <p class="awca_plugin_subTitles">
         محصولات انار بصورت پیش فرض در حالت <strong>پیش نویس</strong> هستند.
@@ -22,6 +22,19 @@
                     <input type="checkbox" id="skipp_out_of_stocks" name="skipp_out_of_stocks" checked>
                     <label for="skipp_out_of_stocks">محصولات ناموجود را منتشر نکن</label>
                 </p>
+            </div>
+        </div>
+        <div class="" style="display: flex; flex-direction: column; align-items: center">
+            <a href="#" class="toggle_show_hide" data-id="publish_advanced_settings">تنظیمات پیشرفته</a>
+            <div id="publish_advanced_settings" style="display: none">
+                <p class="awca-form-control" style="justify-content: center">
+                    <input type="checkbox" id="use_sql" name="use_sql" >
+                    <label for="use_sql" style="width: auto"><strong>روش جایگزین</strong></label>
+                </p>
+                <p class="awca-form-control">
+                    <label for="use_sql"> اگر حالت عادی خطا دریافت می کنید این گزینه را فعال کنید و مجددتلاش کنید</label>
+                </p>
+
             </div>
         </div>
 

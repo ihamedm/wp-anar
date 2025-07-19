@@ -10,11 +10,11 @@ class Notifications {
 
     public function __construct() {
 
-        //@fetch all notif and count unread 1 time in a day via cron
+        //@fetch all notifications and count unread 1 time in a day via cron
         add_action('admin_menu', [$this, 'awca_add_menu_badges']);
 
-        add_action('wp_ajax_awca_fetch_notifications_ajax', [$this, 'fetch_page']);
-        add_action('wp_ajax_awca_mark_as_read_notifications_ajax', [$this, 'mark_as_read_page']);
+        add_action('wp_ajax_anar_fetch_notifications_ajax', [$this, 'fetch_page']);
+        add_action('wp_ajax_anar_mark_as_read_notifications_ajax', [$this, 'mark_as_read_page']);
 
     }
 
@@ -63,7 +63,7 @@ class Notifications {
 //        $response_body = json_decode(Mock::$notifications, true);
 
         if ($response_body['success']) {
-
+            update_option('anar_unread_notifications', $response_body['unReads'] ?? 0);
             $notifications = $response_body['result'];
             $output = '';
 
@@ -100,7 +100,6 @@ class Notifications {
     }
 
     public function mark_as_read_page(){
-        wp_send_json_error(['message' => 'temporary disable mark as read!']);
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $limit = isset($_POST['limit']) ? intval($_POST['limit']) : 100;
 
@@ -150,8 +149,8 @@ class Notifications {
 
         $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
-        if ($response_body['success'] && isset($response_body['total'])) {
-            update_option('anar_unread_notifications', $response_body['total']);
+        if ($response_body['success'] && isset($response_body['unReads'])) {
+            update_option('anar_unread_notifications', $response_body['unReads']);
         }
     }
 

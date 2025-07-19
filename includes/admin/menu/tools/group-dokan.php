@@ -1,4 +1,4 @@
-<div class="wrapper anar-tools-wrapper" style="margin-top:32px">
+<div class="wrapper anar-tools-wrapper" >
     <h2 class="awca_plugin_titles">اختصاص محصولات انار به فروشنده دکان</h2>
     <p class="awca_plugin_subTitles">
         از طریق این فرم می توانید کل محصولات انار را به یک فروشنده افزونه دکان اختصاص دهید.

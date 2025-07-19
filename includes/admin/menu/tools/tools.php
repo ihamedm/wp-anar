@@ -1,17 +1,12 @@
 <?php
-$active_tools_group = $_GET['group'] ?? 'sync';
+$active_tools_group = $_GET['group'] ?? 'general';
 ?>
 
 <div id="anar-tools" class="tab-content">
 
     <ul class="subsubsub" style="float:none">
-        <li><a href="?page=tools&tab=tools&group=sync" class="<?php echo $active_tools_group === 'sync' ? 'current' : ''; ?>">بروزرسانی قیمت و موجودی</a></li> |
-        <li><a href="?page=tools&tab=tools&group=products" class="<?php echo $active_tools_group === 'products' ? 'current' : ''; ?>">محصولات</a></li> |
-        <?php if (class_exists('WeDevs_Dokan')):?>
-            <li><a href="?page=tools&tab=tools&group=dokan" class="<?php echo $active_tools_group === 'dokan' ? 'current' : ''; ?>">دکان</a></li> |
-        <?php endif;?>
-        <li><a href="?page=tools&tab=tools&group=reset" class="<?php echo $active_tools_group === 'reset' ? 'current' : ''; ?>">ریست</a></li>
-
+        <li><a href="?page=tools&tab=tools&group=general" class="<?php echo $active_tools_group === 'general' ? 'current' : ''; ?>">عمومی</a></li> |
+        <li><a href="?page=tools&tab=tools&group=pro" class="<?php echo $active_tools_group === 'pro' ? 'current' : ''; ?>">پیشرفته</a></li>
     </ul>
     <br>
 
