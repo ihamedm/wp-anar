@@ -1,6 +1,12 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.18] - 1404/04/29
+- fix : some styles
+- fix : sync product type when product type changed from anar
+- fix : validate post_code & phone on create anar order
+
+
 ## [0.3.17] - 1404/04/25
 - feat : checking for Persian WordPress plugin installation
 - feat : add button to mark as read notification
@@ -25,11 +31,11 @@
 - fix : _anar_sku of deprecated variable products not restored properly
 
 
-
 ## [0.3.13] - 1404/04/08
 - feat : restore deprecation on syncOutdated
 - feat : show shopUrl and subscription data on setting page
 - feat : show anar product link based on shopUrl
+- 
 
 ## [0.3.11] - 1404/03/12
 - feat : slow Import method for low resources hosts

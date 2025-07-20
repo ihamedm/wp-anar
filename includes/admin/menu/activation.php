@@ -7,11 +7,11 @@
                 <h2 class="text-center">برای فعال‌سازی پلاگین ابتدا کلید احراز هویتی خودتان را در فیلد زیر وارد کنید.</h2>
                 <form method="post" action="<?php echo admin_url('admin-ajax.php'); ?>" class="plugin_activation_form" id="plugin_activation_form">
                     <?php if (Anar\core\Activation::validate_token()) : ?>
-                        <div class="alert alert-success">
+                        <div class="anar-alert anar-alert-success">
                             <strong>پیام:</strong> توکن شما معتبر و سمت انار مورد تایید است
                         </div>
                     <?php else: ?>
-                        <div class="alert alert-warning">
+                        <div class="anar-alert anar-alert-warning">
                             <strong>پیام:</strong>توکن معتبر نیست.
                         </div>
                     <?php endif; ?>
@@ -54,13 +54,13 @@
                         if(!empty($subscription_remaining)) {
                             $remaining_days = round(($subscription_remaining / 86400000));
                             if($remaining_days < 1) {
-                                echo '<p class="alert alert-warning">اشتراک شما منقضی شده است. لطفا اشتراک خود را از پنل انار تمدید کنید.</p>';
+                                echo '<p class="anar-alert anar-alert-warning">اشتراک شما منقضی شده است. لطفا اشتراک خود را از پنل انار تمدید کنید.</p>';
                             }else{
-                                echo '<p class="alert alert-success">'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
+                                echo '<p class="anar-alert anar-alert-success">'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
                             }
                         }
                     }else{
-                        echo '<p class="alert alert-warning">شما اشتراک پایه انار دارید.<br> برای استفاده از پلاگین باید <strong>اشتراک حرفه ایی</strong> خریداری کنید.</p>';
+                        echo '<p class="anar-alert anar-alert-warning">شما اشتراک پایه انار دارید.<br> برای استفاده از پلاگین باید <strong>اشتراک حرفه ایی</strong> خریداری کنید.</p>';
                     }
                     ?>
 

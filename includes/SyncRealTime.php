@@ -75,6 +75,17 @@ class SyncRealTime {
 
             $sync = $this->sync_instance;
 
+            // --- Handle simple to variable conversion ---
+            $wc_product = wc_get_product($product_id);
+            if (
+                isset($anar_product->attributes) && !empty($anar_product->attributes) &&
+                $wc_product && $wc_product->get_type() === 'simple'
+            ) {
+                ProductManager::convert_simple_to_variable($wc_product, $anar_product);
+                // Reload as variable product (optional, for safety)
+                $wc_product = wc_get_product($product_id);
+            }
+
             if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
                 $sync->processVariableProduct($anar_product, true);
             } else {

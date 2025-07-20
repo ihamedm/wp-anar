@@ -58,7 +58,7 @@ class SyncOutdated {
      */
     public function add_cron_interval($schedules) {
         $schedules['every_five_min'] = array(
-            'interval' => 300, // 5 minutes in seconds
+            'interval' => 300,
             'display'  => 'Every 5 Minutes'
         );
         return $schedules;
@@ -135,10 +135,10 @@ class SyncOutdated {
         
         $products = [];
         foreach ($query->posts as $product_id) {
-            ProductManager::restore_product_deprecation($product_id);
+            //ProductManager::restore_product_deprecation($product_id);
             $anar_sku = get_post_meta($product_id, '_anar_sku', true);
 
-            /**
+
             if(!$anar_sku){
                 $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
                 if($anar_sku_backup){
@@ -147,7 +147,7 @@ class SyncOutdated {
                     $anar_sku = $anar_sku_backup;
                 }
             }
-             **/
+
 
             if ($anar_sku) {
                 $products[] = [
@@ -179,6 +179,11 @@ class SyncOutdated {
 
             if ($response_code === 200 && $data) {
                 $sync = Sync::get_instance();
+                $wc_product = wc_get_product($product_data['ID']);
+                if (isset($data->attributes) && !empty($data->attributes) && $wc_product && $wc_product->get_type() === 'simple') {
+                    ProductManager::convert_simple_to_variable($wc_product, $data);
+                    $wc_product = wc_get_product($product_data['ID']);
+                }
                 if (isset($data->attributes) && !empty($data->attributes)) {
                     $sync->processVariableProduct($data, true);
                 } else {

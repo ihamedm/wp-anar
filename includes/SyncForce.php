@@ -5,6 +5,27 @@ namespace Anar;
 use Anar\Core\Logger;
 use Anar\Wizard\ProductManager;
 
+/**
+ * Class SyncForce
+ *
+ * Handles the force synchronization of WooCommerce products with the Anar360 API.
+ *
+ * Responsibilities:
+ * - Manages the process of force syncing products, including batch processing and job tracking.
+ * - Integrates with WordPress AJAX and cron systems to allow both manual and scheduled sync operations.
+ * - Tracks sync jobs using a JobManager, supporting job control (pause, resume, cancel) and progress reporting.
+ * - Logs sync activity and errors for monitoring and debugging.
+ * - Ensures that only one force sync job runs at a time, and can recover from stalled or incomplete jobs.
+ *
+ * Main Features:
+ * - AJAX endpoints for starting sync, controlling jobs, and querying job status/history.
+ * - Batch processing of products to avoid timeouts and improve reliability.
+ * - Integration with Anar360 API to fetch and update product data.
+ * - Handles both simple and variable products, and marks deprecated products as needed.
+ * - Provides admin feedback and error handling throughout the sync process.
+ *
+ * @package Anar
+ */
 class SyncForce {
     private static $instance;
     private $logger;

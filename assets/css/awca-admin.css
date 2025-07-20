@@ -337,17 +337,22 @@
 ***** PLUGIN ACTIVATION STYLES ******
 *************************************
 *******/
-.alert {
-  padding: 20px;
+.anar-alert {
+  padding: 10px;
   background-color: #25ae25;
   color: white;
   margin-bottom: 15px;
   border-radius: 8px;
 }
-.alert-success {
+
+.anar-alert-info {
+  background-color: #dbf0ff;
+  color: #004877;
+}
+.anar-alert-success {
   background-color: #25ae25;
 }
-.alert-warning {
+.anar-alert-warning {
   background-color: #ffd771;
   color:#844900
 }

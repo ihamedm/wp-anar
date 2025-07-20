@@ -603,6 +603,48 @@ class ProductManager{
         }
     }
 
+    public static function convert_simple_to_variable($product, $anar_product) {
+        if (!$product || $product->get_type() !== 'simple' || empty($anar_product->attributes)) {
+            return;
+        }
+
+        global $wpdb;
+        $product_id = $product->get_id();
+
+        // Change post type to variable
+        $wpdb->update(
+            $wpdb->posts,
+            array('post_type' => 'product'),
+            array('ID' => $product_id)
+        );
+
+        // Re-instantiate as variable product
+        $product = new \WC_Product_Variable($product_id);
+
+        // Remove simple product prices/stock
+        $product->set_price('');
+        $product->set_regular_price('');
+        $product->set_sale_price('');
+        $product->set_stock_quantity('');
+        $product->set_manage_stock(false);
+        $product->set_stock_status('instock');
+        $product->save();
+
+        // Remove any existing variations (shouldn't be any, but just in case)
+        $children = $product->get_children();
+        foreach ($children as $variation_id) {
+            wp_delete_post($variation_id, true);
+        }
+
+        $serialized_product = self::product_serializer($anar_product);
+
+        $attributeMap = [];
+        self::setup_attributes_and_variations($product, [
+            'attributes' => $serialized_product['attributes'],
+            'variants' => $serialized_product['variants']
+        ], $attributeMap);
+    }
+
     public function publish_draft_products_ajax() {
         // Verify nonce
         if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'publish_anar_products_ajax_nonce')) {

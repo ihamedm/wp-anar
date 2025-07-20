@@ -90,6 +90,31 @@ class Order {
         }
 
 
+        // validate required data
+        $address = $order->get_address('billing');
+        $validation_fields = true;
+        $validation_message  = '';
+
+        if ($address['phone'] == ''){
+            $validation_fields = false;
+            $validation_message .= ' :: [انار] شماره موبایل خریدار اجباری است';
+
+        }
+        if ($address['postcode'] == ''){
+            $validation_fields = false;
+            $validation_message .= ' :: [انار] کد پستی خریدار اجباری است';
+        }
+        if( $address['postcode'] != '' && !preg_match('/\b(?!(\d)\1{3})[13-9]{4}[1346-9][013-9]{5}\b/' , $address['postcode']) ){
+            $validation_fields = false;
+            $validation_message .= sprintf(" :: [انار] کدپستی %s معتبر نیست. کدپستی باید اعداد انگلیسی بدون فاصله و ۱۰ رقمی باشد.", $address['postcode']);
+        }
+
+        if(!$validation_fields){
+            $order->add_order_note($validation_message);
+            return ['success' => false, 'message' => $validation_message];
+        }
+
+
         // Prepare the data for the first API call
         $items = [];
         foreach ($order->get_items() as $item_id => $item) {
@@ -122,22 +147,11 @@ class Order {
         if (isset($prepare_response['statusCode']) && $prepare_response['statusCode'] !== 200) {
             // Handle error
             $order->add_order_note('سفارش از سمت انار تایید نشد. خطا: ' . $prepare_response['message']);
+//            awca_log(print_r($prepare_data, true));
+//            awca_log(print_r($prepare_response, true));
             return ['success' => false , 'message' => 'سفارش از سمت انار تایید نشد.'];
         } else {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
-        }
-
-
-
-        // Prepare data for the second API call
-        $address = $order->get_address('billing'); // Get billing address
-
-
-        if ($address['phone'] == ''){
-            return ['success' => false , 'message' => 'شماره موبایل خریدار اجباری است'];
-        }
-        if ($address['postcode'] == ''){
-            return ['success' => false , 'message' => 'کد پستی خریدار اجباری است'];
         }
 
 //        add_filter('woocommerce_localisation_address_formats', function ($formats) {
@@ -337,7 +351,7 @@ class Order {
 
             <?php else:?>
             <div id="awca-custom-meta-box-container">
-                <p class="alert alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
+                <p class="anar-alert anar-alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
                 <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
                     ثبت این سفارش در پنل انار
                     <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
@@ -427,12 +441,12 @@ class Order {
                 } else {
                     // Log the error or handle the case where data is not in expected format
                     error_log('Package data is not in the expected format');
-                    echo '<div class="alert alert-warning">اطلاعات حمل و نقل به درستی ذخیره نشده است.</div>';
+                    echo '<div class="anar-alert anar-alert-warning">اطلاعات حمل و نقل به درستی ذخیره نشده است.</div>';
                 }
             } catch (\Exception $e) {
                 // Log the error
                 error_log('Error processing delivery info: ' . $e->getMessage());
-                echo '<div class="alert alert-warning">مشکلی در دریافت اطلاعات حمل و نقل برخی مرسوله ها وجود دارد!</div>';
+                echo '<div class="anar-alert anar-alert-warning">مشکلی در دریافت اطلاعات حمل و نقل برخی مرسوله ها وجود دارد!</div>';
 
             }
 
@@ -631,7 +645,7 @@ class Order {
 
                 $output .= sprintf(
                     '<div style="display: flex;flex-direction: column; ">
-                                         <p class="alert alert-warning">این سفارش هنوز به انار پرداخت نشده است. انار موجودی این کالا را رزرو نمی کند</p>
+                                         <p class="anar-alert anar-alert-warning">این سفارش هنوز به انار پرداخت نشده است. انار موجودی این کالا را رزرو نمی کند</p>
                                          <a id="pay-order-btn" class="awca-primary-btn" target="_blank" href="https://anar360.com/payment/order/%s/pay?type=retail&callback=%s">پرداخت آنلاین</a>
                                     </div>',
                     $groupId,
@@ -661,7 +675,7 @@ class Order {
         </div>';
 
             }else{
-                $output .= '<p class="alert alert-warning">وضعیت سفارش را از پنل انار دنبال کنید</p>';
+                $output .= '<p class="anar-alert anar-alert-warning">وضعیت سفارش را از پنل انار دنبال کنید</p>';
                 $output .= '<a class="awca-btn awca-success-btn" target="_blank" href="https://anar360.com/o/'.$groupId.'">وضعیت سفارش در پنل انار</a>';
             }
 
