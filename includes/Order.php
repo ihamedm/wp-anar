@@ -17,15 +17,10 @@ class Order {
     public function __construct() {
         add_action( 'add_meta_boxes', [$this, 'anar_order_meta_box'] );
         add_action('woocommerce_order_details_after_order_table', [$this, 'display_anar_order_details_front'], 10, 1);
-
-        add_action('wp_ajax_awca_create_anar_order_ajax', [$this, 'awca_create_anar_order_ajax']);
-        add_action('wp_ajax_nopriv_awca_create_anar_order_ajax', [$this, 'awca_create_anar_order_ajax']);
-
-        add_action('wp_ajax_awca_fetch_order_details_ajax', [$this, 'awca_fetch_order_details_ajax']);
-        add_action('wp_ajax_nopriv_awca_fetch_order_details_ajax', [$this, 'awca_fetch_order_details_ajax']);
-
-        add_action('wp_ajax_awca_fetch_order_details_public_ajax', [$this, 'awca_fetch_order_details_public_ajax']);
-        add_action('wp_ajax_nopriv_awca_fetch_order_details_public_ajax', [$this, 'awca_fetch_order_details_public_ajax']);
+        add_action('wp_ajax_awca_create_anar_order_ajax', [$this, 'create_anar_order_ajax']);
+        add_action('wp_ajax_awca_fetch_order_details_ajax', [$this, 'fetch_order_details_ajax']);
+        add_action('wp_ajax_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
+        add_action('wp_ajax_nopriv_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
 
         // @todo show order shipments data [need when anar order not created from wordpress]
 //        add_action( 'woocommerce_admin_order_data_after_billing_address', [$this, 'display_custom_option_in_admin'], 10, 1 );
@@ -104,7 +99,7 @@ class Order {
             $validation_fields = false;
             $validation_message .= ' :: [انار] کد پستی خریدار اجباری است';
         }
-        if( $address['postcode'] != '' && !preg_match('/\b(?!(\d)\1{3})[13-9]{4}[1346-9][013-9]{5}\b/' , $address['postcode']) ){
+        if( $address['postcode'] != '' && !preg_match('/^\d{10}$/' , $address['postcode']) ){
             $validation_fields = false;
             $validation_message .= sprintf(" :: [انار] کدپستی %s معتبر نیست. کدپستی باید اعداد انگلیسی بدون فاصله و ۱۰ رقمی باشد.", $address['postcode']);
         }
@@ -193,7 +188,7 @@ class Order {
 
         // Decode the response body
         $create_response = json_decode(wp_remote_retrieve_body($create_response), true);
-        //awca_log(print_r($create_response, true));
+        awca_log(print_r($create_response, true));
 
         if (!isset($create_response['success']) || !$create_response['success']) {
             // Handle error
@@ -507,7 +502,7 @@ class Order {
 
     }
 
-    public function awca_create_anar_order_ajax(){
+    public function create_anar_order_ajax(){
 
         if ( !isset( $_POST['order_id'] ) ) {
             wp_send_json_error( array( 'message' => 'order_id required') );
@@ -524,7 +519,7 @@ class Order {
     }
 
 
-    public function awca_fetch_order_details_ajax() {
+    public function fetch_order_details_ajax() {
 
         if ( !isset( $_POST['order_id'] ) ) {
             wp_send_json_error( array( 'message' => 'order_id required') );
@@ -542,7 +537,7 @@ class Order {
                 $url = "https://api.anar360.com/wp/orders/" . $order['_id'];
                 $response = wp_remote_get($url, [
                     'headers' => [
-                        'Authorization' => awca_get_activation_key()
+                        'Authorization' => anar_get_saved_token()
                     ],
                     'timeout' => 300,
                 ]);
@@ -617,12 +612,12 @@ class Order {
                         $package['orderNumber'],
                         count($all_item_titles),
                         implode(', ', $all_item_titles),
-                        awca_get_formatted_price($package['price']['items']),
-                        awca_get_formatted_price($package['price']['resellerShare']),
-                        awca_get_formatted_price($package['price']['delivery']),
-                        awca_get_formatted_price($package['price']['payable']),
-                        awca_translator($package['status']),
-                        awca_translator($package['delivery']['deliveryType']),
+                        anar_get_formatted_price($package['price']['items']),
+                        anar_get_formatted_price($package['price']['resellerShare']),
+                        anar_get_formatted_price($package['price']['delivery']),
+                        anar_get_formatted_price($package['price']['payable']),
+                        anar_translator($package['status']),
+                        anar_translator($package['delivery']['deliveryType']),
                         $package['delivery']['estimatedTime'],
                         $package['trackingNumber'],
                         date_i18n('j F Y ساعت H:i', strtotime($package['createdAt'])),
@@ -641,7 +636,7 @@ class Order {
             // if order unpaid we need to create payment modal and button
             if(isset($groupId) && isset($paymentStatus) && $paymentStatus == 'unpaid'){
 
-                $output .= sprintf('<p><strong>قابل پرداخت : %s</strong></p>', awca_get_formatted_price($total_payable - $total_reseller_share));
+                $output .= sprintf('<p><strong>قابل پرداخت : %s</strong></p>', anar_get_formatted_price($total_payable - $total_reseller_share));
 
                 $output .= sprintf(
                     '<div style="display: flex;flex-direction: column; ">
@@ -665,7 +660,7 @@ class Order {
                         <p>
                         این سفارش در وضعیت <strong style="color:#e11c47">پرداخت نشده</strong> می باشد. با توجه به حجم سفارشات در انار لازم است هرچه سریعتر نسبت به پرداخت اقدام فرمایید تا موجودی اقلام سفارش برای شما رزرو بماند.
                         </p>
-                        <p><strong>قابل پرداخت : '. awca_get_formatted_price($total_payable - $total_reseller_share) .'</strong></p>
+                        <p><strong>قابل پرداخت : '. anar_get_formatted_price($total_payable - $total_reseller_share) .'</strong></p>
                     </main>
                     <footer class="modal__footer">
                         <a id="pay-order-btn" class="awca-primary-btn" target="_blank" href="https://anar360.com/payment/order/'.$groupId.'/pay?type=retail&callback='.rawurlencode(admin_url('post.php?post='.$order_id.'action=edit')).'">پرداخت آنلاین</a>
@@ -689,7 +684,7 @@ class Order {
     }
 
 
-    public function awca_fetch_order_details_public_ajax() {
+    public function fetch_order_details_public_ajax() {
 
         if ( !isset( $_POST['order_id'] ) ) {
             wp_send_json_error( array( 'message' => 'order_id required') );
@@ -705,7 +700,7 @@ class Order {
                 $url = "https://api.anar360.com/wp/orders/" . $order['_id'];
                 $response = wp_remote_get($url, [
                     'headers' => [
-                        'Authorization' => awca_get_activation_key()
+                        'Authorization' => anar_get_saved_token()
                     ],
                     'timeout' => 300,
                 ]);
@@ -775,7 +770,7 @@ class Order {
                         $package['orderNumber'],
                         $product_list_markup,
 
-                        awca_translator($package['delivery']['deliveryType']),
+                        anar_translator($package['delivery']['deliveryType']),
                         $package['delivery']['estimatedTime'],
                         $package['trackingNumber'],
                         date_i18n('j F Y ساعت H:i', strtotime($package['createdAt'])),
@@ -798,7 +793,7 @@ class Order {
     }
 
 
-    function display_anar_order_details_front($order) {
+    public function display_anar_order_details_front($order) {
         $_anar_order_data = $order->get_meta('_anar_order_data', true);
         $_is_anar_order = $order->get_meta('_is_anar_order', true);
         if($_is_anar_order && $_anar_order_data):?>

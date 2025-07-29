@@ -9,7 +9,7 @@
     <form class="plugin_pay_form" id="plugin_pay_form">
             <div class="stepper_button_container">
                 <?php
-                $token = awca_get_activation_key();
+                $token = anar_get_saved_token();
                 $callback = admin_url('admin.php?page=awca-sync-pay');
                 $pay_link = "https://api.anar360.com/wp/orders/payment/pay?token=$token&callback=$callback";
                 ?>

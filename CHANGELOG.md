@@ -1,6 +1,12 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.19] - 1404/05/07
+- fix : validating postcode on order creating
+- fix : improved gallery downloader tool
+- fix : update shipment and order status Persian labels 
+
+
 ## [0.3.18] - 1404/04/29
 - fix : some styles
 - fix : sync product type when product type changed from anar

@@ -67,10 +67,10 @@ class Edit{
                         <span>قیمت فروش شما <strong>%s</strong></span>
                         <span style="color: #079d66">سود شما <strong>%s</strong></span>
                         ',
-                        awca_get_formatted_price($anar_prices['labelPrice']) ?? '-',
-                        awca_get_formatted_price($anar_prices['priceForResell']) ?? '-',
-                        awca_get_formatted_price($anar_prices['price']) ?? '-',
-                        awca_get_formatted_price($anar_prices['resellerProfit']) ?? '-',
+                        anar_get_formatted_price($anar_prices['labelPrice']) ?? '-',
+                        anar_get_formatted_price($anar_prices['priceForResell']) ?? '-',
+                        anar_get_formatted_price($anar_prices['price']) ?? '-',
+                        anar_get_formatted_price($anar_prices['resellerProfit']) ?? '-',
                     );
                 }
 

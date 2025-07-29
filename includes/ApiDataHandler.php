@@ -27,7 +27,7 @@ class ApiDataHandler
     public function __construct($key, $api_url = null)
     {
         global $wpdb;
-        $this->token = awca_get_activation_key();
+        $this->token = anar_get_saved_token();
         $this->key = $key;
         $this->api_url = $api_url;
         $this->wpdb = $wpdb;
@@ -36,7 +36,7 @@ class ApiDataHandler
 
 
     public static function callAnarApi($url){
-        $token = awca_get_activation_key();
+        $token = anar_get_saved_token();
 
         if(!$token)
             return new \WP_Error(401, 'پلاگین انار فعال نیست. توکن وارد نشده است.');
@@ -58,7 +58,7 @@ class ApiDataHandler
 
     public static function postAnarApi($url, $data)
     {
-        $token = awca_get_activation_key();
+        $token = anar_get_saved_token();
 
         if(!$token)
             return new \WP_Error(401, 'توکن انار معتبر نیست.');

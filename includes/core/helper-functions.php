@@ -4,7 +4,7 @@
 /**
  * @return false|mixed|null
  */
-function awca_get_activation_key(){
+function anar_get_saved_token(){
    return Anar\Core\Activation::get_saved_activation_key();
 }
 
@@ -122,7 +122,7 @@ function awca_convert_price_to_woocommerce_currency($price_in_irt)
     }
 }
 
-function awca_get_formatted_price($anar_price){
+function anar_get_formatted_price($anar_price){
     $converted_price = awca_convert_price_to_woocommerce_currency($anar_price);
     $currency_symbol = get_woocommerce_currency_symbol();
     $thousand_separator = get_option( 'woocommerce_price_thousand_sep', ',' );
@@ -157,76 +157,63 @@ function awca_is_hpos_enable(): bool
 
 /**
  * @param $string
- * @return mixed|string
+ * @return string
  */
-function awca_translator($string){
-
-
-    if ($string === 'bike') {
-        return 'پیک موتوری';
-    }elseif($string === 'bikeCOD'){
-        return 'پیک موتوری (کرایه در مقصد)';
-    } elseif ($string === 'post') {
-        return 'پست';
-    } elseif ($string === 'express') {
-        return 'پیشتاز';
-    } elseif ($string === 'afterFare') {
-        return 'afterFare';
-    } elseif ($string === 'tipax') {
-        return 'تیپاکس';
-    } elseif ($string === 'tipaxCOD') {
-        return 'تیپاکس (کرایه در مقصد)';
-    } elseif ($string === 'chapar') {
-        return 'چاپار';
-    } elseif ($string === 'unpaid') {
-        return 'پرداخت نشده';
-    } elseif ($string === 'paid') {
-        return 'پرداخت شده';
-    } elseif ($string === 'approvalPending') {
-        return 'در انتظار تایید فروشگاه';
-    } elseif ($string === 'preparing') {
-        return 'در حال آماده سازی';
-    } else {
-        return $string;
-    }
-}
-
-function anar_get_states($state_code) {
-    $states  = [
-        'ABZ' => 'البرز',
-        'ADL' => 'اردبیل',
-        'EAZ' => 'آذربایجان شرقی',
-        'WAZ' => 'آذربایجان غربی',
-        'BHR' => 'بوشهر',
-        'CHB' => 'چهارمحال و بختیاری',
-        'FRS' => 'فارس',
-        'GIL' => 'گیلان',
-        'GLS' => 'گلستان',
-        'HDN' => 'همدان',
-        'HRZ' => 'هرمزگان',
-        'ILM' => 'ایلام',
-        'ESF' => 'اصفهان',
-        'KRN' => 'کرمان',
-        'KRH' => 'کرمانشاه',
-        'NKH' => 'خراسان شمالی',
-        'RKH' => 'خراسان رضوی',
-        'SKH' => 'خراسان جنوبی',
-        'KHZ' => 'خوزستان',
-        'KBD' => 'کهگیلویه و بویراحمد',
-        'KRD' => 'کردستان',
-        'LRS' => 'لرستان',
-        'MKZ' => 'مرکزی',
-        'MZN' => 'مازندران',
-        'GZN' => 'قزوین',
-        'QHM' => 'قم',
-        'SMN' => 'سمنان',
-        'SBN' => 'سیستان و بلوچستان',
-        'THR' => 'تهران',
-        'YZD' => 'یزد',
-        'ZJN' => 'زنجان',
+function anar_translator($string) {
+    $orders = [
+        'unpaid' => 'پرداخت نشده',
+        'paid' => 'پرداخت شده',
+        'expired' => 'منقضی شده',
+        'approvalPending' => 'در انتظار تایید (دستی یا سیستمی)',
+        'rejected' => 'رد شده (لغو کامل) ',
+        'preparing' => 'در حال پردازش اولیه / تامین سفارش',
+        'readyToPost' => 'بسته‌بندی یا آماده‌سازی برای ارسال',
+        'posted' => 'ارسال شده به پست / تیپاکس و ...',
+        'delivered' => 'تحویل داده شده به مشتری نهایی',
+        'returned' => 'بازگشت‌خورده از سمت مشتری یا پست',
+        'returnRequested' => 'درخواست مرجوعی ثبت شده',
+        'resendRequested' => 'درخواست ارسال مجدد ثبت شده',
+        'accepted' => 'قبول شده',
     ];
-    return $states[$state_code] ?? false;
+
+    $shipping = [
+        //--- Courier ---
+        'bike' => 'پیک',
+        'bikePostPaid' => 'پیک (کرایه در مقصد)',
+        'bikeFree' => 'پیک رایگان',
+        'bikeFast' => 'ارسال سریع با پیک',
+        'bikeFastPostPaid' => 'پیک سریع (کرایه در مقصد)',
+        'bikeVipPostPaid' => 'پیک ویژه (کرایه در مقصد)',
+
+
+        //--- Post ---
+        'post' => 'پست',
+        'postFree' => 'پست رایگان',
+        'postPostPaid' => 'پست (کرایه در مقصد)',
+        'express' => 'پیشتاز',
+        'expressPostPaid' => 'پیشتاز (کرایه در مقصد)',
+        'chapar' => 'چاپار',
+        'tipax' => 'تیپاکس',
+        'tipaxPostPaid' => 'تیپاکس (کرایه در مقصد)',
+
+
+        // --- Custom ---
+        'tehranBasic' => 'ارسال پایه در تهران',
+        'specialPost' => 'پست سفارشی',
+
+
+        // --- Deprecated ---
+        'afterFare' => 'afterFare',
+        'tipaxCOD' => 'تیپاکس (کرایه در مقصد)',
+        'bikeCOD' => 'پیک (کرایه در مقصد)',
+    ];
+
+    $map = $orders + $shipping;
+
+    return $map[$string] ?? $string;
 }
+
+
 
 
 /**

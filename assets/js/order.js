@@ -1,9 +1,13 @@
 import {awca_toast} from "./functions";
 import MicroModal from 'micromodal';
 
-MicroModal.init({
-    openTrigger: 'data-payment-modal-open',
-});
+try {
+    MicroModal.init({
+        openTrigger: 'data-payment-modal-open',
+    });
+} catch (e) {
+    console.error('MicroModal failed to initialize:', e);
+}
 
 jQuery(document).ready(function($) {
 
@@ -78,7 +82,11 @@ jQuery(document).ready(function($) {
                     awca_toast(response.data.message, msgType);
 
                     if(response.data.paymentStatus == "unpaid"){
-                        MicroModal.show('order-payment-modal')
+                        try {
+                            MicroModal.show('order-payment-modal');
+                        } catch (e) {
+                            console.error('MicroModal failed to show modal:', e);
+                        }
                     }
 
                 },

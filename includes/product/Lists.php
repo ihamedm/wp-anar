@@ -54,7 +54,7 @@ class Lists{
                     echo '<br>';
                     echo 'قیمت انار';
                     echo '<br>';
-                    echo awca_get_formatted_price($anar_prices['price']) ?? '-';
+                    echo anar_get_formatted_price($anar_prices['price']) ?? '-';
                 }
             }
 

@@ -77,8 +77,10 @@ class Gallery{
 
 
     public function download_products_gallery_ajax() {
+        global $wpdb;
         // Verify nonce
         if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'anar_dl_products_gallery_ajax_nonce')) {
+            $this->log('Security nonce verification failed in download_products_gallery_ajax', 'error');
             wp_send_json_error(array(
                 'message' => 'فرم نامعتبر است.'
             ));
@@ -86,6 +88,7 @@ class Gallery{
 
         // Check user capabilities
         if (!current_user_can('manage_woocommerce')) {
+            $this->log('User lacks manage_woocommerce capability in download_products_gallery_ajax', 'error');
             wp_send_json_error(array(
                 'message' => 'شما مجوز این کار را ندارید!'
             ));
@@ -99,43 +102,63 @@ class Gallery{
         $total_downloaded = 0;
         $found_products = 0;
         $this_loop_products = 0;
-
-        // Query arguments to get draft products
-        $query_args = array(
-            'post_type'      => 'product',
-            'post_status'    => array('publish', 'draft'),
-            'posts_per_page' => $limit,
-            'meta_query'     => array(
-                array(
-                    'key'     => '_anar_gallery_processed',
-                    'compare' => 'NOT EXISTS',
-                ),
-            ),
-            'fields'         => 'ids',
-        );
-
+        $queue_transient_key = 'anar_gallery_queue';
+        $queue_ttl = 60 * 60; // 1 hour
+        $product_ids = [];
 
         try {
-            $products_query = new \WP_Query($query_args);
+            // On first page, build the queue and store in transient
+            if ($page === 1) {
+                // Build the queue of product IDs to process
+                $query = $wpdb->prepare("
+                    SELECT p.ID FROM {$wpdb->posts} p
+                    INNER JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id AND pm1.meta_key = '_anar_gallery_images'
+                    LEFT JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id AND pm2.meta_key = '_anar_gallery_processed'
+                    WHERE p.post_type = 'product'
+                      AND p.post_status IN ('publish', 'draft')
+                      AND pm2.post_id IS NULL
+                ");
+                $all_ids = $wpdb->get_col($query);
+                if ($wpdb->last_error) {
+                    throw new \Exception('Database error: ' . $wpdb->last_error);
+                }
+                set_transient($queue_transient_key, $all_ids, $queue_ttl);
+            }
 
-            $found_products = $products_query->found_posts;
-            $this_loop_products = count($products_query->posts);
+            // Get the queue from transient
+            $queue = get_transient($queue_transient_key);
+            if (!is_array($queue) || empty($queue)) {
+                $has_more = false;
+                $this->log('No more products found for gallery download (queue empty)', 'info');
+                delete_transient($queue_transient_key);
+                wp_send_json_success([
+                    'success' => true,
+                    'has_more' => false,
+                    'total_processed' => $total_processed,
+                    'total_downloaded' => $total_downloaded,
+                    'loop_products' => $this_loop_products,
+                    'found_products' => 0,
+                    'message' => 'گالری همه محصولات دانلود شده است',
+                ]);
+            }
 
-            if ($products_query->have_posts()) :
-                while ($products_query->have_posts()) :
-                    $products_query->the_post();
-                    $product_id = get_the_ID();
+            // Pop the next $limit IDs from the queue
+            $product_ids = array_splice($queue, 0, $limit);
+            $found_products = count($queue) + count($product_ids); // total left + this batch
+            $this_loop_products = count($product_ids);
+            $has_more = !empty($queue);
+
+            // Update the queue in the transient
+            set_transient($queue_transient_key, $queue, $queue_ttl);
+
+            foreach ($product_ids as $product_id) {
+                try {
                     $gallery_image_urls = get_post_meta($product_id, '_anar_gallery_images', true);
-
-                    // If gallery images exist, set the product gallery
                     if (is_array($gallery_image_urls)) {
-
-                        // Only use the first 5 image URLs if there are more than 5
                         if (count($gallery_image_urls) > $max_images) {
                             $gallery_image_urls = array_slice($gallery_image_urls, 0, $max_images);
                         }
-
-                        $result = $this->image_downloader->set_product_gallery($product_id, $gallery_image_urls, $max_images); // Pass product_id here
+                        $result = $this->image_downloader->set_product_gallery($product_id, $gallery_image_urls, $max_images);
                         if (!is_wp_error($result)) {
                             $total_downloaded += count($gallery_image_urls);
                         } else {
@@ -145,31 +168,17 @@ class Gallery{
                                 $result->get_error_message()
                             ), 'error');
                         }
-
                     }
-
                     // Mark as processed regardless of outcome to avoid reprocessing
                     update_post_meta($product_id, '_anar_gallery_processed', current_time('mysql'));
-
-                    $total_downloaded += count($gallery_image_urls);
-
                     $total_processed++;
-                    // Clean up product object to free memory
-                endwhile;
-            else:
-                $has_more = false;
-                return;
-            endif;
-
-            // Reset post data
-            wp_reset_postdata();
-
-            // Clear some memory
-            if (function_exists('gc_collect_cycles')) {
-                gc_collect_cycles();
+                } catch (\Exception $e) {
+                    $this->log('Exception processing product #' . $product_id . ': ' . $e->getMessage(), 'error');
+                }
             }
 
-        }catch (\Exception $exception){
+        } catch (\Exception $exception) {
+            $this->log('Exception in download_products_gallery_ajax: ' . $exception->getMessage(), 'error');
             $response = [
                 'success' => false,
                 'has_more' => false,
@@ -180,10 +189,8 @@ class Gallery{
                 'message' => $exception->getMessage()
             ];
             wp_send_json($response);
-
         } finally {
-
-            self::log(sprintf('Completed page %d. Found Products %s, total Published %d , Loop Products %s, Has More? %s, $_POST: %s',
+            $this->log(sprintf('Completed page %d. Found Products %s, total Processed %d , Loop Products %s, Has More? %s, $_POST: %s',
                 $page,
                 $found_products,
                 $total_processed,
@@ -191,7 +198,6 @@ class Gallery{
                 print_r($has_more, true),
                 print_r($_POST, true)
             ), 'debug');
-
             $response = [
                 'success' => true,
                 'has_more' => $has_more,
@@ -202,6 +208,5 @@ class Gallery{
             ];
             wp_send_json($response);
         }
-
     }
 }

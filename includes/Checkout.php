@@ -262,11 +262,11 @@ class Checkout {
                         }
 
                         $estimate_time_str = $delivery['estimatedTime'] ? ' (' . $delivery['estimatedTime'] . ')' : '';
-                        $names[$delivery_key] = awca_translator($delivery['name']) . $estimate_time_str .' : ' . $delivery['price'] . ' ' . get_woocommerce_currency_symbol() ;
+                        $names[$delivery_key] = anar_translator($delivery['name']) . $estimate_time_str .' : ' . $delivery['price'] . ' ' . get_woocommerce_currency_symbol() ;
                         $radio_data[$delivery_key] = [
-                            'label' => awca_translator($delivery['name']),
+                            'label' => anar_translator($delivery['name']),
                             'estimated_time' => $delivery['estimatedTime'] ?? '',
-                            'price' => awca_get_formatted_price($delivery['price']),
+                            'price' => anar_get_formatted_price($delivery['price']),
                         ];
                     }
 
