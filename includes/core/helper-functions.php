@@ -5,7 +5,7 @@
  * @return false|mixed|null
  */
 function anar_get_saved_token(){
-   return Anar\Core\Activation::get_saved_activation_key();
+    return Anar\Core\Activation::get_saved_activation_key();
 }
 
 function get_anar_icon($name, $size){
@@ -193,6 +193,7 @@ function anar_translator($string) {
         'express' => 'پیشتاز',
         'expressPostPaid' => 'پیشتاز (کرایه در مقصد)',
         'chapar' => 'چاپار',
+        'chaparPostPaid' => 'چاپار (کرایه در مقصد)',
         'tipax' => 'تیپاکس',
         'tipaxPostPaid' => 'تیپاکس (کرایه در مقصد)',
 
