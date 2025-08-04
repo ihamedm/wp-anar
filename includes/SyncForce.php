@@ -85,7 +85,7 @@ class SyncForce {
                     $sync->processSimpleProduct($data, true);
                 }
 
-                update_post_meta($product_data['ID'], '_anar_last_try_time', current_time('mysql'));
+                update_post_meta($product_data['ID'], '_anar_last_sync_time', current_time('mysql'));
                 
                 // Get job ID
                 $job_id = get_transient('anar_force_sync_job_id');

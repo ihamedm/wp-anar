@@ -445,6 +445,7 @@ import {paginateLinks} from "./functions";
 
         AnarHandler.refreshData()
         AnarHandler.moveToProperStep()
+        AnarHandler.initPerformanceOptimization()
 
 
 

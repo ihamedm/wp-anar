@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.3.20
+ * Version:          	0.3.21
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -32,9 +32,14 @@ namespace Anar;
 
 // If this file is called directly, abort.
 
+use Anar\Init\Checks;
+use Anar\Init\Db;
+use Anar\Init\DbIndex;
 use Anar\Init\Install;
 use Anar\Init\Reset;
 use Anar\Init\Uninstall;
+use Anar\Init\Update;
+use Automattic\WooCommerce\Admin\Features\Settings\Init;
 
 if (!defined('ABSPATH')) {
 	exit;
@@ -184,7 +189,7 @@ class Wp_Anar
         define('ANAR_PLUGIN_URL', self::$plugin_url);
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
-        define('ANAR_DB_VERSION', '1.10');
+        define('ANAR_DB_VERSION', '1.10.4');
         define('ANAR_CRON_VERSION', '1.13');
 
 
@@ -249,8 +254,9 @@ class Wp_Anar
 
     public function instances()
     {
-        Init\Checks::get_instance();
-        Init\Update::get_instance();
+        Checks::get_instance();
+        Update::get_instance();
+        DbIndex::get_instance();
         new Core\Activation();
         new Core\Assets();
         Core\CronJobs::get_instance();
@@ -272,7 +278,6 @@ class Wp_Anar
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
-        SyncForce::get_instance();
         SyncRealTime::get_instance();
 
         //new Multi_Seller();
@@ -340,7 +345,8 @@ class Wp_Anar
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
         if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") !== $table_name) {
-            Init\Db::make_tables();
+            Db::make_tables();
+            DbIndex::force_recreate_indexes();
         }
     }
 

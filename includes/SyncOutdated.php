@@ -2,6 +2,7 @@
 
 namespace Anar;
 use Anar\Core\Logger;
+use Anar\Core\Mock;
 use Anar\Wizard\ProductManager;
 
 /**
@@ -42,13 +43,10 @@ class SyncOutdated {
         $this->schedule_cron();
 
         $this->batch_size = get_option('anar_sync_outdated_batch_size', 30);
-
-        // Register AJAX handlers
-        add_action('wp_ajax_anar_clear_sync_times', array($this, 'clear_sync_times_ajax'));
         
         // Register cron hooks
         add_action($this->cron_hook, array($this, 'process_outdated_products_cronjob'));
-        
+
         // Add custom cron interval
         add_filter('cron_schedules', array($this, 'add_cron_interval'));
     }
@@ -89,10 +87,12 @@ class SyncOutdated {
         $this->logger->log($message, 'syncOutdated', $level);
     }
 
+
     /**
      * Get outdated products that haven't been synced in the last day
+     * Optimized version using direct SQL for better performance
      */
-    private function get_outdated_products() {
+    private function get_outdated_products_legacy() {
         $time_ago = date('Y-m-d H:i:s', strtotime("-{$this->outdated_threshold}"));
 
         $args = array(
@@ -115,11 +115,11 @@ class SyncOutdated {
                 array(
                     'relation' => 'OR',
                     array(
-                        'key' => '_anar_last_try_time',
+                        'key' => '_anar_last_sync_time',
                         'compare' => 'NOT EXISTS'
                     ),
                     array(
-                        'key' => '_anar_last_try_time',
+                        'key' => '_anar_last_sync_time',
                         'value' => $time_ago,
                         'compare' => '<',
                         'type' => 'DATETIME'
@@ -132,7 +132,7 @@ class SyncOutdated {
         $query = new \WP_Query($args);
 
         $this->log('Found ' . $query->found_posts . ' products that have been outdated more than '. $this->outdated_threshold);
-        
+
         $products = [];
         foreach ($query->posts as $product_id) {
             //ProductManager::restore_product_deprecation($product_id);
@@ -160,6 +160,57 @@ class SyncOutdated {
         return $products;
     }
 
+    private function get_outdated_products() {
+        global $wpdb;
+        
+        $time_ago = date('Y-m-d H:i:s', strtotime("-{$this->outdated_threshold}"));
+        
+        // Use direct SQL query for better performance
+        // Since we ensure all Anar products have _anar_last_sync_time meta, we don't need NOT EXISTS logic
+        $sql = $wpdb->prepare("
+            SELECT DISTINCT p.ID, 
+                   COALESCE(sku.meta_value, sku_backup.meta_value) as anar_sku
+            FROM {$wpdb->posts} p
+            LEFT JOIN {$wpdb->postmeta} sku ON p.ID = sku.post_id AND sku.meta_key = '_anar_sku'
+            LEFT JOIN {$wpdb->postmeta} sku_backup ON p.ID = sku_backup.post_id AND sku_backup.meta_key = '_anar_sku_backup'
+            INNER JOIN {$wpdb->postmeta} last_try ON p.ID = last_try.post_id AND last_try.meta_key = '_anar_last_sync_time'
+            WHERE p.post_type = 'product'
+            AND p.post_status IN ('publish', 'draft')
+            AND (sku.meta_value IS NOT NULL OR sku_backup.meta_value IS NOT NULL)
+            AND last_try.meta_value < %s
+            ORDER BY last_try.meta_value ASC
+            LIMIT %d
+        ", $time_ago, $this->batch_size);
+        
+        $results = $wpdb->get_results($sql);
+        
+        $this->log('Found ' . count($results) . ' products that have been outdated more than '. $this->outdated_threshold);
+        
+        $products = [];
+        foreach ($results as $row) {
+            if ($row->anar_sku) {
+                // Check if we need to restore from backup
+                // Only restore if product doesn't have _anar_sku but has _anar_sku_backup
+                $anar_sku = get_post_meta($row->ID, '_anar_sku', true);
+                if (!$anar_sku) {
+                    $anar_sku_backup = get_post_meta($row->ID, '_anar_sku_backup', true);
+                    if ($anar_sku_backup) {
+                        ProductManager::restore_product_deprecation($row->ID);
+                        $this->log('Product #' . $row->ID . ' was deprecated. restored to check again.');
+                        $row->anar_sku = $anar_sku_backup;
+                    }
+                }
+                
+                $products[] = [
+                    'ID' => $row->ID,
+                    'anar_sku' => $row->anar_sku
+                ];
+            }
+        }
+        
+        return $products;
+    }
+
     /**
      * Process a single product update
      */
@@ -182,7 +233,6 @@ class SyncOutdated {
                 $wc_product = wc_get_product($product_data['ID']);
                 if (isset($data->attributes) && !empty($data->attributes) && $wc_product && $wc_product->get_type() === 'simple') {
                     ProductManager::convert_simple_to_variable($wc_product, $data);
-                    $wc_product = wc_get_product($product_data['ID']);
                 }
                 if (isset($data->attributes) && !empty($data->attributes)) {
                     $sync->processVariableProduct($data, true);
@@ -190,8 +240,7 @@ class SyncOutdated {
                     $sync->processSimpleProduct($data, true);
                 }
 
-                update_post_meta($product_data['ID'], '_anar_last_try_time', current_time('mysql'));
-                
+
                 $this->log('Updated, #' . $product_data['ID'] . '  SKU: ' . $data->id, 'info');
 
                 return true;
@@ -244,54 +293,6 @@ class SyncOutdated {
         }
     }
 
-    /**
-     * AJAX handler for clearing sync times
-     */
-    public function clear_sync_times_ajax() {
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error('شما این مجوز را ندارید!');
-            wp_die();
-        }
 
-        try {
-            global $wpdb;
-
-            // Get total count of products with _anar_sku
-            $total_products = $wpdb->get_var("
-                SELECT COUNT(DISTINCT post_id) 
-                FROM {$wpdb->postmeta} 
-                WHERE meta_key = '_anar_sku'
-            ");
-
-            if ($total_products === null) {
-                wp_send_json_error('خطا در دریافت تعداد محصولات');
-                return;
-            }
-
-            // Delete all _anar_last_try_time meta data
-            $deleted = $wpdb->delete(
-                $wpdb->postmeta,
-                array('meta_key' => '_anar_last_try_time')
-            );
-
-            if ($deleted === false) {
-                wp_send_json_error('خطا در پاک کردن زمان‌های بروزرسانی');
-                return;
-            }
-
-            $this->log("Cleared sync times for {$deleted} products", 'info');
-
-            wp_send_json_success([
-                'message' => 'زمان‌های بروزرسانی با موفقیت پاک شدند',
-                'total_products' => $total_products,
-                'cleared_count' => $deleted
-            ]);
-
-        } catch (\Exception $e) {
-            wp_send_json_error([
-                'message' => $e->getMessage()
-            ]);
-        }
-    }
 
 }

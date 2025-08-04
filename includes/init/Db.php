@@ -89,6 +89,7 @@ class Db{
                 awca_log('Table schema updated to version ' . ANAR_DB_VERSION);
             }
         }
+
     }
 
     /**

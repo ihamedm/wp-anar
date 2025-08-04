@@ -493,9 +493,6 @@ class ProductManager{
                 return false;
             }
 
-
-            self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file, 'debug');
-
             // Update product meta
             if($deprecate){
                 update_post_meta($product_id, '_anar_deprecated', $job_id);
@@ -505,8 +502,10 @@ class ProductManager{
 
                 delete_post_meta($product_id, '_anar_sku');
                 delete_post_meta($product_id, '_anar_products');
+                self::$logger->log("Deprecating product #{$product_id} from Anar.", $log_file);
             }else{
                 update_post_meta($product_id, '_anar_pending', $job_id);
+                self::$logger->log("Pending product #{$product_id} from Anar.", $log_file);
             }
 
 

@@ -9,6 +9,31 @@
         <span class="dashicons dashicons-download"></span>
         دانلود فایل گزارش
     </button>
+    
+    <button class="button button-secondary" id="anar-create-indexes">
+        <span class="dashicons dashicons-performance"></span>
+        ساخت ایندکس
+    </button>
+
+    <button class="button button-secondary" id="anar-clear-sync-times">
+        <span class="dashicons dashicons-performance"></span>
+        ریست زمان‌ آپدیت محصولات
+    </button>
+    
+    <button class="button button-secondary" id="anar-test-performance">
+        <span class="dashicons dashicons-chart-line"></span>
+        تست عملکرد
+    </button>
+    
+    <button class="button button-secondary" id="anar-check-index-status">
+        <span class="dashicons dashicons-list-view"></span>
+        بررسی وضعیت ایندکس‌ها
+    </button>
+</div>
+
+<div id="anar-performance-status" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; display: none;">
+    <h3 style="margin-top: 0;">وضعیت بهینه‌سازی</h3>
+    <div id="anar-performance-message"></div>
 </div>
 
 <div id="anar-system-reports-table" class="anar-system-reports-table"></div>

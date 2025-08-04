@@ -7,6 +7,7 @@ import './publish-drafts';
 import './tool-ajax-form';
 import './not-synced';
 import './system-reports';
-import './sync-force';
+// import './sync-force';
 import './dl-gallery';
 import './notifications';
+import './db-index';

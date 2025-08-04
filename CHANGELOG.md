@@ -1,6 +1,16 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.21] - 1404/05/13
+- feat : add DB-Index system to improve query performance more than 90%
+- feat : add performance tests tool on states page
+- feat : DB-Index tools on states page
+- fix : improve daily sync strategy performance
+
+
+## [0.3.20] - 1404/05/08
+- fix : update shipment and order status Persian labels
+
 ## [0.3.19] - 1404/05/07
 - fix : validating postcode on order creating
 - fix : improved gallery downloader tool

@@ -11,7 +11,7 @@
                 <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&sync=late&hours_ago=1'));?>" target="_blank">محصولات آپدیت نشده</a>
                 <small>محصولاتی که یک ساعت اخیر آپدیت نشده اند</small>
             </li>
-            <li id="clear-sync-times-btn">
+            <li id="anar-clear-sync-times">
                 <span  style="cursor: pointer">بروزرسانی اجباری</span>
                 <small>بروزرسانی کل محصولات زودتر از برنامه</small>
             </li>
@@ -124,7 +124,7 @@
 
 
     <div class="tool-footer">
-        <?php include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/mini-tool-forced.php';?>
+        <?php //include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/mini-tool-forced.php';?>
         <?php //include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/mini-tool-outdated.php';?>
         <?php //include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/mini-tool-deprecated.php';?>
     </div>
