@@ -94,7 +94,7 @@ if(isset($_GET['anar_optional_price_sync'])){
             </td>
         </tr>
 
-        <tr>
+        <tr style="display: none">
             <th><label for="anar_full_sync_schedule_hours">بروزرسانی اجباری کل محصولات</label></th>
             <td>
                 <label>

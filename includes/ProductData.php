@@ -2,6 +2,8 @@
 
 namespace Anar;
 
+use Anar\Wizard\ProductManager;
+
 class ProductData{
     /**
      * Get simple product ID by Anar SKU
@@ -179,11 +181,27 @@ class ProductData{
                 return (int) $variation_id;
             }
 
+            // Check backup meta_key
+            $sql_backup = $wpdb->prepare("
+                SELECT post_id 
+                FROM {$wpdb->postmeta} 
+                WHERE meta_key = '_anar_sku_backup' 
+                AND meta_value = %s
+                LIMIT 1
+            ", $anar_sku);
+
+            $backup_id = $wpdb->get_var($sql_backup);
+            if ($backup_id) {
+                ProductManager::restore_product_deprecation((int) $backup_id);
+                return (int) $backup_id;
+            }
+
+
             // If no variation found
             throw new \Exception(sprintf('No product variation found with Anar SKU: %s', $anar_sku));
 
         }catch (\Exception $exception){
-            awca_log($exception->getMessage(), 'debug');
+            awca_log($exception->getMessage(), 'import');
             return false;
         }
     }

@@ -123,6 +123,7 @@ class ProductManager{
             update_post_meta($product->get_id(), '_product_image_url', $product_data['image']);
         }
 
+        update_post_meta($product->get_id(), '_anar_variant_id', $product_data['variants'][0]->_id);
         delete_post_meta($product->get_id(), '_anar_pending');
 
         $product->save();

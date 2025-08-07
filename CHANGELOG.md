@@ -1,6 +1,10 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.3.22] - 1404/05/16
+- fix : null variation_id in some cases
+- fix : prevent duplicate product creation
+
 ## [0.3.21] - 1404/05/13
 - feat : add DB-Index system to improve query performance more than 90%
 - feat : add performance tests tool on states page
