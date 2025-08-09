@@ -128,7 +128,7 @@ class Sync {
     public function syncProducts($ajax_call = false) {
 
         if(!Activation::is_active()){
-            $this->log('Anar is not active, Token is invalid!');
+            $this->log('Sync Products is Stopped!! Anar is not active, Token is invalid!');
             return;
         }
 
@@ -270,11 +270,16 @@ class Sync {
                 unset($api_args['since']);
 
             $apiUrl = add_query_arg($api_args, $this->baseApiUrl);
-            $awcaProducts = $this->callAnarApi($apiUrl);
+            $awcaProducts = ApiDataHandler::tryGetAnarApiResponse($apiUrl);
+
+            if (!$awcaProducts) {
+                $this->log('we have a problem to get products data from Anar API!', 'error');
+                break;
+            }
 
             if (is_wp_error($awcaProducts)) {
                 $this->log('Failed to fetch products from API: ' . $awcaProducts->get_error_message(), 'error');
-                return;
+                break;
             }
 
             if (empty($awcaProducts->items)) {
@@ -709,10 +714,6 @@ class Sync {
         delete_transient('anar_active_full_sync_jobID');
         delete_transient($this->jobID .'_paged');
         delete_transient($this->jobID .'_start_time');
-    }
-
-    private function callAnarApi($apiUrl) {
-        return ApiDataHandler::tryGetAnarApiResponse($apiUrl);
     }
 
     private function log($message, $level = 'info') {

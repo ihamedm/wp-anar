@@ -2,6 +2,8 @@
 
 namespace Anar\Init;
 
+use Anar\Core\Activation;
+
 class Checks {
     private static $instance;
     private $notice_dismissible_key = 'anar_persian_wc_notice_dismissed';
@@ -19,6 +21,7 @@ class Checks {
         add_action('admin_notices', [$this, 'admin_notice_persian_wc']);
         add_action('admin_notices', [$this, 'admin_notice_max_input_vars']);
         add_action('admin_notices', [$this, 'admin_notice_cron_health']);
+        add_action('admin_notices', [$this, 'admin_notice_token_inactive']);
         // Remove AJAX and JS hooks
     }
 
@@ -178,5 +181,38 @@ class Checks {
             <button type="button" class="notice-dismiss" onclick="location.href='<?php echo $dismiss_url; ?>'"></button>
         </div>
         <?php
+    }
+
+    /**
+     * Show admin notice when Anar token is not active
+     */
+    public function admin_notice_token_inactive() {
+        // Only show on admin pages, not on the activation page itself
+        $screen = get_current_screen();
+        if (!$screen || $screen->id === 'toplevel_page_configs') {
+            return;
+        }
+
+        // Check if token is active
+        if (!Activation::is_active()) {
+            $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit.svg';
+            $activation_error_msg = Activation::get_error_msg();
+            ?>
+            <div class="notice notice-error" style="border-left-color: #dc3232; padding: 10px 12px;">
+                <p style="display: flex;align-items: center; gap:8px">
+                    <img style="width: 24px;" src="<?php echo $anar_fruit_url;?>">
+                    <strong>انار۳۶۰ : توکن فعال نیست! برای استفاده از پلاگین انار باید <span style="background:green; color:#fff; display: inline-block; padding: 2px 6px">اشتراک حرفه ایی فعال</span> داشته باشید.</strong>
+                </p>
+                <p><span style="color:red">اخطار : </span>تا زمانی که توکن فعال نشود فرآیندهای <strong>همگام سازی قیمت و موجودی</strong> و <strong>ثبت سفارش</strong> غیرفعال خواهند بود.</p>
+                <?php if($activation_error_msg){
+                 printf('<p style="color:red">خطا: %s</p>', $activation_error_msg);
+                }?>
+                <p>
+                    <a href="<?php echo admin_url('admin.php?page=configs'); ?>" class="button button-primary">فعال‌سازی</a>
+                    <a href="https://wp.anar360.com/installation" class="button button-secondary" target="_blank">راهنمای فعال‌سازی</a>
+                </p>
+            </div>
+            <?php
+        }
     }
 }

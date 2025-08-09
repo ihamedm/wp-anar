@@ -1,9 +1,11 @@
 <?php
 
 namespace Anar;
+use Anar\Core\Activation;
 use Anar\Core\Logger;
 use Anar\Core\Mock;
 use Anar\Wizard\ProductManager;
+use SimplePie\Exception;
 
 /**
  * SyncOutdated Class
@@ -220,13 +222,13 @@ class SyncOutdated {
             $api_response = ApiDataHandler::callAnarApi($apiUrl);
 
             if (is_wp_error($api_response)) {
-                $this->log("API Error for SKU {$product_data['anar_sku']}: " . $api_response->get_error_message(), 'error');
-                return false;
+                throw new Exception($api_response->get_error_message());
             }
 
             $response_code = wp_remote_retrieve_response_code($api_response);
             $response_body = wp_remote_retrieve_body($api_response);
             $data = json_decode($response_body);
+
 
             if ($response_code === 200 && $data) {
                 $sync = Sync::get_instance();
@@ -247,6 +249,11 @@ class SyncOutdated {
             } elseif ($response_code === 404) {
                 ProductManager::set_product_as_deprecated($product_data['ID'], 'sync_outdated', 'sync', true);
                 return true;
+            }elseif ($response_code === 403) {
+                // 403 means token is invalid - this will affect all subsequent API calls
+                // Log the error and return a special status to indicate authentication failure
+                $this->log("Authentication failed (403) for product {$product_data['anar_sku']}. Token may be invalid.", 'error');
+                return 'auth_failed';
             }
 
             return false;
@@ -260,6 +267,12 @@ class SyncOutdated {
      * Main method to process outdated products
      */
     public function process_outdated_products_cronjob() {
+
+        if(!Activation::is_active()){
+            $this->log('SyncOutdated Products is Stopped!! Anar is not active!');
+            return;
+        }
+
         try {
             $products = $this->get_outdated_products();
             
@@ -279,8 +292,14 @@ class SyncOutdated {
                     break;
                 }
 
-                if ($this->process_product($product)) {
+                $result = $this->process_product($product);
+                
+                if ($result === true) {
                     $processed++;
+                } elseif ($result === 'auth_failed') {
+                    // Authentication failed - stop processing as all subsequent calls will fail
+                    $this->log("Authentication failed. Stopping sync process. Processed: {$processed}, Failed: {$failed}");
+                    break;
                 } else {
                     $failed++;
                 }

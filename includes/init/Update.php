@@ -4,6 +4,7 @@ namespace Anar\Init;
 use Anar\Sync;
 use Anar\SyncOutdated;
 use Anar\SyncRealTime;
+use Anar\Core\CronJobs;
 
 /**
  * Class Update
@@ -55,6 +56,8 @@ class Update {
 
         // Then reschedule them
         $this->schedule_cron_jobs();
+
+        CronJobs::get_instance()->reschedule_events();
     }
 
     /**

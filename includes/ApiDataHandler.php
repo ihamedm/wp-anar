@@ -36,6 +36,12 @@ class ApiDataHandler
 
 
     public static function callAnarApi($url){
+
+        if(get_option('anar_conf_feat__api_validate', 'new') == 'new'){
+            $check_args = ["check" => "true"];
+            $url = add_query_arg($check_args, $url);
+        }
+
         $token = anar_get_saved_token();
 
         if(!$token)
@@ -48,6 +54,7 @@ class ApiDataHandler
         return wp_remote_get($url, [
             'headers' => [
                 'Authorization' => $token,
+                'Accept' => 'application/json',
                 'wp-header' => get_site_url()
             ],
             'timeout' => 300,
@@ -86,18 +93,25 @@ class ApiDataHandler
     }
 
 
+    /**
+     * @param $url
+     * @return false|mixed
+     */
     public static function tryGetAnarApiResponse($url)
     {
-        $retries = 5;
-        $retry_delay = 10; // seconds
+        $retries = 3;
+        $retry_delay = 2;
 
         while ($retries > 0) {
             try {
                 $response = self::callAnarApi($url);
 
+                if($response['response']['code'] === 403){
+                    return false;
+                }
+
                 if (!is_wp_error($response) && $response['response']['code'] === 200) {
-                    $data = json_decode($response['body']);
-                    return $data;
+                    return json_decode($response['body']);
                 } else {
                     $error_message = '';
                     if (is_array($response)) {

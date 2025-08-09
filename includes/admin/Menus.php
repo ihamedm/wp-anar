@@ -143,7 +143,7 @@ class Menus{
 
     public function tools_page_content()
     {
-        $this->force_activation();
+        //$this->force_activation();
         $active_tab = $_GET['tab'] ?? 'tools';
 
         ?>

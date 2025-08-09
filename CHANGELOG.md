@@ -1,6 +1,9 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.4.0] - 1404/05/18
+- feat : limit plugin use only for Pro users
+
 ## [0.3.22] - 1404/05/16
 - fix : null variation_id in some cases
 - fix : prevent duplicate product creation

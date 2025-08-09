@@ -34,34 +34,11 @@ class SyncTools{
         //add_action('admin_notices', [$this, 'show_total_products_changed_notice']);
     }
 
-    private function callAnarApi($apiUrl) {
-        return ApiDataHandler::tryGetAnarApiResponse($apiUrl);
-    }
 
     private function log($message){
         $this->logger->log($message, 'sync');
     }
 
-
-    /**
-     * periodically call products api, check total
-     * and compare with saved total_products on last time get products
-     *
-     * @return void
-     */
-    public function get_api_total_products_number() {
-        $apiUrl = add_query_arg(
-            array('page' => 1, 'limit' => 1),
-            $this->baseApiUrl
-        );
-        $awcaProducts = $this->callAnarApi($apiUrl);
-
-        if (is_wp_error($awcaProducts)) {
-            return;
-        }
-
-        update_option('awca_api_total_products', $awcaProducts->total);
-    }
 
 
     public function show_total_products_changed_notice() {

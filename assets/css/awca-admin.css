@@ -356,6 +356,10 @@
   background-color: #ffd771;
   color:#844900
 }
+.anar-alert-danger {
+  background-color: #ffcfd9;
+  color: #dc0022
+}
 
 .closebtn {
   margin-left: 15px;

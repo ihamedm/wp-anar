@@ -1,19 +1,23 @@
 <div class="wrapper">
 <div class="stepContent active" id="stepContent1">
-            <h2 class='awca_plugin_titles'><?php echo esc_html__('اتصال انار به وبسایت شما', 'anar-360') ?></h2>
+            <h2 class='awca_plugin_titles'><?php use Anar\Core\Activation;
+
+                echo esc_html__('اتصال انار به وبسایت شما', 'anar-360') ?></h2>
             <div class="wrapper-50 plugin_activation_container">
 
 
-                <h2 class="text-center">برای فعال‌سازی پلاگین ابتدا کلید احراز هویتی خودتان را در فیلد زیر وارد کنید.</h2>
+                <h2 class="text-center">برای فعال‌سازی پلاگین باید <span style="background:green; color:#fff; display: inline-block; padding: 2px 6px;font-weight:normal">اشتراک حرفه ایی فعال</span> داشته باشید</h2>
                 <form method="post" action="<?php echo admin_url('admin-ajax.php'); ?>" class="plugin_activation_form" id="plugin_activation_form">
                     <?php if (Anar\core\Activation::validate_token()) : ?>
                         <div class="anar-alert anar-alert-success">
                             <strong>پیام:</strong> توکن شما معتبر و سمت انار مورد تایید است
                         </div>
-                    <?php else: ?>
-                        <div class="anar-alert anar-alert-warning">
-                            <strong>پیام:</strong>توکن معتبر نیست.
-                        </div>
+                    <?php else:
+                        $activation_error_msg = Activation::get_error_msg();
+                        if ($activation_error_msg) {
+                            printf('<div class="anar-alert anar-alert-danger"><strong>خطا:</strong> %s</div>', $activation_error_msg);
+                        }
+                        ?>
                     <?php endif; ?>
                     <label for="activation_code">وارد کردن کلید احراز هویتی :</label>
 
@@ -59,14 +63,13 @@
                                 echo '<p class="anar-alert anar-alert-success">'.round(($subscription_remaining / 86400000)) .' روز تا پایان اشتراک</p>';
                             }
                         }
-                    }else{
-                        echo '<p class="anar-alert anar-alert-warning">شما اشتراک پایه انار دارید.<br> برای استفاده از پلاگین باید <strong>اشتراک حرفه ایی</strong> خریداری کنید.</p>';
                     }
-                    ?>
+                     ?>
+
 
                     <div class="stepper_button_container">
-                        <button type="submit" class="plugin_activation_button stepper_btn" id="next_stepper_btn plugin_activation_button">
-                            اتصال                            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                        <button type="submit" class="awca-btn awca-success-btn submit-button" id="next_stepper_btn plugin_activation_button">
+                            بررسی و فعالسازی                            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                                 <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
                             </svg>
                         </button>

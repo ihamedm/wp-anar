@@ -3,6 +3,7 @@
 namespace Anar;
 
 use Anar\Core\Logger;
+use Anar\Core\Activation;
 use Anar\Sync;
 use Anar\ApiDataHandler;
 use Anar\Wizard\ProductManager;
@@ -43,6 +44,17 @@ class SyncRealTime {
         add_action('wp_ajax_nopriv_anar_update_product_async', [$this, 'handle_async_product_update_ajax']);
         add_action('wp_ajax_anar_update_cart_products_async', [$this, 'handle_async_cart_update_ajax']);
         add_action('wp_ajax_nopriv_anar_update_cart_products_async', [$this, 'handle_async_cart_update_ajax']);
+    }
+
+    /**
+     * Check if Anar is active before processing
+     */
+    private function check_activation() {
+        if (!Activation::is_active()) {
+            $this->log('SyncRealTime is stopped! Anar is not active!', 'warning');
+            return false;
+        }
+        return true;
     }
 
     private function log($message, $level = 'info') {
@@ -124,7 +136,11 @@ class SyncRealTime {
         $response_code = wp_remote_retrieve_response_code($api_response);
         $response_body = wp_remote_retrieve_body($api_response);
 
-        if ($response_code !== 200) {
+        if ($response_code === 403) {
+            // 403 means token is invalid - this will affect all subsequent API calls
+            $this->log("Authentication failed (403) for SKU {$sku}. Token may be invalid.", 'error');
+            return 'auth_failed';
+        } elseif ($response_code !== 200) {
             $this->log("API Error fetching SKU {$sku}: Received status code {$response_code}." , 'error');
             return null;
         }
@@ -148,6 +164,11 @@ class SyncRealTime {
      * @return string Status code: 'updated', 'skipped_cooldown', 'skipped_not_anar', 'fetch_failed', 'update_failed'.
      */
     public function sync_product_with_anar($product_id) {
+        // Check if Anar is active
+        if (!$this->check_activation()) {
+            return 'activation_failed';
+        }
+
         $anar_sku = get_post_meta($product_id, '_anar_sku', true);
         if (empty($anar_sku)) {
             $this->log("Skipping Product ID {$product_id}: Not an Anar product (no _anar_sku).", 'debug');
@@ -163,7 +184,10 @@ class SyncRealTime {
 
         $anar_product_data = $this->fetch_anar_product_data($anar_sku);
 
-        if ($anar_product_data) {
+        if ($anar_product_data === 'auth_failed') {
+            $this->log("Authentication failed for Product ID {$product_id} (SKU: {$anar_sku}).", 'error');
+            return 'auth_failed';
+        } elseif ($anar_product_data) {
             $this->log("Fetched fresh data for Product ID {$product_id} (SKU: {$anar_sku}). Attempting update.", 'debug');
             $update_success = $this->update_product_from_anar($anar_product_data, $product_id);
 
@@ -211,6 +235,12 @@ class SyncRealTime {
             case 'skipped_not_anar':
                 wp_send_json_success(['message' => 'Product checked, no update needed.', 'status' => $status]);
                 break;
+            case 'activation_failed':
+                wp_send_json_error(['message' => 'Anar is not active. Sync stopped.'], 503);
+                break;
+            case 'auth_failed':
+                wp_send_json_error(['message' => 'Authentication failed. Token may be invalid.'], 403);
+                break;
             case 'fetch_failed':
                 wp_send_json_success(['message' => 'Failed to fetch fresh product data from API. set product as out-of-stock'], 404);
                 break;
@@ -247,6 +277,8 @@ class SyncRealTime {
             'skipped_not_anar' => 0,
             'fetch_failed' => 0,
             'update_failed' => 0,
+            'activation_failed' => 0,
+            'auth_failed' => 0,
         ];
 
         foreach ($cart as $cart_item_key => $cart_item) {
@@ -261,6 +293,12 @@ class SyncRealTime {
             // Increment the counter corresponding to the status
             if (isset($results[$status])) {
                 $results[$status]++;
+            }
+
+            // Stop processing if authentication failed or activation failed
+            if ($status === 'auth_failed' || $status === 'activation_failed') {
+                $this->log("Stopping cart update process due to {$status}. Processed: {$results['processed']}", 'error');
+                break;
             }
         }
 

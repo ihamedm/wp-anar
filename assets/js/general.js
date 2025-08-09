@@ -199,7 +199,6 @@ import {paginateLinks} from "./functions";
             success: function (response) {
               if (response.success) {
                 awca_toast(response.message, "success");
-                window.location.reload();
               } else {
                 awca_toast(response.message, "error");
                 if (response.activation_status) {
@@ -216,6 +215,7 @@ import {paginateLinks} from "./functions";
             },
             complete: function () {
               jQuery(".spinner-loading").hide();
+              window.location.reload();
             },
           });
         });

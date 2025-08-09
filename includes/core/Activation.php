@@ -1,7 +1,6 @@
 <?php
 namespace Anar\Core;
 
-
 use Anar\ApiDataHandler;
 use Anar\Payments;
 
@@ -10,7 +9,6 @@ class Activation{
     public function __construct()
     {
         add_action('wp_ajax_awca_handle_token_activation_ajax', [$this, 'handle_anar_token_activation_ajax']);
-        add_action('wp_ajax_nopriv_awca_handle_token_activation_ajax', [$this, 'handle_anar_token_activation_ajax']);
     }
 
 
@@ -40,7 +38,8 @@ class Activation{
                 'message' => 'توکن شما معتبر و پلاگین انار فعال شد.',
             ];
         } else {
-            $response['message'] = 'توکن شما از سمت انار تایید نشد';
+            $error_msg = Activation::get_error_msg() ?? 'توکن شما از سمت انار تایید نشد';
+            $response['message'] = $error_msg;
         }
 
         wp_send_json($response);
@@ -53,7 +52,6 @@ class Activation{
             if (isset($_POST['activation_code'])) {
                 $activation_code = sanitize_text_field($_POST['activation_code']);
                 $activation = update_option('_awca_activation_key', $activation_code);
-//                @todo change token key
                 update_option('_anar_token', $activation_code);
                 if ($activation) {
                     return true;
@@ -81,9 +79,14 @@ class Activation{
         if(!self::get_saved_activation_key())
             return false;
 
-        $tokenValidation = ApiDataHandler::tryGetAnarApiResponse("https://api.anar360.com/wp/auth/validate");
+        $tokenValidationResponse = ApiDataHandler::callAnarApi("https://api.anar360.com/wp/auth/validate");
 
-        if ($tokenValidation !== null) {
+        if(is_wp_error($tokenValidationResponse))
+            return false;
+
+        if ($tokenValidationResponse['response']['code'] == 200) {
+            $tokenValidation = json_decode($tokenValidationResponse['body']);
+
             if(isset($tokenValidation->shopUrl)){
                 update_option('_anar_shop_url', $tokenValidation->shopUrl);
             }
@@ -97,11 +100,24 @@ class Activation{
             if (isset($tokenValidation->success) && $tokenValidation->success === true) {
                 update_option('_anar_token_validation', 'valid');
                 return true;
-            }else{
-                update_option('_anar_token_validation', 'invalid');
-                return false;
             }
+
+        }else{
+            $tokenValidation = json_decode($tokenValidationResponse['body']);
+
+            delete_option('_anar_shop_url');
+            delete_option('_anar_subscription_plan');
+            delete_option('_anar_subscription_remaining');
+
+            update_option('_anar_token_validation', 'invalid');
+
+            if(isset($tokenValidation->error)){
+                update_option('_anar_subscription_error', $tokenValidation->error);
+            }
+
+            return false;
         }
+
         return false;
     }
 
@@ -119,6 +135,41 @@ class Activation{
         return false;
     }
 
+
+    public static function get_error_msg($error_code = ''){
+        /**
+         * UNKNOWN_ERROR: 10000,
+         * SUBSCRIPTION_REQUIRED: 10010,
+         * PRO_SUBSCRIPTION_REQUIRED: 10011,
+         * SUBSCRIPTION_EXPIRED: 10012,
+         * INVALID_DOMAIN: 10020
+         */
+
+        if(self::is_active())
+            return false;
+
+        if($error_code == ''){
+            $error_code = get_option('_anar_subscription_error', 9000);
+        }
+
+        switch ($error_code) {
+            case 10000:
+                return 'خطای نامشخصی رخ داده است.';
+            case 10010:
+                return 'شما هیچ اشتراکی ندارید.';
+            case 10011:
+                return 'اشتراک حرفه ایی ندارید.';
+            case 10012:
+                return 'اعتبار اشتراک شما به پایان رسیده است.';
+            case 10020:
+                return 'توکن با آدرس وب سایت مطابقت ندارد.';
+            case 9000:
+                return 'توکن وارد نشده است.';
+            default:
+                return 'کد خطا نامعتبر است.';
+        }
+
+    }
 
 }
 

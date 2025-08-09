@@ -98,6 +98,6 @@ class Uninstall
 
     public static function clear_scheduled(){
         $cron_jobs = CronJobs::get_instance();
-        $cron_jobs->deactivate();
+        $cron_jobs->clear_schedule();
     }
 }
