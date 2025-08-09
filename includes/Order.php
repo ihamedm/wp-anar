@@ -181,9 +181,6 @@ class Order {
             'externalId' => $order->get_id(),
             'shipments' => $this->prepare_shipments($order),
         ];
-        $order->add_order_note($create_data['address']['detail']);
-
-        return ['success' => true , 'message' => 'Testing...'];
 
         // Second API call to create the order
         $create_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/', $create_data);
