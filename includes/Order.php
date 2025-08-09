@@ -15,17 +15,24 @@ class Order {
     }
 
     public function __construct() {
-        add_action( 'add_meta_boxes', [$this, 'anar_order_meta_box'] );
+        add_filter('woocommerce_localisation_address_formats', [$this, 'custom_address_format_for_dear_iran'] , 30, 1);
+        add_action('add_meta_boxes', [$this, 'anar_order_meta_box'] );
         add_action('woocommerce_order_details_after_order_table', [$this, 'display_anar_order_details_front'], 10, 1);
         add_action('wp_ajax_awca_create_anar_order_ajax', [$this, 'create_anar_order_ajax']);
         add_action('wp_ajax_awca_fetch_order_details_ajax', [$this, 'fetch_order_details_ajax']);
         add_action('wp_ajax_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
         add_action('wp_ajax_nopriv_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
 
+
         // @todo show order shipments data [need when anar order not created from wordpress]
 //        add_action( 'woocommerce_admin_order_data_after_billing_address', [$this, 'display_custom_option_in_admin'], 10, 1 );
         //add_filter('woocommerce_get_order_item_totals', [$this, 'filter_fee_and_shipment_name_in_order_details'], 10, 3);
 
+    }
+
+    public function custom_address_format_for_dear_iran( $formats ) {
+        $formats['IR'] = "{company}\n{first_name} {last_name}\n{country}\n{state}\n{city}\n{address_1}\n{address_2}\n{postcode}";
+        return $formats;
     }
 
     /**
@@ -149,10 +156,6 @@ class Order {
             $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
         }
 
-//        add_filter('woocommerce_localisation_address_formats', function ($formats) {
-//            $formats['IR'] = "{state} , {city} , {address_1} , {address_2}";
-//            return $formats;
-//        });
 
         $formatted_address = $order->get_formatted_billing_address();
         // Remove <br> and full name from formatted address
@@ -178,6 +181,9 @@ class Order {
             'externalId' => $order->get_id(),
             'shipments' => $this->prepare_shipments($order),
         ];
+        $order->add_order_note($create_data['address']['detail']);
+
+        return ['success' => true , 'message' => 'Testing...'];
 
         // Second API call to create the order
         $create_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/', $create_data);

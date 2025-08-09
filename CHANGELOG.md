@@ -1,6 +1,10 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.4.1] - 1404/05/18
+- fix : localization Iran address format even if wp-persian not installed
+
+
 ## [0.4.0] - 1404/05/18
 - feat : limit plugin use only for Pro users
 
