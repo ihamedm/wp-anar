@@ -564,7 +564,7 @@ class Order {
                         $paymentStatus = $package['status'];
                         $groupId = $package['groupId'];
 
-                        $item_wc_id = ProductData::get_product_variation_by_anar_sku($item['product']);
+                        $item_wc_id = ProductData::get_product_variation_by_anar_variation($item['product']);
                         // Check if the product ID is valid and get the product link
                         if ($item_wc_id && !is_wp_error($item_wc_id)) {
                             $product_link = get_permalink($item_wc_id); // Get the product link
@@ -724,7 +724,7 @@ class Order {
                     $product_list_markup = '<ul class="package-items">';
                     foreach ($package['items'] as $item) {
 //                        $item_wc_id = awca_get_product_by_anar_variant_id($item['product']);
-                        $item_wc_id = ProductData::get_product_variation_by_anar_sku($item['product']);
+                        $item_wc_id = ProductData::get_product_variation_by_anar_variation($item['product']);
 
                         // Check if the product ID is valid and get the product link
                         if ($item_wc_id && !is_wp_error($item_wc_id)) {

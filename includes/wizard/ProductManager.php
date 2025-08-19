@@ -249,6 +249,7 @@ class ProductManager{
         $prepared_product['name'] = isset($product->title) ? $product->title : '';
         $prepared_product['sku'] = isset($product->id) ? $product->id : '';
         $prepared_product['description'] = isset($product->description) ? preg_replace('/<a.*>(.*)<\/a>/isU','$1',$product->description) : '';
+        $prepared_product['label_price'] = isset($product->variants[0]->labelPrice) ? $product->variants[0]->labelPrice : 0;
         $prepared_product['regular_price'] = isset($product->variants[0]->price) ? $product->variants[0]->price : 0;
         $prepared_product['stock_quantity'] = isset($product->variants[0]->stock) ? $product->variants[0]->stock : 0;
         $prepared_product['categories'] = isset($product->categories) ? $product->categories : '';
@@ -333,7 +334,8 @@ class ProductManager{
                 foreach ($batch as $variation_data) {
                     $variation = new WC_Product_Variation();
                     $variation->set_parent_id($wc_parent_product_id);
-                    $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
+                    $variation->set_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
+                    $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->regular_price));
                     $variation->set_stock_quantity($variation_data->stock);
                     $variation->set_manage_stock(true);
 
@@ -425,7 +427,7 @@ class ProductManager{
         }
 
         $key = ($process == 'import') ? '_anar_import_job_id' : '_anar_sync_job_id';
-        $log_file = ($process == 'import') ? 'general' : 'fullSync';
+        $log_file = ($process == 'import') ? 'import' : 'general';
 
         if(awca_is_import_products_running()){
             self::$logger->log("detect importing in progress, so skipp deprecating until next job.", $log_file);

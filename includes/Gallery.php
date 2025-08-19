@@ -2,7 +2,7 @@
 
 namespace Anar;
 
-use Anar\Core\Image_Downloader;
+use Anar\Core\ImageDownloader;
 use Anar\Core\Logger;
 
 class Gallery{
@@ -21,7 +21,7 @@ class Gallery{
     }
 
     public function __construct() {
-        $this->image_downloader = new Image_Downloader();
+        $this->image_downloader = ImageDownloader::get_instance();
         $this->logger = new Logger();
 
         add_action('wp_ajax_anar_estimate_products_gallery_ajax', array($this, 'estimate_products_gallery_ajax'));

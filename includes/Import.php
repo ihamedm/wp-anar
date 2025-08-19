@@ -2,7 +2,7 @@
 namespace Anar;
 
 use Anar\Core\CronJobs;
-use Anar\Core\Image_Downloader;
+use Anar\Core\ImageDownloader;
 use Anar\Core\Logger;
 use Anar\Wizard\ProductManager;
 use WP_Query;
@@ -16,7 +16,7 @@ class Import {
     private static $instance = null;
     private int $stuck_process_timeout = 180; // 3 minutes
     private int $heartbeat_timeout = 300; // 5 minutes
-    private Image_Downloader $image_downloader;
+    private ImageDownloader $image_downloader;
     private JobManager $job_manager;
 
 
@@ -24,11 +24,7 @@ class Import {
     {
         $this->logger = new Logger();
         $this->job_manager = JobManager::get_instance();
-
-        //add_action( 'admin_notices', array( $this, 'admin_notice' ) );
-        add_action('admin_notices', [$this, 'show_removed_products_notice']);
-
-        $this->image_downloader = new Image_Downloader();
+        $this->image_downloader = ImageDownloader::get_instance();
         
         // Initialize failed products tracking if not exists
         if (!get_option('awca_failed_products')) {
@@ -233,6 +229,7 @@ class Import {
                         
                         $product_creation_data = array(
                             'name' => $prepared_product['name'],
+                            'price' => $prepared_product['label_price'],
                             'regular_price' => $prepared_product['regular_price'],
                             'description' => $prepared_product['description'],
                             'image' => $prepared_product['image'],
@@ -355,7 +352,7 @@ class Import {
      * We must notice Anar that creation products complete done.
      * @return void
      */
-    private function notice_completed(){
+    private function notify_anar_import_completion(){
         $response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/status', ['status'=> 'synced']);
 
         if (is_wp_error($response)) {
@@ -366,71 +363,13 @@ class Import {
     }
 
 
-    // Add the notice
-    public function show_removed_products_notice() {
-        // Handle the dismiss action
-        if (isset($_GET['awca_hide_notice']) && wp_verify_nonce($_GET['nonce'], 'awca_hide_notice')) {
-            delete_option('awca_deprecated_products_count');
-            return;
-        }
-
-        if (isset($_GET['anar_deprecated'])) {
-            delete_option('awca_deprecated_products_count');
-            return;
-        }
-
-        // Only show to administrators
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-
-        $removed_count = get_option('awca_deprecated_products_count', 0);
-
-        if ($removed_count > 0) {
-            // Create query parameters for the products page
-            $query_args = array(
-                'post_type' => 'product',
-                'anar_deprecated' => 'true'
-            );
-
-            // Generate the URL for viewing deprecated products
-            $view_url = add_query_arg($query_args, admin_url('edit.php'));
-
-            // Generate the dismiss URL (redirect back to current page after dismissing)
-            $current_url = add_query_arg(null, null);
-            $dismiss_nonce = wp_create_nonce('awca_hide_notice');
-            $dismiss_url = add_query_arg([
-                'awca_hide_notice' => '1',
-                'nonce' => $dismiss_nonce
-            ], $current_url);
-
-            // Notice HTML
-            $notice = sprintf(
-                '<div class="notice notice-warning is-dismissible">
-            <p>
-                <strong>انار۳۶۰:</strong> 
-                 محصولاتی از پنل انار شما حذف شده‌اند که در وب‌سایت به حالت ناموجود تغییر وضعیت داده شدند. 
-                می‌توانید لیست آنها را برای تعیین تکلیف ببینید.
-                <a href="%s" class="button button-small" style="margin-right: 10px;">مشاهده محصولات غیر فعال شده</a>
-                <a href="%s" style="margin-right: 15px; color: #999; text-decoration: none;">دیگر نشان نده</a>
-            </p>
-        </div>',
-                esc_url($view_url),
-                esc_url($dismiss_url)
-            );
-
-            echo wp_kses_post($notice);
-        }
-    }
-
-
     /**
      * Complete
      *
      * Called when the background process is complete.
      */
     protected function complete() {
-        $this->notice_completed();
+        $this->notify_anar_import_completion();
         $this->lock_create_products_cron();
 
         $import_jobID = $this->get_jobID();

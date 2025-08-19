@@ -168,8 +168,6 @@ class SyncTools{
         $time_ago = current_time('mysql', false);
         $time_ago = date('Y-m-d H:i:s', strtotime($time_ago . " -{$hours_ago} hours"));
 
-        awca_log("Filtering products not synced since: " . $time_ago);
-
         if (isset($_GET['sync']) && $_GET['sync'] === 'late') {
             $query->set('post_status', array('publish'));
             $query->set('meta_query',

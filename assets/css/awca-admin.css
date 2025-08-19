@@ -1372,6 +1372,10 @@ select::-ms-expand {
   display: block;
   padding: 4px 0;
 }
+.anar-product-list-last-sync-time{
+  font-size:10px;
+}
+
 
 .wp-list-table th#product_label,
 .wp-list-table td.product_label {

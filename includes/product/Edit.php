@@ -103,7 +103,7 @@ class Edit{
 
         $gallery_image_limit = $_POST['gallery_image_limit'] ?? 5;
         $product_id = intval( $_POST['product_id'] );
-        $image_downloader = new \Anar\Core\Image_Downloader();
+        $image_downloader = \Anar\Core\ImageDownloader::get_instance();
 
         // set product thumbnail
         $image_url = get_post_meta($product_id, '_product_image_url', true);

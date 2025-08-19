@@ -80,9 +80,9 @@ class SyncForce {
             if ($response_code === 200 && $data) {
                 $sync = Sync::get_instance();
                 if (isset($data->attributes) && !empty($data->attributes)) {
-                    $sync->processVariableProduct($data, true);
+                    $sync->processVariableProduct($data, $product_data['ID'],true);
                 } else {
-                    $sync->processSimpleProduct($data, true);
+                    $sync->processSimpleProduct($data, $product_data['ID'], true);
                 }
 
                 update_post_meta($product_data['ID'], '_anar_last_sync_time', current_time('mysql'));

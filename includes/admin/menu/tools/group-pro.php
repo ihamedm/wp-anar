@@ -57,7 +57,6 @@
     <?php
     $sync = \Anar\Sync::get_instance();
     $last_sync_time = $sync->getLastSyncTime();
-    $sync->fullSync = true;
     $last_full_sync_time = $sync->getLastSyncTime();
     $since_nex_full_sync_minutes = get_transient('anar_since_next_full_sync');
     $is_full_sync_running = get_transient('awca_full_sync_products_lock');

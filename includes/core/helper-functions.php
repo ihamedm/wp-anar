@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * @return false|mixed|null
  */
@@ -89,7 +88,7 @@ function awca_check_expiration_by_db_time($db_time): bool
  */
 function awca_transform_image_url($url): string
 {
-    $image_downloader = new \Anar\Core\Image_Downloader();
+    $image_downloader = Anar\Core\ImageDownloader::get_instance();
     return $image_downloader->transform_image_url($url);
 }
 

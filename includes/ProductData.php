@@ -61,14 +61,14 @@ class ProductData{
     /**
      * Get product variation ID by Anar SKU
      *
-     * @param string $anar_sku The Anar SKU to search for
+     * @param string $anar_variant_id The Anar SKU to search for
      * @return int|\WP_Error Returns variation ID on success, WP_Error on failure
      */
-    public static function get_product_variation_by_anar_sku($anar_sku) {
+    public static function get_product_variation_by_anar_variation($anar_variant_id) {
         global $wpdb;
 
         // Input validation
-        if (empty($anar_sku)) {
+        if (empty($anar_variant_id)) {
             return new \WP_Error(
                 'invalid_anar_sku',
                 'Anar SKU cannot be empty',
@@ -77,15 +77,15 @@ class ProductData{
         }
 
         // Sanitize the input
-        $anar_sku = sanitize_text_field($anar_sku);
+        $anar_variant_id = sanitize_text_field($anar_variant_id);
 
         // Prepare and execute the query
         $sql = $wpdb->prepare("
             SELECT post_id 
             FROM {$wpdb->postmeta} 
-            WHERE meta_key = '_anar_sku' 
+            WHERE meta_key = '_anar_variant_id' 
             AND meta_value = %s
-        ", $anar_sku);
+        ", $anar_variant_id);
 
         // Check for SQL errors before executing
         if ($sql === false) {
@@ -136,7 +136,7 @@ class ProductData{
             'variation_not_found',
             sprintf(
                 'No product variation found with Anar SKU: %s',
-                $anar_sku
+                $anar_variant_id
             )
         );
     }

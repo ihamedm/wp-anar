@@ -43,12 +43,18 @@ class Lists{
             if (!empty($anar_sku)) {
                 $anar_prices = get_post_meta($post_id, '_anar_prices', true);
                 $anar_pending = get_post_meta($post_id, '_anar_pending', true);
+                $last_sync_time = get_post_meta($post_id, '_anar_last_sync_time', true);
 
 
                 $anar_url = $anar_shop_url ."/product/{$anar_sku}";
                 $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/'.($anar_pending ? 'anar-fruit-pending.svg' : 'anar-fruit.svg');
 
                 echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="مشاهده محصول در سایت انار۳۶۰"><img src="'.$anar_fruit_url.'"></a>';
+
+                printf('<div class="anar-product-list-last-sync-time"><date>%s</date><br>%s</div>',
+                    mysql2date('j F Y' . ' در ' . 'H:i', $last_sync_time),
+                    awca_time_ago($last_sync_time),
+                );
 
                 if($anar_prices && ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes') {
                     echo '<br>';
@@ -93,16 +99,19 @@ class Lists{
             return;
         }
 
+        // Apply your meta filter
         if (isset($_GET['is_anar_product']) && $_GET['is_anar_product'] === '1') {
-            $query->set('meta_query', array(
-                array(
-                    'key' => '_anar_products',
-                    'compare' => 'EXISTS'
-                ),
-            ));
+
+            (new ProductData())->count_anar_products(true);
+
+            $query->set('meta_key', '_anar_last_sync_time');
+            $query->set('orderby', 'meta_value');
+            $query->set('order', 'DESC');
+            $query->set('meta_type', 'DATETIME');
         }
 
     }
+
 
     // Add filter to modify products query to show deprecated products
     public function filter_anar_deprecated_products($query) {

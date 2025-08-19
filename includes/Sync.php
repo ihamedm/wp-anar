@@ -13,17 +13,9 @@ class Sync {
     private $page;
     private $syncedCounter;
     private $startTime;
-
     private $jobID;
-
     private $logger;
-
     public $triggerBy;
-
-    public $fullSync = false;
-
-    public $restBetweenFullSyncs; //seconds
-
     public $max_execution_time;
 
     /**
@@ -47,7 +39,6 @@ class Sync {
         $this->syncedCounter = 0;
         $this->triggerBy = 'Cronjob';
         $this->max_execution_time = 240; // 4 minutes (to stay safely under 5 min limit)
-        $this->restBetweenFullSyncs = get_option('anar_full_sync_schedule_hours', 6) * 3600;
 
         $this->logger = new Logger();
 
@@ -63,7 +54,6 @@ class Sync {
         // Register cron schedule and hook
         add_filter('cron_schedules', array($this, 'add_cron_interval'));
         add_action('anar_sync_products', array($this, 'run_sync_cron'));
-        add_action('anar_full_sync_products', array($this, 'run_full_sync_cron'));
 
         $this->schedule_cron();
     }
@@ -73,7 +63,7 @@ class Sync {
      */
     public function add_cron_interval($schedules) {
         $schedules['anar_sync_interval'] = array(
-            'interval' => 600, // 10 minutes in seconds
+            'interval' => 600,
             'display'  => 'هر ۱۰ دقیقه'
         );
         return $schedules;
@@ -84,19 +74,10 @@ class Sync {
      */
     public function run_sync_cron() {
         $this->triggerBy = 'Cronjob';
-        $this->fullSync = false;
         $this->limit = 100;
         $this->syncProducts();
     }
 
-    /**
-     * Run full sync process via cron
-     */
-    public function run_full_sync_cron() {
-        $this->triggerBy = 'FullSyncCronjob';
-        $this->fullSync = true;
-        $this->syncProducts();
-    }
 
     /**
      * Schedule the cron jobs if not already scheduled
@@ -104,9 +85,6 @@ class Sync {
     public function schedule_cron() {
         if (!wp_next_scheduled('anar_sync_products')) {
             wp_schedule_event(time(), 'anar_sync_interval', 'anar_sync_products');
-        }
-        if (!wp_next_scheduled('anar_full_sync_products')) {
-            wp_schedule_event(time(), 'anar_sync_interval', 'anar_full_sync_products');
         }
     }
 
@@ -117,11 +95,6 @@ class Sync {
         $timestamp = wp_next_scheduled('anar_sync_products');
         if ($timestamp) {
             wp_unschedule_event($timestamp, 'anar_sync_products');
-        }
-        
-        $timestamp = wp_next_scheduled('anar_full_sync_products');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'anar_full_sync_products');
         }
     }
 
@@ -145,30 +118,6 @@ class Sync {
         }
 
 
-        // only check cool down for fullSync jobs
-        if($this->fullSync){
-
-            $this->log('Full Sync Cronjob temporary disabled!');
-            return;
-
-            $lastSyncTime = $this->getLastSyncTime();
-            if($lastSyncTime){
-                $msSinceLastSync = strtotime(current_time('mysql')) - strtotime($lastSyncTime);
-                if(!$this->haveActiveFullSync() && $msSinceLastSync < $this->restBetweenFullSyncs){
-                    $minutes = round(($this->restBetweenFullSyncs - $msSinceLastSync ) / 60, 2);
-                    set_transient('anar_since_next_full_sync', $minutes, 3600);
-                    // Keep this log as it's an early exit condition
-                    $this->log(
-                        sprintf('Still %s Minutes left until the next full sync. Last sync: %s',
-                            $minutes,
-                            $lastSyncTime
-                        )
-                    );
-                    return;
-                }
-            }
-        }
-
         // Set Job ID early to use in logs
         $this->set_jobID();
 
@@ -180,15 +129,8 @@ class Sync {
         $completed = false; // Initialize completion status
 
         try {
-            // Log Start or Continue *after* locking
-            if($this->fullSync && $this->haveActiveFullSync()){
-                $this->log('-------------------------------- ' . ($this->haveActiveFullSync() ? 'Continue' : 'Start') . ' Sync Job: '.$this->jobID.' --------------------------------');
-            }else{
-                 $this->log('-------------------------------- Start Sync Job: '.$this->jobID.' --------------------------------');
-                 if(!$this->fullSync)
-                     $this->log('## Syncing products changed since '.($this->updatedSince / 60000).' minutes ago...');
-            }
-            $this->log('## Triggered by [ '.$this->triggerBy.' ] ' . ($this->fullSync ? ' [ Full Sync ]' : '') );
+            $this->log(':: Start Sync Job: '.$this->jobID);
+            $this->log('## Triggered by [ '.$this->triggerBy.' ] ' );
 
 
             $completed = $this->processPages();
@@ -197,12 +139,6 @@ class Sync {
             if ($completed) {
                 $this->log("Sync job {$this->jobID} completed processing pages.");
                 $this->setLastSyncTime();
-
-                if ($this->fullSync) {
-                    // After processing all pages in a full sync, check for removed products
-                    //ProductManager::handle_removed_products_from_anar('sync', $this->jobID);
-                    $this->complete_full_sync_job(); // Mark the full sync job as complete if applicable
-                }
             } else {
                  $this->log("Sync job {$this->jobID} did not complete all pages in this run.");
             }
@@ -211,7 +147,7 @@ class Sync {
             // Log the total time and finish marker *before* unlocking
             $totalTimeMessage = $this->getTotalTimeMessage(); // Get the formatted time message
             $status = $completed ? 'Completed' : 'Finished Run (Incomplete)';
-            $this->log('-------------------------------- '.$status.' Sync Job: '.$this->jobID.' ('.$totalTimeMessage.') --------------------------------');
+            $this->log(':: '.$status.' Sync Job: '.$this->jobID.' ('.$totalTimeMessage.') ');
 
             $this->unlockSync();
 
@@ -238,26 +174,8 @@ class Sync {
         while (true) {
             // Check if we're approaching the execution time limit
             if (time() - $start_time > $max_execution_time) {
-                if ($this->fullSync) {
-                    $this->log("Approaching execution time limit, saving progress and will continue in next run.", 'warning');
-                    // For full sync, we'll continue on the next run from this page
-                    break;
-                } else {
-                    // For regular sync, log that we couldn't complete in one run
-                    $this->log("Regular sync approaching execution time limit. Consider optimizing or reducing the updatedSince window.", 'warning');
-                    break;
-                }
-            }
-
-            if($this->fullSync){
-                $last_page = get_transient($this->jobID .'_paged');
-
-                if(!$last_page){
-                    set_transient($this->jobID .'_paged', 1, 3600);
-                    $this->page = 1;
-                }else{
-                    $this->page = $last_page;
-                }
+                $this->log("Regular sync approaching execution time limit. Consider optimizing or reducing the updatedSince window.", 'warning');
+                break;
             }
 
             $api_args = array(
@@ -266,8 +184,6 @@ class Sync {
                 'since' => $this->updatedSince * -1
             );
 
-            if($this->fullSync)
-                unset($api_args['since']);
 
             $apiUrl = add_query_arg($api_args, $this->baseApiUrl);
             $awcaProducts = ApiDataHandler::tryGetAnarApiResponse($apiUrl);
@@ -300,30 +216,14 @@ class Sync {
             // Process products in smaller chunks to avoid memory issues
             $chunk_size = 50;
             $items = array_chunk($awcaProducts->items, $chunk_size);
-
-
             
             foreach ($items as $chunk) {
                 $this->processProducts($chunk);
-                
-                // Check execution time after each chunk
-                if (time() - $start_time > $max_execution_time) {
-                    if ($this->fullSync) {
-                        $this->log("Approaching execution time limit after processing chunk, saving progress.", 'warning');
-                        break 2;
-                    }
-                }
             }
 
             $this->syncedCounter += count($awcaProducts->items);
-
-
-
             $this->page++;
 
-            if($this->fullSync){
-                set_transient($this->jobID .'_paged', $this->page, 3600);
-            }
         }
 
         return $syncCompleted;
@@ -351,14 +251,6 @@ class Sync {
                         'meta_key' => '_anar_last_sync_time',
                         'meta_value' => $current_time
                     );
-
-                    if ($this->fullSync) {
-                        $batch_meta_updates[] = array(
-                            'post_id' => $updated_wc_id,
-                            'meta_key' => '_anar_sync_job_id',
-                            'meta_value' => $this->jobID
-                        );
-                    }
 
                     $batch_meta_updates[] = array(
                         'post_id' => $updated_wc_id,
@@ -395,7 +287,7 @@ class Sync {
     }
 
 
-    public function processSimpleProduct($updateProduct, $full = false) {
+    public function processSimpleProduct($updateProduct, $wc_product_id = '',  $full = false) {
         try {
             if (!is_array($updateProduct->variants) || empty($updateProduct->variants)) {
                 throw new \Exception("No variants found in the product data");
@@ -407,7 +299,11 @@ class Sync {
                 throw new \Exception("Product ID/SKU is missing");
             }
 
-            $productId = ProductData::get_simple_product_by_anar_sku($sku);
+            if($wc_product_id != '' && is_numeric($wc_product_id)){
+                $productId = $wc_product_id;
+            }else{
+                $productId = ProductData::get_simple_product_by_anar_sku($sku);
+            }
 
             if (is_wp_error($productId)) {
                 throw new \Exception($productId->get_error_message());
@@ -445,38 +341,49 @@ class Sync {
     }
 
 
-    public function processVariableProduct($updateProduct, $full = false) {
+    public function processVariableProduct($anarProduct, $wc_product_id = '', $full = false) {
         $wp_variation_productId = '';
         $parentId = 0;
 
         try {
-            if (!is_array($updateProduct->variants) || empty($updateProduct->variants)) {
+            if (!is_array($anarProduct->variants) || empty($anarProduct->variants)) {
                 throw new \Exception("No variants found in the product data");
             }
 
-            // first set outofstock all wc_product variation, because maybe some variant on anar removed buy reseller
-            $wc_parent_product_id = ProductData::get_simple_product_by_anar_sku($updateProduct->id);
+            if($wc_product_id != '' && is_numeric($wc_product_id)){
+                $wc_parent_product_id = $wc_product_id;
+            }else{
+                $wc_parent_product_id = ProductData::get_simple_product_by_anar_sku($anarProduct->id);
+            }
 
+            // first set outofstock all wc_product variation, because maybe some variant on anar removed buy reseller
             if (is_wp_error($wc_parent_product_id)) {
                 throw new \Exception($wc_parent_product_id->get_error_message());
             }
 
             $wc_parent_product = wc_get_product($wc_parent_product_id);
             $variations = $wc_parent_product->get_children();
-            foreach ($variations as $variation_id) {
-                ProductManager::set_product_variation_out_of_stock($variation_id);
+            $exist_anar_variation_ids = [];
+            foreach ($variations as $wc_variation_product_id) {
+                ProductManager::set_product_variation_out_of_stock($wc_variation_product_id);
+                $anar_variation_id = get_post_meta($wc_variation_product_id, '_anar_variant_id', true);
+                if($anar_variation_id)
+                    $exist_anar_variation_ids[$anar_variation_id] = $wc_variation_product_id;
             }
 
-
             // update variants
-            foreach ($updateProduct->variants as $variant) {
+            foreach ($anarProduct->variants as $variant) {
                 try {
                     if (empty($variant->_id)) {
                         continue; // Skip variants without ID
                     }
 
                     $anar_variation_id = $variant->_id;
-                    $wp_variation_productId = ProductData::get_product_variation_by_anar_sku($anar_variation_id);
+                    if(in_array($anar_variation_id, array_keys($exist_anar_variation_ids))) {
+                        $wp_variation_productId = $exist_anar_variation_ids[$anar_variation_id];
+                    }else{
+                        $wp_variation_productId = ProductData::get_product_variation_by_anar_variation($anar_variation_id);
+                    }
                     if (is_wp_error($wp_variation_productId)) {
                         if($wp_variation_productId->get_error_code() == 404){
                             // @todo create the variation
@@ -486,23 +393,21 @@ class Sync {
 
                     }else{
                         $product = wc_get_product($wp_variation_productId);
-
                         if (!$product) {
                             throw new \Exception("Failed to get WooCommerce product variation with ID: {$wp_variation_productId}");
                         }
-
 
                         // Store parent ID for later use
                         if ($parentId == 0) {
                             $parentId = $product->get_parent_id();
                         }
 
-                        $this->updateProductStockAndPrice($product, $updateProduct, $variant, $parentId);
+                        $this->updateProductStockAndPrice($product, $anarProduct, $variant, $parentId);
                         $this->updateProductMetadata($parentId, $variant);
                         $this->updateProductVariantMetaData($wp_variation_productId, $variant);
 
                         if($full){
-                            $this->updateProductShipments($parentId, $updateProduct);
+                            $this->updateProductShipments($parentId, $anarProduct);
                         }
                     }
                 } catch (\Exception $e) {
@@ -522,7 +427,7 @@ class Sync {
                 }
             }
 
-            return sprintf("variable product %s not found in wp", isset($updateProduct->id) ? $updateProduct->id : 'unknown');
+            return sprintf("variable product %s not found in wp", isset($anarProduct->id) ? $anarProduct->id : 'unknown');
         } catch (\Exception $e) {
             $this->log("Error processing variable product: " . $e->getMessage(), 'error');
             return "Error processing variable product: " . $e->getMessage();
@@ -540,6 +445,7 @@ class Sync {
      * @return void
      */
     public function updateProductStockAndPrice($product, $updateProduct, $variant, $parentId) {
+        awca_log('updateProductStockAndPrice');
         // Update stock
        $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
 
@@ -620,11 +526,6 @@ class Sync {
      */
     public function updateProductMetadata($wcProductParentId, $variant) {
         update_post_meta($wcProductParentId, '_anar_last_sync_time', current_time('mysql'));
-
-        if ($this->fullSync) {
-            update_post_meta($wcProductParentId, '_anar_sync_job_id', $this->jobID);
-        }
-
         delete_post_meta($wcProductParentId, '_anar_pending');
     }
 
@@ -661,110 +562,48 @@ class Sync {
     }
 
 
-    private function haveActiveFullSync(){
-        return get_transient('anar_active_full_sync_jobID');
-    }
-
-    private function checkForAbandonedJobs() {
-        $active_job_id = get_transient('anar_active_full_sync_jobID');
-        if ($active_job_id) {
-            $job_lock = get_transient('awca_full_sync_products_lock');
-            if (!$job_lock) {
-                // The job ID exists but the lock is gone - likely an abandoned job
-                $this->log("Detected abandoned full sync job: {$active_job_id}. Resuming.");
-                return $active_job_id;
-            }
-        }
-        return false;
-    }
-
 
     private function set_jobID(){
-        $abandoned_job = $this->checkForAbandonedJobs();
-
-        if ($this->fullSync && $abandoned_job) {
-            $this->jobID = $abandoned_job;
-            return;
-        }
-
         $job_prefix = 'anar_'.$this->triggerBy;
-        if($this->fullSync){
-            $job_prefix .= '_full';
-        }
-
         $fresh_unique_jobID = uniqid($job_prefix . '_sync_job_');
         $this->jobID = $fresh_unique_jobID;
 
-
-        if($this->fullSync){
-            // look for existence job to continue
-            $exist_full_sync_jobID = $this->haveActiveFullSync();
-
-            if($exist_full_sync_jobID){
-                $this->jobID = $exist_full_sync_jobID;
-            }else{
-                set_transient('anar_active_full_sync_jobID', $fresh_unique_jobID, 3600);
-            }
-        }
-
     }
 
-
-    private function complete_full_sync_job(){
-        delete_transient('anar_active_full_sync_jobID');
-        delete_transient($this->jobID .'_paged');
-        delete_transient($this->jobID .'_start_time');
-    }
 
     private function log($message, $level = 'info') {
-        $prefix = $this->fullSync ? 'fullSync' : 'sync';
-        $this->logger->log($message, $prefix, $level);
+        $this->logger->log($message, 'sync', $level);
     }
 
     private function isSyncInProgress() {
-        if ($this->fullSync) {
-            return get_transient('awca_full_sync_products_lock');
-        }
         return get_transient('awca_sync_all_products_lock');
     }
 
     private function lockSync() {
-        $lock_name = $this->fullSync ? 'awca_full_sync_products_lock' : 'awca_sync_all_products_lock';
         $this->log("lock syncing ".$this->jobID."...");
-        set_transient($lock_name, $this->jobID, 300); // Lock for 5 minutes
+        set_transient('awca_sync_all_products_lock', $this->jobID, 300); // Lock for 5 minutes
     }
 
     private function unlockSync() {
-        $lock_name = $this->fullSync ? 'awca_full_sync_products_lock' : 'awca_sync_all_products_lock';
         $this->log("unlock syncing ".$this->jobID."...");
-        delete_transient($lock_name);
+        delete_transient('awca_sync_all_products_lock');
     }
 
 
     public function setLastSyncTime() {
-        $key = 'anar_last_' . ($this->fullSync ? 'full_' : '' ) . 'sync_time';
-        update_option($key, current_time('mysql'));
+        update_option('anar_last_sync_time', current_time('mysql'));
     }
 
     public function getLastSyncTime() {
-        $key = 'anar_last_' . ($this->fullSync ? 'full_' : '' ) . 'sync_time';
-        return get_option($key);
+        return get_option('anar_last_sync_time');
     }
 
     public function setStartTime() {
-        if($this->fullSync) {
-            set_transient($this->jobID . '_start_time', current_time('mysql'), 3600);
-        }else{
-            $this->startTime = current_time('mysql');
-        }
+        $this->startTime = current_time('mysql');
     }
 
     public function getStartTime(){
-        if($this->fullSync) {
-            return get_transient($this->jobID . '_start_time') ?: current_time('mysql');
-        }else{
-            return $this->startTime;
-        }
+        return $this->startTime;
     }
 
     /**
@@ -786,12 +625,6 @@ class Sync {
     // AJAX handler for syncing products price and stocks
     public function syncProductsPriceAndStocksAjax() {
         $this->triggerBy = 'Manual';
-        if(isset($_POST['full_sync']) && $_POST['full_sync'] == 'on') {
-            $this->fullSync = true;
-            $this->limit = 100;
-            $this->restBetweenFullSyncs = 60;
-        }
-
         $this->syncProducts(true);
 
     }

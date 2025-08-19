@@ -55,7 +55,7 @@ class ApiDataHandler
             'headers' => [
                 'Authorization' => $token,
                 'Accept' => 'application/json',
-                'wp-header' => get_site_url()
+                'wp-header' => rtrim(get_site_url(), '/')
             ],
             'timeout' => 300,
         ]);
@@ -85,7 +85,7 @@ class ApiDataHandler
                 'Content-Type' => 'application/json',
                 'Accept'       => 'application/json',
                 'Authorization' => $token,
-                'wp-header' => get_site_url()
+                'wp-header' => rtrim(get_site_url(), '/')
             ],
             'timeout' => 300,
         ]);

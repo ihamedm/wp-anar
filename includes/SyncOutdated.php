@@ -237,9 +237,9 @@ class SyncOutdated {
                     ProductManager::convert_simple_to_variable($wc_product, $data);
                 }
                 if (isset($data->attributes) && !empty($data->attributes)) {
-                    $sync->processVariableProduct($data, true);
+                    $sync->processVariableProduct($data,$product_data['ID'], true);
                 } else {
-                    $sync->processSimpleProduct($data, true);
+                    $sync->processSimpleProduct($data, $product_data['ID'], true);
                 }
 
 

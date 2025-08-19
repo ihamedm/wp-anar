@@ -2,7 +2,7 @@
 namespace Anar;
 
 use Anar\Core\CronJobs;
-use Anar\Core\Image_Downloader;
+use Anar\Core\ImageDownloader;
 use Anar\Core\Logger;
 use Anar\Wizard\ProductManager;
 use WP_Query;
@@ -16,12 +16,12 @@ class ImportSlow {
     private static $instance = null;
     private int $stuck_process_timeout = 180; // 3 minutes
     private int $heartbeat_timeout = 300; // 5 minutes
-    private Image_Downloader $image_downloader;
+    private ImageDownloader $image_downloader;
 
     public function __construct()
     {
         $this->logger = new Logger();
-        $this->image_downloader = new Image_Downloader();
+        $this->image_downloader = ImageDownloader::get_instance();
         
         // Initialize failed products tracking if not exists
         if (!get_option('awca_failed_products')) {

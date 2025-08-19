@@ -1,6 +1,9 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
+## [0.4.3] - 1404/05/
+- fix : improve Sync query
+
 ## [0.4.2] - 1404/05/18
 - feat : force and auto activation wp-persian plugin
 - fix : localization Iran address format even if wp-persian not installed

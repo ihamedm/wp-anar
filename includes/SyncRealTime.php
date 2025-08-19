@@ -95,13 +95,13 @@ class SyncRealTime {
             ) {
                 ProductManager::convert_simple_to_variable($wc_product, $anar_product);
                 // Reload as variable product (optional, for safety)
-                $wc_product = wc_get_product($product_id);
+                //$wc_product = wc_get_product($product_id);
             }
 
             if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
-                $sync->processVariableProduct($anar_product, true);
+                $sync->processVariableProduct($anar_product,$product_id, true);
             } else {
-                $sync->processSimpleProduct($anar_product, true);
+                $sync->processSimpleProduct($anar_product,$product_id, true);
             }
 
 
@@ -127,6 +127,7 @@ class SyncRealTime {
         $this->log("Fetching product data from API: {$apiUrl}", 'debug');
 
         $api_response = ApiDataHandler::callAnarApi($apiUrl);
+        $this->log(print_r($api_response, true), 'debug');
 
         if (is_wp_error($api_response)) {
             $this->log("API WP_Error fetching SKU {$sku}: " . $api_response->get_error_message(), 'error');
@@ -184,6 +185,8 @@ class SyncRealTime {
 
         $anar_product_data = $this->fetch_anar_product_data($anar_sku);
 
+        $this->log(print_r($anar_product_data, true), 'debug');
+
         if ($anar_product_data === 'auth_failed') {
             $this->log("Authentication failed for Product ID {$product_id} (SKU: {$anar_sku}).", 'error');
             return 'auth_failed';
@@ -229,7 +232,7 @@ class SyncRealTime {
         switch ($status) {
             case 'updated':
                 // TODO: Prepare any data needed by the frontend JS for DOM updates if necessary
-                wp_send_json_success(['message' => 'Product updated successfully.']);
+                wp_send_json_success(['message' => "Product #$product_id updated successfully."]);
                 break;
             case 'skipped_cooldown':
             case 'skipped_not_anar':
