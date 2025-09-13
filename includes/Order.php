@@ -31,7 +31,7 @@ class Order {
     }
 
     public function custom_address_format_for_dear_iran( $formats ) {
-        $formats['IR'] = "{company}\n{first_name} {last_name}\n{country}\n{state}\n{city}\n{address_1}\n{address_2}\n{postcode}";
+        $formats['IR'] = "{company}\n{first_name} {last_name}\n{state}\n{city}\n{address_1}\n{address_2}\n{postcode}";
         return $formats;
     }
 

@@ -3,7 +3,7 @@ namespace Anar\Init;
 
 defined( 'ABSPATH' ) || exit;
 
-class DbIndex{
+class StatusTools{
 
     private static $instance;
 
@@ -28,6 +28,7 @@ class DbIndex{
         add_action('wp_ajax_anar_clear_sync_times', array($this, 'clear_sync_times_ajax'));
         add_action('wp_ajax_anar_test_query_performance', array($this, 'test_query_performance_ajax'));
         add_action('wp_ajax_anar_check_index_status', array($this, 'check_index_status_ajax'));
+        add_action('wp_ajax_anar_manual_sync_outdated', array($this, 'manual_sync_outdated_ajax'));
     }
 
     /**
@@ -494,6 +495,44 @@ class DbIndex{
         } catch (\Exception $e) {
             awca_log('Error checking sync indexes status: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * AJAX handler for manually triggering sync outdated products
+     */
+    public function manual_sync_outdated_ajax() {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error('شما این مجوز را ندارید!');
+            wp_die();
+        }
+
+        try {
+            // Import the SyncOutdated class
+            $sync_outdated = \Anar\SyncOutdated::get_instance();
+            
+            // Manually trigger the sync process with results
+            $results = $sync_outdated->process_outdated_products_cronjob(true);
+            
+            if (isset($results['error'])) {
+                wp_send_json_error([
+                    'message' => 'خطا در اجرای همگام‌سازی: ' . $results['error']
+                ]);
+                return;
+            }
+            
+            // Return the actual results
+            wp_send_json_success([
+                'message' => 'همگام‌سازی محصولات منسوخ با موفقیت اجرا شد',
+                'processed' => $results['processed'],
+                'failed' => $results['failed'],
+                'total_checked' => $results['total_checked']
+            ]);
+
+        } catch (\Exception $e) {
+            wp_send_json_error([
+                'message' => 'خطا در اجرای همگام‌سازی: ' . $e->getMessage()
+            ]);
         }
     }
 

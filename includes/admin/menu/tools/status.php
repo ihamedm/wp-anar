@@ -1,5 +1,25 @@
 <br class="clear">
+<div class="anar-tool">
+    <div class="access-menu">
+        <span class="access-menu-toggle"><?php echo get_anar_icon('dots-vertical', 24);  ?></span>
+        <ul>
+            <li>
+                <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&anar_deprecated=true'));?>" target="_blank">محصولات منسوخ شده</a>
+                <small>محصولاتی که اخیر از پنل انار شما حذف شده اند</small>
+            </li>
+            <li>
+                <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&sync=late&hours_ago=1'));?>" target="_blank">محصولات آپدیت نشده</a>
+                <small>محصولاتی که یک ساعت اخیر آپدیت نشده اند</small>
+            </li>
+            <li id="anar-clear-sync-times">
+                <span  style="cursor: pointer">بروزرسانی اجباری</span>
+                <small>بروزرسانی کل محصولات زودتر از برنامه</small>
+            </li>
 
+
+        </ul>
+    </div>
+</div>
 <h2>وضعیت سیستم</h2>
 
 <p>لطفا درصورت درخواست پشتیبانی برای ارسال گزارش سیستم، روی دکمه <strong>دانلود فایل گزارش</strong> کلیک کنید و فایل دریافتی را ارسال کنید.</p>
@@ -28,6 +48,11 @@
     <button class="button button-secondary" id="anar-check-index-status">
         <span class="dashicons dashicons-list-view"></span>
         بررسی وضعیت ایندکس‌ها
+    </button>
+    
+    <button class="button button-secondary" id="anar-manual-sync-outdated">
+        <span class="dashicons dashicons-update"></span>
+         Manually OutdatedSync
     </button>
 </div>
 

@@ -2,7 +2,7 @@
 ?>
 
 <div class="stepContent" id="stepContent5">
-    <h1 class='awca_plugin_titles'><?php echo esc_html__('ساخت محصولات', 'anar-360'); ?></h1>
+    <h1 class='awca_plugin_titles'>ساخت محصولات</h1>
 
     <p class="awca_plugin_subTitles">
 در این مرحله محصولات از انار دریافت می شود.

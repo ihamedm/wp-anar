@@ -265,12 +265,15 @@ class SyncOutdated {
 
     /**
      * Main method to process outdated products
+     * 
+     * @param bool $return_results Whether to return results (for manual execution)
+     * @return array|void Results array if $return_results is true, void otherwise
      */
-    public function process_outdated_products_cronjob() {
+    public function process_outdated_products_cronjob($return_results = false) {
 
         if(!Activation::is_active()){
             $this->log('SyncOutdated Products is Stopped!! Anar is not active!');
-            return;
+            return $return_results ? ['processed' => 0, 'failed' => 0, 'total_checked' => 0] : null;
         }
 
         try {
@@ -279,12 +282,13 @@ class SyncOutdated {
             // If no products need sync, just return
             if (empty($products)) {
                 $this->log("No products need sync at this time");
-                return;
+                return $return_results ? ['processed' => 0, 'failed' => 0, 'total_checked' => 0] : null;
             }
             
             $start_time = time();
             $processed = 0;
             $failed = 0;
+            $total_checked = count($products);
 
             foreach ($products as $product) {
                 if (time() - $start_time > $this->max_execution_time) {
@@ -307,8 +311,19 @@ class SyncOutdated {
 
             $this->log("Sync completed. Processed: {$processed}, Failed: {$failed}");
             
+            if ($return_results) {
+                return [
+                    'processed' => $processed,
+                    'failed' => $failed,
+                    'total_checked' => $total_checked
+                ];
+            }
+            
         } catch (\Exception $e) {
             $this->log("Error during sync process: " . $e->getMessage(), 'error');
+            if ($return_results) {
+                return ['processed' => 0, 'failed' => 0, 'total_checked' => 0, 'error' => $e->getMessage()];
+            }
         }
     }
 

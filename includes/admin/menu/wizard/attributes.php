@@ -4,7 +4,7 @@ $awca_attributes_responses = $api_data_handler->getStoredApiResponse();
 ?>
 
 <div class="stepContent" id="stepContent4">
-  <h1 class='awca_plugin_titles'><?php echo esc_html__('معادل سازی ویژگی‌ها', 'anar-360'); ?></h1>
+  <h1 class='awca_plugin_titles'>معادل سازی ویژگی‌ها</h1>
 
 
 

@@ -8,7 +8,7 @@ use Anar\Sync;
 use Anar\ApiDataHandler;
 use Anar\Wizard\ProductManager;
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class SyncProduct
  * Handles real-time product updates.
  */
-class SyncRealTime {
+class SyncRealTime
+{
 
     private static $instance;
     private $logger;
@@ -27,14 +28,16 @@ class SyncRealTime {
     const AJAX_NONCE_ACTION = 'awca_ajax_nonce';
     const PRODUCT_ID_META_NAME = 'anar-product-id';
 
-    public static function get_instance() {
-        if ( ! isset( self::$instance ) ) {
+    public static function get_instance()
+    {
+        if (!isset(self::$instance)) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->logger = new Logger();
         $this->sync_instance = Sync::get_instance();
         $this->baseApiUrl = 'https://api.anar360.com/wp/products';
@@ -44,12 +47,39 @@ class SyncRealTime {
         add_action('wp_ajax_nopriv_anar_update_product_async', [$this, 'handle_async_product_update_ajax']);
         add_action('wp_ajax_anar_update_cart_products_async', [$this, 'handle_async_cart_update_ajax']);
         add_action('wp_ajax_nopriv_anar_update_cart_products_async', [$this, 'handle_async_cart_update_ajax']);
+
+        add_action('anar_edit_product_meta_box', [$this, 'add_sync_button_product_meta_box']);
+    }
+
+    public function add_sync_button_product_meta_box()
+    {
+        global $post;
+
+        ?>
+        <a href="#" class="anar-ajax-action awca-primary-btn" 
+           id="anar-sync-product-form"
+           style="margin-bottom: 10px; display: inline-block; text-decoration: none;"
+           data-action="anar_update_product_async"
+           data-product_id="<?php echo $post->ID; ?>"
+           data-nonce="<?php echo wp_create_nonce(self::AJAX_NONCE_ACTION); ?>"
+           data-reload="success"
+           data-reload_timeout="2000">
+            همگام سازی محصول با انار
+            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66"
+                 xmlns="http://www.w3.org/2000/svg">
+                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33"
+                        r="30"></circle>
+            </svg>
+        </a>
+        <?php
+
     }
 
     /**
      * Check if Anar is active before processing
      */
-    private function check_activation() {
+    private function check_activation()
+    {
         if (!Activation::is_active()) {
             $this->log('SyncRealTime is stopped! Anar is not active!', 'warning');
             return false;
@@ -57,11 +87,13 @@ class SyncRealTime {
         return true;
     }
 
-    private function log($message, $level = 'info') {
+    private function log($message, $level = 'info')
+    {
         $this->logger->log($message, 'realTimeSync', $level);
     }
 
-    public function add_product_id_meta_tag() {
+    public function add_product_id_meta_tag()
+    {
         if (is_product()) {
             global $post;
             if ($post && isset($post->ID)) {
@@ -70,7 +102,8 @@ class SyncRealTime {
         }
     }
 
-    public function update_product_from_anar($anar_product, $product_id) {
+    public function update_product_from_anar($anar_product, $product_id)
+    {
         try {
             if ($anar_product === null) {
                 throw new \InvalidArgumentException("Product data cannot be null for product ID: {$product_id}");
@@ -98,10 +131,10 @@ class SyncRealTime {
                 //$wc_product = wc_get_product($product_id);
             }
 
-            if(isset($anar_product->attributes) && !empty($anar_product->attributes)){
-                $sync->processVariableProduct($anar_product,$product_id, true);
+            if (isset($anar_product->attributes) && !empty($anar_product->attributes)) {
+                $sync->processVariableProduct($anar_product, $product_id, true);
             } else {
-                $sync->processSimpleProduct($anar_product,$product_id, true);
+                $sync->processSimpleProduct($anar_product, $product_id, true);
             }
 
 
@@ -117,7 +150,12 @@ class SyncRealTime {
         }
     }
 
-    private function fetch_anar_product_data($sku) {
+    /**
+     * @param $sku
+     * @return mixed|string|null
+     */
+    private function fetch_anar_product_data($sku)
+    {
         if (empty($sku)) {
             $this->log("Cannot fetch product data: SKU is empty.", 'error');
             return null;
@@ -142,7 +180,7 @@ class SyncRealTime {
             $this->log("Authentication failed (403) for SKU {$sku}. Token may be invalid.", 'error');
             return 'auth_failed';
         } elseif ($response_code !== 200) {
-            $this->log("API Error fetching SKU {$sku}: Received status code {$response_code}." , 'error');
+            $this->log("API Error fetching SKU {$sku}: Received status code {$response_code}.", 'error');
             return null;
         }
 
@@ -164,7 +202,8 @@ class SyncRealTime {
      * @param int $product_id The WordPress Product or Variation ID.
      * @return string Status code: 'updated', 'skipped_cooldown', 'skipped_not_anar', 'fetch_failed', 'update_failed'.
      */
-    public function sync_product_with_anar($product_id) {
+    public function sync_product_with_anar($product_id)
+    {
         // Check if Anar is active
         if (!$this->check_activation()) {
             return 'activation_failed';
@@ -176,7 +215,7 @@ class SyncRealTime {
             return 'skipped_not_anar';
         }
 
-        $last_sync_time = (int) get_post_meta($product_id, self::LAST_SYNC_META_KEY, true);
+        $last_sync_time = (int)get_post_meta($product_id, self::LAST_SYNC_META_KEY, true);
         $current_time = time();
         if (($current_time - $last_sync_time) < self::COOLDOWN_PERIOD) {
             $this->log("Skipping Product ID {$product_id} (SKU: {$anar_sku}): Cooldown active.", 'debug');
@@ -212,7 +251,8 @@ class SyncRealTime {
     /**
      * Handles the AJAX request for single product updates.
      */
-    public function handle_async_product_update_ajax() {
+    public function handle_async_product_update_ajax()
+    {
         check_ajax_referer(self::AJAX_NONCE_ACTION, 'nonce');
 
         if (!isset($_POST['product_id']) || !is_numeric($_POST['product_id'])) {
@@ -224,7 +264,7 @@ class SyncRealTime {
 
         $product = wc_get_product($product_id);
         if (!$product) {
-             wp_send_json_error(['message' => "Product with ID {$product_id} not found."], 404);
+            wp_send_json_error(['message' => "Product with ID {$product_id} not found."], 404);
         }
 
         $status = $this->sync_product_with_anar($product_id);
@@ -232,24 +272,27 @@ class SyncRealTime {
         switch ($status) {
             case 'updated':
                 // TODO: Prepare any data needed by the frontend JS for DOM updates if necessary
-                wp_send_json_success(['message' => "Product #$product_id updated successfully."]);
+                wp_send_json_success([
+                        'message' => "محصول با موفقیت به‌روزرسانی شد.",
+                        'log' => "محصول #$product_id با موفقیت به‌روزرسانی شد."
+                ]);
                 break;
             case 'skipped_cooldown':
             case 'skipped_not_anar':
-                wp_send_json_success(['message' => 'Product checked, no update needed.', 'status' => $status]);
+                wp_send_json_success(['message' => 'محصول بررسی شد، به‌روزرسانی لازم نیست.', 'status' => $status]);
                 break;
             case 'activation_failed':
-                wp_send_json_error(['message' => 'Anar is not active. Sync stopped.'], 503);
+                wp_send_json_error(['message' => 'انار فعال نیست. همگام‌سازی متوقف شد.'], 503);
                 break;
             case 'auth_failed':
-                wp_send_json_error(['message' => 'Authentication failed. Token may be invalid.'], 403);
+                wp_send_json_error(['message' => 'احراز هویت ناموفق بود. توکن ممکن است نامعتبر باشد.'], 403);
                 break;
             case 'fetch_failed':
-                wp_send_json_success(['message' => 'Failed to fetch fresh product data from API. set product as out-of-stock'], 404);
+                wp_send_json_success(['message' => 'دریافت اطلاعات تازه محصول از API ناموفق بود. محصول به عنوان ناموجود تنظیم شد'], 404);
                 break;
             case 'update_failed':
             default:
-                wp_send_json_success(['message' => 'Failed to apply update after fetching data.'], 500);
+                wp_send_json_success(['message' => 'اعمال به‌روزرسانی پس از دریافت اطلاعات ناموفق بود.'], 500);
                 break;
         }
 
@@ -259,7 +302,8 @@ class SyncRealTime {
     /**
      * Handles the AJAX request for cart product updates.
      */
-    public function handle_async_cart_update_ajax() {
+    public function handle_async_cart_update_ajax()
+    {
         check_ajax_referer(self::AJAX_NONCE_ACTION, 'nonce');
 
         if (!function_exists('WC') || !WC()->cart) {

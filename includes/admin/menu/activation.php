@@ -1,8 +1,7 @@
+<?php use Anar\Core\Activation;?>
 <div class="wrapper">
 <div class="stepContent active" id="stepContent1">
-            <h2 class='awca_plugin_titles'><?php use Anar\Core\Activation;
-
-                echo esc_html__('اتصال انار به وبسایت شما', 'anar-360') ?></h2>
+            <h2 class='awca_plugin_titles'>اتصال انار به وبسایت شما</h2>
             <div class="wrapper-50 plugin_activation_container">
 
 

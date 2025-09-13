@@ -309,7 +309,6 @@ import {paginateLinks} from "./functions";
             },
             success: function (response) {
               if (response.success) {
-                location.reload();
                 msgType = 'success'
               }
               awca_toast(response.data.message, msgType);
@@ -323,6 +322,10 @@ import {paginateLinks} from "./functions";
             complete: function () {
               loadingIcon.hide();
               $(this).removeAttr("disabled");
+              setTimeout(function (){
+                location.reload();
+              }, 2000)
+
             },
           });
 

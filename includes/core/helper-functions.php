@@ -1,5 +1,7 @@
 <?php
 
+use Anar\ApiDataHandler;
+
 /**
  * @return false|mixed|null
  */
@@ -228,6 +230,11 @@ function awca_log($message, $prefix = 'general', $level = null) {
     $logger->log($message, $prefix, $level);
 }
 
+function anar_log($message, $level = null) {
+    $logger = Anar\Core\Logger::get_instance();
+    $level = $level ?? 'debug';
+    $logger->log($message, 'general', $level);
+}
 
 function awca_is_import_products_running(){
     return !Anar\Import::is_create_products_cron_locked();

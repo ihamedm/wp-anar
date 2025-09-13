@@ -583,7 +583,6 @@ input#plugin_activation_button {
   color: #fff !important;
   cursor: pointer;
   font-size: 13px !important;
-  font-weight: 600;
   padding: 8px 16px !important;
   display: flex !important;
   position: relative;
@@ -611,6 +610,11 @@ input#plugin_activation_button {
 .awca-alt-btn:disabled{
   background-color: #ccc !important;
   border-color: #ccc !important;
+}
+.awca-alt-btn.awca-outline-btn{
+  color: #333 !important;
+  border-color: #333 !important;
+  background-color: transparent !important;
 }
 
 .awca-success-btn{

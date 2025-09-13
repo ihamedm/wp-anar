@@ -5,6 +5,66 @@ namespace Anar;
 use Anar\Wizard\ProductManager;
 
 class ProductData{
+
+    /**
+     * @param $sku
+     * @return array
+     */
+    public static function fetch_anar_product_by_sku($product_id) {
+
+        $anar_sku = get_post_meta($product_id, '_anar_sku', true);
+        if (empty($anar_sku)) {
+            return [
+                'success' => false,
+                'error_code' => 'is_not_anar',
+                'message' => 'محصول انار نیست.',
+            ];
+        }
+
+
+        $api_response = ApiDataHandler::callAnarApi('https://api.anar360.com/wp/products/' . $anar_sku);
+
+        if (is_wp_error($api_response)) {
+            return [
+                'success' => false,
+                'error_code' => 'wp_error',
+                'message' => $api_response->get_error_message(),
+            ];
+        }
+
+        $response_code = wp_remote_retrieve_response_code($api_response);
+        $response_body = wp_remote_retrieve_body($api_response);
+
+        if ($response_code === 403) {
+            return [
+                'success' => false,
+                'error_code' => 'auth_failed',
+                'message' => 'توکن انار نامعتبر است.'
+            ];
+        } elseif ($response_code !== 200) {
+            return [
+                'success' => false,
+                'error_code' => $response_code,
+                'message' => "خطای $response_code دریافت شد."
+            ];
+        }
+
+        $product_data = json_decode($response_body);
+
+        if (json_last_error() === JSON_ERROR_NONE && isset($product_data->id) && isset($product_data->variants)) {
+            return [
+                'success' => true,
+                'data' => $product_data
+            ];
+        } else {
+            return [
+                'success' => false,
+                'error_code' => 'json_error',
+                'message' => json_last_error_msg()
+            ];
+        }
+    }
+
     /**
      * Get simple product ID by Anar SKU
      *

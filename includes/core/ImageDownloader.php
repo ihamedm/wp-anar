@@ -40,7 +40,7 @@ class ImageDownloader{
     /**
      * Prevent unserializing of the instance
      */
-    private function __wakeup() {}
+    public function __wakeup() {}
 
     /**
      * Download an image from a URL and insert it into the WordPress media library.
@@ -50,9 +50,23 @@ class ImageDownloader{
      * @return int|WP_Error The attachment ID on success, or a WP_Error on failure.
      */
     public function save_image_as_attachment($image_url, int $product_id) {
+        // Validate URL - more lenient for URLs with non-ASCII characters
+        if (empty($image_url)) {
+            anar_log("Empty image URL for product ID: $product_id", 'debug');
+            return new WP_Error('empty_image_url', 'آدرس تصویر خالی است.');
+        }
+        
+        // Check if URL has a valid scheme and structure, but be lenient with non-ASCII characters
+        $parsed_url = parse_url($image_url);
+        if (!$parsed_url || !isset($parsed_url['scheme']) || !isset($parsed_url['host'])) {
+            anar_log("Invalid image URL structure for product ID: $product_id. URL: $image_url", 'debug');
+            return new WP_Error('invalid_image_url', 'ساختار آدرس تصویر نامعتبر است.');
+        }
+
         $existing_attachment_id = $this->is_image_downloaded($image_url, $product_id);
         if ($existing_attachment_id) {
-            awca_log("Image #{$existing_attachment_id} downloaded before, so skipp download again and use it.");
+            anar_log("Image #{$existing_attachment_id} downloaded before, so skipp download again and use it.", 'debug');
+            anar_log("Returning existing attachment ID: $existing_attachment_id for URL: $image_url", 'debug');
             return $existing_attachment_id;
         }
 
@@ -66,26 +80,6 @@ class ImageDownloader{
         // We get the default here, but will filter it later
         $upload_dir = wp_upload_dir();
 
-        $response = $this->fetch_image($image_url);
-        if (is_wp_error($response)) {
-            return $response;
-        }
-
-        // Get the HTTP response code and image data
-        $http_code = wp_remote_retrieve_response_code($response);
-        $image_data = wp_remote_retrieve_body($response);
-
-        // Check for invalid response or large file size
-        $content_length = wp_remote_retrieve_header($response, 'content-length');
-        if ($http_code !== 200 || empty($image_data) || ($this->size_limit > 0 && $content_length > $this->size_limit)) { // Check size limit only if > 0
-            awca_log("Failed to download image from URL: $image_url");
-            awca_log("HTTP Code: $http_code");
-            if ($this->size_limit > 0 && $content_length > $this->size_limit) {
-                awca_log("Image file larger than ".($this->size_limit/(1024*1024))."MB: $content_length bytes");
-            }
-            return new WP_Error('image_download_failed', __('Failed to download image.'));
-        }
-
         // Determine the filename (use unique filename function later within the filter context if needed)
         $image_name = basename(parse_url($image_url, PHP_URL_PATH)); // Get filename from path
         $image_name = sanitize_file_name($image_name); // Sanitize
@@ -94,7 +88,7 @@ class ImageDownloader{
         $this->current_product_id_for_upload = $product_id;
         add_filter('upload_dir', [$this, '_custom_upload_dir']);
 
-        $attachment_id = new WP_Error('filter_error', 'Initial state before try block.'); // Default error
+        $attachment_id = new WP_Error('filter_error', 'وضعیت اولیه قبل از بلوک try.'); // Default error
 
         try {
             // Note: wp_unique_filename needs the target directory, which our filter provides.
@@ -116,19 +110,48 @@ class ImageDownloader{
             require_once(ABSPATH . 'wp-admin/includes/media.php');
             require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-            // Create a temporary file to sideload
-            $tmp = download_url($image_url, $this->timeout);
-            $file_array = array();
-
-            if (is_wp_error($tmp)) {
-                @unlink($tmp); // Delete temp file if created
-                awca_log("Failed to download image to temporary file: " . $tmp->get_error_message());
-                return $tmp; // Return WP_Error from download_url
+            // Use our fetch_image method which includes proxy fallback
+            $fetch_result = $this->fetch_image($image_url);
+            if (is_wp_error($fetch_result)) {
+                anar_log("Failed to download image: " . $fetch_result->get_error_message());
+                return $fetch_result;
             }
 
-            // Set up the file array for media_handle_sideload
-            preg_match('/[^\?]+\.(jpg|jpe|jpeg|gif|png)\b/i', $image_url, $matches);
-            $file_array['name'] = $image_name ?: basename($matches[0]); // Use original name or derive from URL
+            // Extract response and actual URL from the result
+            $response = $fetch_result['response'];
+            $actual_url = $fetch_result['actual_url'];
+
+            // Get the image data from the response
+            $image_data = wp_remote_retrieve_body($response);
+            if (empty($image_data)) {
+                anar_log("Empty image data received for URL: $image_url");
+                return new WP_Error('empty_image_data', 'داده‌های تصویر خالی است.');
+            }
+
+            // Check for large file size
+            $content_length = wp_remote_retrieve_header($response, 'content-length');
+            if ($this->size_limit > 0 && $content_length > $this->size_limit) {
+                anar_log("Image file larger than ".($this->size_limit/(1024*1024))."MB: $content_length bytes");
+                return new WP_Error('image_too_large', 'حجم تصویر بیش از حد مجاز است.');
+            }
+
+            // Create a temporary file with the image data
+            $tmp = wp_tempnam($image_name);
+            if (!$tmp) {
+                anar_log("Failed to create temporary file for image: $image_url");
+                return new WP_Error('temp_file_creation_failed', 'ایجاد فایل موقت ناموفق بود.');
+            }
+
+            // Write the image data to the temporary file
+            $bytes_written = file_put_contents($tmp, $image_data);
+            if ($bytes_written === false) {
+                @unlink($tmp);
+                anar_log("Failed to write image data to temporary file: $image_url");
+                return new WP_Error('temp_file_write_failed', 'نوشتن داده‌های تصویر به فایل موقت ناموفق بود.');
+            }
+
+            $file_array = array();
+            $file_array['name'] = $image_name;
             $file_array['tmp_name'] = $tmp;
 
 
@@ -138,16 +161,16 @@ class ImageDownloader{
             // Check for errors during sideloading
             if (is_wp_error($attachment_id)) {
                 @unlink($file_array['tmp_name']); // Delete temp file
-                awca_log("Failed to sideload image: " . $attachment_id->get_error_message());
+                anar_log("Failed to sideload image: " . $attachment_id->get_error_message());
                 // Return the WP_Error object
             } else {
                  // Mark this image URL as downloaded only on success
-                $this->mark_image_as_downloaded($image_url, $product_id, $attachment_id);
-                awca_log("image #{$attachment_id} uploaded - Product #{$product_id}");
+                $this->mark_image_as_downloaded($image_url, $product_id, $attachment_id, $actual_url);
+                anar_log("image #{$attachment_id} uploaded - Product #{$product_id}");
             }
 
         } catch (\Exception $e) {
-             awca_log("Exception during image saving for product #{$product_id}: " . $e->getMessage(), 'error');
+             anar_log("Exception during image saving for product #{$product_id}: " . $e->getMessage(), 'error');
              $attachment_id = new WP_Error('image_save_exception', $e->getMessage());
         } finally {
             // Always remove the filter and clear the temporary property
@@ -175,7 +198,7 @@ class ImageDownloader{
 
         // Check if there was an error in downloading and inserting the image
         if (is_wp_error($attachment_id)) {
-            awca_log("Failed to download and insert attachment for product ID: $product_id. Error: " . $attachment_id->get_error_message());
+            anar_log("Failed to download and insert attachment for product ID: $product_id. Error: " . $attachment_id->get_error_message());
             // Clean this meta to skip from cron job check
             delete_post_meta($product_id, '_product_image_url', false);
             return $attachment_id;
@@ -185,15 +208,15 @@ class ImageDownloader{
         $thumbnail_result = set_post_thumbnail($product_id, $attachment_id);
 
         if (!$thumbnail_result) {
-            awca_log("Failed to set product thumbnail for product ID: $product_id");
+            anar_log("Failed to set product thumbnail for product ID: $product_id");
             // Clean this meta to skip from cron job check
             delete_post_meta($product_id, '_product_image_url', false);
-            return new WP_Error('thumbnail_set_failed', __('Failed to set product thumbnail.'));
+            return new WP_Error('thumbnail_set_failed', 'تنظیم تصویر شاخص محصول ناموفق بود.');
         }
 
         // Clean this meta to skip from cron job check
         delete_post_meta($product_id, '_product_image_url', false);
-        awca_log('Product #'.$product_id.' thumbnail is set');
+        anar_log('Product #'.$product_id.' thumbnail is set');
         return $attachment_id;
     }
 
@@ -207,20 +230,20 @@ class ImageDownloader{
      */
     public function set_product_gallery($product_id, $image_urls, $gallery_image_limit = 5) {
         if (!is_array($image_urls) || empty($image_urls)) {
-            awca_log("No valid image URLs provided for product ID: $product_id", 'warning');
-            return new \WP_Error('invalid_image_urls', __('No valid image URLs provided.'));
+            anar_log("No valid image URLs provided for product ID: $product_id", 'debug');
+            return new \WP_Error('invalid_image_urls', 'هیچ آدرس تصویر معتبری ارائه نشده است.');
         }
 
         if (!$product_id || !is_numeric($product_id)) {
-            awca_log("Invalid product ID provided: $product_id", 'error');
-            return new \WP_Error('invalid_product_id', __('Invalid product ID provided.'));
+            anar_log("Invalid product ID provided: $product_id", 'error');
+            return new \WP_Error('invalid_product_id', 'شناسه محصول نامعتبر است.');
         }
 
         // Check if product exists
         $product = wc_get_product($product_id);
         if (!$product) {
-            awca_log("Product not found with ID: $product_id", 'error');
-            return new \WP_Error('product_not_found', __('Product not found.'));
+            anar_log("Product not found with ID: $product_id", 'error');
+            return new \WP_Error('product_not_found', 'محصول یافت نشد.');
         }
 
         $attachment_ids = [];
@@ -231,9 +254,17 @@ class ImageDownloader{
         $image_urls = array_slice($image_urls, 0, $gallery_image_limit);
 
         foreach ($image_urls as $image_url) {
-            // Validate URL
-            if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
-                awca_log("Invalid image URL for product ID: $product_id. URL: $image_url", 'warning');
+            // Validate URL - more lenient for URLs with non-ASCII characters
+            if (empty($image_url)) {
+                anar_log("Empty image URL for product ID: $product_id", 'debug');
+                $failed_downloads++;
+                continue; // Skip this URL but continue processing others
+            }
+            
+            // Check if URL has a valid scheme and structure, but be lenient with non-ASCII characters
+            $parsed_url = parse_url($image_url);
+            if (!$parsed_url || !isset($parsed_url['scheme']) || !isset($parsed_url['host'])) {
+                anar_log("Invalid image URL structure for product ID: $product_id. URL: $image_url", 'debug');
                 $failed_downloads++;
                 continue; // Skip this URL but continue processing others
             }
@@ -243,7 +274,7 @@ class ImageDownloader{
                 $attachment_id = $this->save_image_as_attachment($image_url, $product_id);
 
                 if (is_wp_error($attachment_id)) {
-                    awca_log(
+                    anar_log(
                         "Failed to download image for product ID: $product_id. URL: $image_url. Error: " .
                         $attachment_id->get_error_message(),
                         'error'
@@ -252,11 +283,14 @@ class ImageDownloader{
                     continue; // Skip this URL but continue processing others
                 }
 
+                // Debug: Log what we got back
+                anar_log("Gallery processing - Product ID: $product_id, URL: $image_url, Attachment ID: $attachment_id", 'debug');
+
                 $attachment_ids[] = $attachment_id;
                 $successful_downloads++;
 
             } catch (\Exception $e) {
-                awca_log(
+                anar_log(
                     "Exception while processing image for product ID: $product_id. URL: $image_url. Error: " .
                     $e->getMessage(),
                     'error'
@@ -267,17 +301,17 @@ class ImageDownloader{
         }
 
         // Set product gallery images if there are attachment IDs
+        anar_log("Final check - Attachment IDs: " . print_r($attachment_ids, true) . ", Successful: $successful_downloads, Failed: $failed_downloads", 'debug');
         if (!empty($attachment_ids)) {
             try {
                 // Merge with existing gallery images if needed
-                // Uncomment the below lines if you want to keep existing gallery images
-                // $existing_gallery_ids = $product->get_gallery_image_ids();
-                // $attachment_ids = array_merge($existing_gallery_ids, $attachment_ids);
+                $existing_gallery_ids = $product->get_gallery_image_ids();
+                $attachment_ids = array_merge($existing_gallery_ids, $attachment_ids);
 
                 $product->set_gallery_image_ids($attachment_ids);
                 $product->save();
 
-                awca_log(
+                anar_log(
                     "Product #$product_id gallery updated successfully. " .
                     "Added: $successful_downloads images. Failed: $failed_downloads images.",
                     'info'
@@ -290,13 +324,13 @@ class ImageDownloader{
                 ];
 
             } catch (\Exception $e) {
-                awca_log(
+                anar_log(
                     "Failed to update gallery for product ID: $product_id. Error: " . $e->getMessage(),
                     'error'
                 );
                 return new \WP_Error(
                     'gallery_update_failed',
-                    __('Failed to update product gallery.'),
+                    'به‌روزرسانی گالری محصول ناموفق بود.',
                     [
                         'product_id' => $product_id,
                         'error_message' => $e->getMessage(),
@@ -306,10 +340,10 @@ class ImageDownloader{
             }
         } else {
             $status = $failed_downloads > 0 ? 'All downloads failed' : 'No images to process';
-            awca_log("$status for product ID: $product_id", 'warning');
+            anar_log("$status for product ID: $product_id", 'debug');
             return new \WP_Error(
                 'no_gallery_images',
-                __('No gallery images were successfully downloaded.'),
+                'هیچ تصویر گالری با موفقیت دانلود نشد.',
                 [
                     'product_id' => $product_id,
                     'failed_downloads' => $failed_downloads
@@ -335,33 +369,67 @@ class ImageDownloader{
         }
     }
 
+    /**
+     * Create a proxy URL for failed image downloads.
+     * @param string $url The original image URL.
+     * @return string The proxy URL.
+     */
+    public function create_proxy_url($url) {
+        $proxy_base = "https://s3.anar360.com/_img/width_1024/";
+        $encoded_url = urlencode($url);
+        return $proxy_base . $encoded_url;
+    }
+
 
     /**
-     * Attempt to fetch an image from a URL with retries.
+     * Attempt to fetch an image from a URL with retries and proxy fallback.
      *
      * @param string $image_url The URL of the image to fetch.
-     * @return array|WP_Error Array containing the response, or a WP_Error on failure.
+     * @return array|WP_Error Array containing the response and actual URL used, or a WP_Error on failure.
      */
     private function fetch_image($image_url) {
         $attempts = 0;
+        $use_proxy = false;
 
         while ($attempts < $this->retry_limit) {
-            $response = wp_remote_get($image_url, array(
+            // Use proxy URL if this is a retry attempt
+            $current_url = $use_proxy ? $this->create_proxy_url($image_url) : $image_url;
+            
+            $response = wp_remote_get($current_url, array(
                 'timeout'     => $this->timeout,
                 'redirection' => 10,
                 'sslverify'   => false,  // Add this line to disable SSL verification (use with caution)
             ));
 
             if (!is_wp_error($response)) {
-                return $response;
+                $http_code = wp_remote_retrieve_response_code($response);
+                if ($http_code === 200) {
+                    if ($use_proxy) {
+                        anar_log("Successfully downloaded image using proxy: $current_url");
+                    }
+                    // Return response with actual URL information
+                    return array(
+                        'response' => $response,
+                        'actual_url' => $current_url
+                    );
+                }
             }
 
             $attempts++;
-            awca_log("Retrying download for URL: $image_url. Attempt #$attempts");
+            
+            // If we've exhausted retries with original URL, try proxy on next attempt
+            if ($attempts >= $this->retry_limit && !$use_proxy) {
+                $use_proxy = true;
+                $attempts = 0; // Reset attempts for proxy
+                anar_log("Original URL failed, trying proxy for: $image_url");
+                continue;
+            }
+            
+            anar_log("Retrying download for URL: $current_url. Attempt #$attempts");
         }
 
-        awca_log("Failed to download image from URL after $this->retry_limit attempts: $image_url");
-        return new WP_Error('image_download_failed', __('Failed to download image after several attempts.'));
+        anar_log("Failed to download image from URL after all attempts (including proxy): $image_url");
+        return new WP_Error('image_download_failed', 'دانلود تصویر پس از چندین تلاش ناموفق بود.');
     }
 
 
@@ -373,13 +441,26 @@ class ImageDownloader{
      */
     private function is_image_downloaded($image_url, $product_id) {
         $downloaded = get_post_meta($product_id, '_awca_downloaded_images', true);
+        anar_log("Checking if image downloaded - Product ID: $product_id, URL: $image_url", 'debug');
+        anar_log("Downloaded images data: " . print_r($downloaded, true), 'debug');
+        
         if (is_array($downloaded)) {
+            // Check for original URL, transformed URL, and proxy URL
+            $transformed_url = $this->transform_image_url($image_url);
+            $proxy_url = $this->create_proxy_url($image_url);
+            anar_log("Transformed URL: $transformed_url", 'debug');
+            anar_log("Proxy URL: $proxy_url", 'debug');
+            
             foreach ($downloaded as $entry) {
-                if ($entry['url'] === $image_url) {
+                if ($entry['url'] === $image_url || 
+                    $entry['url'] === $transformed_url || 
+                    $entry['url'] === $proxy_url) {
+                    anar_log("Found existing image - URL: {$entry['url']}, Attachment ID: {$entry['attachment_id']}", 'debug');
                     return $entry['attachment_id'];
                 }
             }
         }
+        anar_log("Image not found in downloaded images", 'debug');
         return false;
     }
 
@@ -388,17 +469,28 @@ class ImageDownloader{
      * @param string $image_url The URL of the image.
      * @param int $product_id The ID of the product.
      * @param int $attachment_id The ID of the attachment.
+     * @param string $actual_url The actual URL that was successfully downloaded (original or proxy).
      */
-    private function mark_image_as_downloaded($image_url, $product_id, $attachment_id) {
+    private function mark_image_as_downloaded($image_url, $product_id, $attachment_id, $actual_url = null) {
         $downloaded = get_post_meta($product_id, '_awca_downloaded_images', true);
         if (!is_array($downloaded)) {
             $downloaded = array();
         }
-        $downloaded[] = array(
+        
+        // Store both the original URL and the actual URL that was downloaded
+        $entry = array(
             'url' => $image_url,
             'attachment_id' => $attachment_id
         );
+        
+        // If we have an actual URL (proxy), store it as well
+        if ($actual_url && $actual_url !== $image_url) {
+            $entry['actual_url'] = $actual_url;
+        }
+        
+        $downloaded[] = $entry;
         update_post_meta($product_id, '_awca_downloaded_images', $downloaded);
+        update_post_meta($product_id, '_anar_downloaded_images', $downloaded);
     }
 
     /**

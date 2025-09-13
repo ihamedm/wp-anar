@@ -7,7 +7,7 @@ $activate_anar_slow_import_feat = get_option('anar_conf_feat__slow_import', 'no'
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
 $anar_full_sync_schedule_hours = get_option('anar_full_sync_schedule_hours', 6);
-$anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 30);
+$anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 100);
 
 // Handle form submission
 if (isset($_POST['save_anar_settings'])) {
@@ -44,10 +44,12 @@ if(isset($_GET['anar_optional_price_sync'])){
 ?>
 <br class="clear">
 
-
 <form method="post">
 
-    <h2>تنظیمات بروزرسانی قیمت/موجودی</h2>
+    <h2>تنظیمات توسعه دهنده</h2>
+    <p class="anar-alert anar-alert-warning">تغییر این تنظیمات توسط شما توصیه نمی شود و ممکن است باعث بروز اشکالاتی در عملکرد پلاگین شود!. این گزینه ها صرفا برای پشتیبانی فنی اضافه شده اند.</p>
+
+
     <table class="form-table">
         <tr>
             <th><label for="anar_sync_outdated_batch_size">تعداد محصول در هر جاب</label></th>
@@ -67,15 +69,7 @@ if(isset($_GET['anar_optional_price_sync'])){
             </td>
 
         </tr>
-    </table>
 
-    <br class="clear">
-    <hr>
-
-    <h2>تنظیمات توسعه دهنده</h2>
-    <p class="anar-alert anar-alert-warning">تغییر این تنظیمات توسط شما توصیه نمی شود و ممکن است باعث بروز اشکالاتی در عملکرد پلاگین شود!</p>
-
-    <table class="form-table">
         <tr>
             <th><label for="anar_log_level">دیباگ انار</label></th>
             <td>

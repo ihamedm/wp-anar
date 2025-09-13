@@ -24,12 +24,137 @@ class Gallery{
         $this->image_downloader = ImageDownloader::get_instance();
         $this->logger = new Logger();
 
+        add_action('anar_edit_product_meta_box', [$this, 'add_dl_image_buttons_product_meta_box']);
+        add_action('wp_ajax_awca_dl_the_product_images_ajax', [$this, 'download_the_product_gallery_and_thumbnail_images_ajax']);
+
         add_action('wp_ajax_anar_estimate_products_gallery_ajax', array($this, 'estimate_products_gallery_ajax'));
         add_action('wp_ajax_anar_dl_products_gallery_ajax', array($this, 'download_products_gallery_ajax'));
+
+
     }
 
     private function log($message, $level = 'info'){
         $this->logger->log($message, 'general', $level);
+    }
+
+    public function add_dl_image_buttons_product_meta_box(){
+        global $post;
+        $image_url = get_post_meta($post->ID, '_product_image_url', true);
+        $gallery_image_urls = get_post_meta($post->ID, '_anar_gallery_images', true);
+        
+        // Check if product already has gallery images set
+        $product = wc_get_product($post->ID);
+        $existing_gallery_ids = $product ? $product->get_gallery_image_ids() : array();
+        $has_gallery_images = !empty($existing_gallery_ids);
+        
+        // Check if product has thumbnail set
+        $has_thumbnail = $product ? $product->get_image_id() : false;
+        
+
+        // Show thumbnail download button if no thumbnail and image URL exists
+        if (!$has_thumbnail) {
+        ?>
+        <a href="#" class="anar-ajax-action awca-btn awca-alt-btn awca-outline-btn" 
+           id="anar-dl-product-thumbnail-form"
+           style="margin-bottom: 10px; display: inline-block; text-decoration: none;"
+           data-action="awca_dl_the_product_images_ajax"
+           data-product_id="<?php echo $post->ID; ?>"
+           data-reload="success"
+           data-reload_timeout="1500"
+           data-type="thumbnail">
+            دریافت تصویر شاخص محصول از انار
+            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+            </svg>
+        </a>
+        <?php
+        }
+        
+        // Show gallery download button if no gallery images and gallery URLs exist
+        if (!$has_gallery_images && !empty($gallery_image_urls)) {
+        ?>
+        <a href="#" class="anar-ajax-action awca-btn awca-alt-btn awca-outline-btn" 
+           id="anar-dl-product-gallery-form"
+           style="display: inline-block; text-decoration: none;"
+           data-action="awca_dl_the_product_images_ajax"
+           data-product_id="<?php echo $post->ID;?>"
+           data-reload="success"
+           data-reload_timeout="2000"
+           data-type="gallery"
+           data-gallery_image_limit="20">
+            دریافت تصاویر گالری محصول از انار
+            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66"
+                 xmlns="http://www.w3.org/2000/svg">
+                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33"
+                        r="30"></circle>
+            </svg>
+        </a>
+        <?php
+            }
+    }
+
+    public function download_the_product_gallery_and_thumbnail_images_ajax(){
+
+        if ( !isset( $_POST['product_id'] ) ) {
+            wp_send_json_error( array( 'message' => 'product_id required') );
+        }
+
+        if ( !isset( $_POST['type'] ) ) {
+            wp_send_json_error( array( 'message' => 'type required') );
+        }
+
+        $product_id = intval( $_POST['product_id'] );
+        $type = $_POST['type'];
+        $image_downloader = \Anar\Core\ImageDownloader::get_instance();
+
+        if ($type === 'thumbnail') {
+            // Handle thumbnail download
+            $image_url = get_post_meta($product_id, '_product_image_url', true);
+            
+            // If no image URL in meta, fetch fresh data from API
+            if (empty($image_url)) {
+                $fresh_data = ProductData::fetch_anar_product_by_sku($product_id);
+                
+                if (!$fresh_data['success']) {
+                    wp_send_json_error( array( 'message' => 'خطا در دریافت اطلاعات محصول: ' . $fresh_data['message']) );
+                }
+                
+                // Check if mainImage exists in fresh data
+                if (isset($fresh_data['data']->mainImage) && !empty($fresh_data['data']->mainImage)) {
+                    $image_url = $fresh_data['data']->mainImage;                    
+                } else {
+                    wp_send_json_error( array( 'message' => 'تصویر شاخص در اطلاعات محصول یافت نشد.') );
+                }
+            }
+
+            $res_thumbnail = $image_downloader->set_product_thumbnail($product_id, $image_url);
+
+            if(is_wp_error($res_thumbnail)){
+                wp_send_json_error( array( 'message' => $res_thumbnail->get_error_message() ) );
+            }
+
+            wp_send_json_success(array('message' => 'تصویر شاخص با موفقیت دانلود و به محصول افزوده شد.'));
+
+        } elseif ($type === 'gallery') {
+            // Handle gallery download
+            $gallery_image_limit = $_POST['gallery_image_limit'] ? (int) $_POST['gallery_image_limit'] : 5;
+            $gallery_image_urls = get_post_meta($product_id, '_anar_gallery_images', true);
+
+            if (empty($gallery_image_urls)) {
+                wp_send_json_error( array( 'message' => 'تصاویر گالری برای این محصول یافت نشد.') );
+            }
+
+            $res_gallery = $image_downloader->set_product_gallery($product_id, $gallery_image_urls, $gallery_image_limit);
+
+            if(is_wp_error($res_gallery)){
+                wp_send_json_error( array( 'message' => $res_gallery->get_error_message() ) );
+            }
+
+            wp_send_json_success(array('message' => 'تصاویر گالری با موفقیت دانلود و به محصول افزوده شد.'));
+
+        } else {
+            wp_send_json_error( array( 'message' => 'نوع نامعتبر. فقط thumbnail یا gallery مجاز است.') );
+        }
     }
 
     public function estimate_products_gallery_ajax(){

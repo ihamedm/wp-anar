@@ -9,10 +9,6 @@ class Edit{
 
     public function __construct() {
         add_action( 'add_meta_boxes', [$this, 'anar_product_edit_page_meta_box'] );
-        add_action('wp_ajax_awca_dl_the_product_images_ajax', [$this, 'download_the_product_gallery_and_thumbnail_images_ajax']);
-        add_action('wp_ajax_nopriv_awca_dl_the_product_images_ajax', [$this, 'download_the_product_gallery_and_thumbnail_images_ajax']);
-
-//        new PriceSync();
     }
 
     public function anar_product_edit_page_meta_box() {
@@ -35,8 +31,7 @@ class Edit{
     }
 
     public function anar_product_edit_page_meta_box_html($post) {
-        $image_url = get_post_meta($post->ID, '_product_image_url', true);
-        $gallery_image_urls = get_post_meta($post->ID, '_anar_gallery_images', true);
+
         $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
         $anar_prices = get_post_meta($post->ID, '_anar_prices', true);
         $anar_shipments = get_post_meta($post->ID, '_anar_prices', true);
@@ -81,58 +76,12 @@ class Edit{
                 ?>
             </div>
 
-            <button id="awca-dl-the-product-images" class="awca-primary-btn" data-product-id="<?php echo $post->ID;?>"
-                <?php echo !$image_url && !$gallery_image_urls ? ' disabled' : '';?>
-            >
-                دریافت تصاویر گالری محصول از انار
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
-            </button>
+
+            <?php do_action( 'anar_edit_product_meta_box' ); ?>
 
             <?php wp_nonce_field( 'awca_nonce', 'awca_nonce_field' ); ?>
+
         </div>
         <?php
-    }
-
-    public function download_the_product_gallery_and_thumbnail_images_ajax(){
-
-        if ( !isset( $_POST['product_id'] ) ) {
-            wp_send_json_error( array( 'message' => 'product_id required') );
-        }
-
-        $gallery_image_limit = $_POST['gallery_image_limit'] ?? 5;
-        $product_id = intval( $_POST['product_id'] );
-        $image_downloader = \Anar\Core\ImageDownloader::get_instance();
-
-        // set product thumbnail
-        $image_url = get_post_meta($product_id, '_product_image_url', true);
-        if (!empty($image_url)) {
-            $res = $image_downloader->set_product_thumbnail($product_id, $image_url);
-
-            if(is_wp_error($res)){
-                wp_send_json_error( array( 'message' => $res->get_error_message() ) );
-            }
-
-        }
-
-
-        // set product gallery
-        $gallery_image_urls = get_post_meta($product_id, '_anar_gallery_images', true);
-
-        // prevent to pass more images as gallery
-        if (count($gallery_image_urls) > $gallery_image_limit) {
-            $gallery_image_urls = array_slice($gallery_image_urls, 0, $gallery_image_limit);
-        }
-
-        if (!empty($gallery_image_urls)) {
-            $res_gallery = $image_downloader->set_product_gallery($product_id, $gallery_image_urls);
-
-            if(is_wp_error($res_gallery)){
-                wp_send_json_error( array( 'message' => $res_gallery->get_error_message() ) );
-            }
-        }
-
-        wp_send_json_success(array('message' => 'تصاویر با موفقیت دانلود و به محصول افزوده شد.'));
     }
 }

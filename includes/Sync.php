@@ -148,7 +148,6 @@ class Sync {
             $totalTimeMessage = $this->getTotalTimeMessage(); // Get the formatted time message
             $status = $completed ? 'Completed' : 'Finished Run (Incomplete)';
             $this->log(':: '.$status.' Sync Job: '.$this->jobID.' ('.$totalTimeMessage.') ');
-
             $this->unlockSync();
 
             if($ajax_call){
@@ -445,7 +444,6 @@ class Sync {
      * @return void
      */
     public function updateProductStockAndPrice($product, $updateProduct, $variant, $parentId) {
-        awca_log('updateProductStockAndPrice');
         // Update stock
        $variantStock = (isset($updateProduct->resellStatus) && $updateProduct->resellStatus == 'editing-pending') ? 0 : (isset($variant->stock) ? $variant->stock : 0);
 
@@ -599,7 +597,7 @@ class Sync {
     }
 
     public function setStartTime() {
-        $this->startTime = current_time('mysql');
+        $this->startTime = microtime(true);
     }
 
     public function getStartTime(){
@@ -612,7 +610,7 @@ class Sync {
      * @return string Formatted total time message.
      */
     private function getTotalTimeMessage() {
-        if ($this->startTime) {
+        if ($this->startTime and is_numeric($this->startTime)) {
             $endTime = microtime(true);
             $executionTime = round($endTime - $this->startTime, 2);
             return "Total Time: {$executionTime}s";

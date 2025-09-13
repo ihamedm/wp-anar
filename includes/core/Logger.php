@@ -91,6 +91,27 @@ class Logger {
         return $this->log_dir . '/' . $this->log_file_prefix . $this->log_file_postfix . '.log';
     }
 
+    /**
+     * Ensure the log file has proper UTF-8 encoding
+     *
+     * @param string $log_file The log file path
+     * @return void
+     */
+    private function ensure_utf8_encoding($log_file) {
+        if (file_exists($log_file) && filesize($log_file) > 0) {
+            // Check if file already has UTF-8 BOM
+            $handle = fopen($log_file, 'r');
+            $bom = fread($handle, 3);
+            fclose($handle);
+            
+            if ($bom !== "\xEF\xBB\xBF") {
+                // File doesn't have UTF-8 BOM, add it
+                $content = file_get_contents($log_file);
+                file_put_contents($log_file, "\xEF\xBB\xBF" . $content);
+            }
+        }
+    }
+
     // Method to rotate log files if they exceed the max size or a new file is requested
     private function rotate_log_file($log_file) {
         if (file_exists($log_file)) {
@@ -188,9 +209,14 @@ class Logger {
             $this->rotate_log_file($log_file);
         }
 
+        // Ensure proper UTF-8 encoding for existing files
+        $this->ensure_utf8_encoding($log_file);
+
         // Create the log file if it doesn't exist
         if (!file_exists($log_file)) {
             $file_handle = fopen($log_file, 'w');
+            // Write UTF-8 BOM to ensure proper encoding for Persian characters
+            fwrite($file_handle, "\xEF\xBB\xBF");
             fclose($file_handle);
         }
 
@@ -198,7 +224,9 @@ class Logger {
         if (is_writable($log_file)) {
             // Append the message to the log file with a timestamp and level
             $timestamp = current_time("mysql");
-            file_put_contents($log_file, "[$timestamp] [$level] $message" . PHP_EOL, FILE_APPEND);
+            // Ensure proper UTF-8 encoding for Persian characters
+            $log_entry = "[$timestamp] [$level] " . mb_convert_encoding($message, 'UTF-8', 'auto') . PHP_EOL;
+            file_put_contents($log_file, $log_entry, FILE_APPEND);
         } else {
             // Log an error if the file is not writable
             error_log("Cannot write to log file: $log_file");

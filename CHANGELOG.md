@@ -1,7 +1,16 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
-## [0.4.3] - 1404/05/
+## [0.4.4] - 1404/06/22
+- feat : add force syncOutdated on tools/status
+- fix : js error on import wizard
+- fix : improve image downloader 
+- fix : improve download thumbnail and gallery button on edit product page
+- fix : remove country from woocommerce address
+- fix : calculate sync total time 
+
+
+## [0.4.3] - 1404/05/28
 - fix : improve Sync query
 
 ## [0.4.2] - 1404/05/18

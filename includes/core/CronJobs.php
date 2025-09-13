@@ -170,6 +170,9 @@ class CronJobs {
         wp_clear_scheduled_hook('awca_create_products');
         wp_clear_scheduled_hook('anar_cleanup_logs');
         wp_clear_scheduled_hook('anar_cleanup_action_scheduler');
+        wp_clear_scheduled_hook('awca_sync_products_cron');
+        wp_clear_scheduled_hook('awca_full_sync_products_cron');
+        wp_clear_scheduled_hook('anar_sync_outdated');
 
     }
 }

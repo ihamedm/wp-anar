@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.4.3
+ * Version:          	0.4.4
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -34,7 +34,7 @@ namespace Anar;
 
 use Anar\Init\Checks;
 use Anar\Init\Db;
-use Anar\Init\DbIndex;
+use Anar\Init\StatusTools;
 use Anar\Init\Install;
 use Anar\Init\Reset;
 use Anar\Init\Uninstall;
@@ -189,7 +189,7 @@ class Wp_Anar
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_VERSION', '1.10.4');
-        define('ANAR_CRON_VERSION', '1.13');
+        define('ANAR_CRON_VERSION', '1.14');
 
 
         define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
@@ -256,7 +256,7 @@ class Wp_Anar
 //        Plugins::get_instance();
         Checks::get_instance();
         Update::get_instance();
-        DbIndex::get_instance();
+        StatusTools::get_instance();
         new Core\Activation();
         new Core\Assets();
         Core\CronJobs::get_instance();
@@ -346,7 +346,7 @@ class Wp_Anar
 
         if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") !== $table_name) {
             Db::make_tables();
-            DbIndex::force_recreate_indexes();
+            StatusTools::force_recreate_indexes();
         }
     }
 

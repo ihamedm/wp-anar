@@ -91,7 +91,7 @@ class Uninstall
 
     public static function truncate_table(){
         Db::truncate_table();
-        DbIndex::remove_indexes();
+        StatusTools::remove_indexes();
     }
 
 
