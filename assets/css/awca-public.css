@@ -1,3 +1,53 @@
+/* Autofill detection animations */
+@keyframes onAutoFillStart {
+    from { /**/ }
+    to { /**/ }
+}
+
+@keyframes onAutoFillCancel {
+    from { /**/ }
+    to { /**/ }
+}
+
+/* Apply animations to form inputs for autofill detection */
+form.checkout input:-webkit-autofill {
+    animation-name: onAutoFillStart;
+    animation-duration: 0.001s;
+}
+
+form.checkout input:not(:-webkit-autofill) {
+    animation-name: onAutoFillCancel;
+    animation-duration: 0.001s;
+}
+
+/* Recalculate button styling */
+.anar-recalculate-button {
+    transition: all 0.3s ease;
+}
+
+.anar-recalculate-button:hover {
+    background: #e0e0e0 !important;
+    border-color: #999 !important;
+}
+
+.anar-recalculate-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Checkout button processing state */
+#place_order.processing {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f0f0f0 !important;
+    border-color: #ccc !important;
+}
+
+#place_order:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .anar-shipments-user-notice-row td {
     padding: 8px 0;
     text-align: center;

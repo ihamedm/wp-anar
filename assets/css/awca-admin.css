@@ -1649,3 +1649,30 @@ select::-ms-expand {
   50% { transform: scale(1.6); opacity:0.5; }
   100% { transform: scale(1.8); opacity:0; }
 }
+
+/* JSON Display Styles */
+.awca-json-display {
+  direction: ltr;
+  text-align: left;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  margin: 16px 0;
+  overflow: auto;
+  white-space: pre;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: 400px;
+}
+
+.awca-json-display code {
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: inherit;
+  color: inherit;
+}

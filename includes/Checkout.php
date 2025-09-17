@@ -50,12 +50,14 @@ class Checkout {
         // Add action to handle autofill events
         add_action('woocommerce_checkout_update_order_review', [$this, 'handle_autofill_update'], 5);
         // Ensure shipping calculation runs after session update
-        add_action('woocommerce_after_checkout_form', [$this, 'add_autofill_handler']);
+//        add_action('woocommerce_after_checkout_form', [$this, 'add_autofill_handler']);
     }
 
     private function log($message, $level = 'info') {
         $this->logger->log($message, 'checkout', $level);
     }
+
+
 
     public function display_anar_products_shipping() {
 
@@ -66,11 +68,19 @@ class Checkout {
             $billing_state_name = WC()->countries->states[$billing_country][$billing_state] ?? '';
             $billing_city = WC()->customer->get_billing_city();
 
+            // Try to get city name from PWS plugin
+            $billing_city_name = $billing_city; // Default to original value
+            if ( function_exists( 'PWS' ) && method_exists( PWS(), 'get_city' ) ) {
+                $billing_city_name = PWS()->get_city( $billing_city );
+            }
+            
+            // Check if address has changed and validate delivery selections
+            $this->check_and_clear_delivery_selections_on_address_change($billing_city, $billing_state);
 
             // Check if city or state is empty
             if (empty($billing_city) || empty($billing_state_name)) {
-                $billing_state_name = 'تهران';
-                $billing_city = 'تهران';
+                $billing_state_name = 'نامعلوم';
+                $billing_city = 'نامعلوم';
             }
 
 
@@ -106,9 +116,10 @@ class Checkout {
                         $shipment_types_to_display = [];
 
                         // Check if the customer is in the same city and state as the dropshipper
+                        // Use rendered city name for comparison
                         if (
                             $billing_state_name === $anar_shipment_data['shipmentsReferenceState'] &&
-                            $billing_city === $anar_shipment_data['shipmentsReferenceCity']
+                            $billing_city_name === $anar_shipment_data['shipmentsReferenceCity']
                         ) {
                             $shipment_types_to_display = ['insideShopCity'];
                         } elseif ($billing_state_name === $anar_shipment_data['shipmentsReferenceState']) {
@@ -330,60 +341,150 @@ class Checkout {
 
 
     public function calculate_total_shipping_fee() {
-
-        // 1. First, ensure we have valid session data
-        if (!WC()->session) {
+        // Early validation
+        if (!WC()->session || empty(WC()->cart->get_cart())) {
             return;
         }
-        $cart_items = WC()->cart->get_cart();
+
+        // Get current address data for validation
+        $current_city = WC()->customer->get_billing_city();
+        $current_state = WC()->customer->get_billing_state();
+        
+        // Check if address has changed and validate delivery selections
+        $this->check_and_clear_delivery_selections_on_address_change($current_city, $current_state);
+
+        // Process cart items and calculate total shipping fee
         $total_shipping_fee = 0;
-        $processed_references = []; // Array to keep track of processed shipment references
+        $processed_references = [];
         $has_standard_product = WC()->session->get('has_standard_product');
+        
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $shipments_data = ProductData::get_anar_product_shipments($cart_item['product_id']);
 
-        // 2. Add validation for cart items
-        if (empty($cart_items)) {
-            return;
-        }
+            if (!$shipments_data) {
+                continue;
+            }
 
-        foreach ($cart_items as $cart_item_key => $cart_item) {
-            $product_id = $cart_item['product_id'];
-            $shipments_data = ProductData::get_anar_product_shipments($product_id);
+            $shipmentsReferenceId = $shipments_data['shipmentsReferenceId'];
+            
+            // Skip if already processed
+            if (in_array($shipmentsReferenceId, $processed_references)) {
+                continue;
+            }
 
-            if ($shipments_data) {
-                $shipmentsReferenceId = $shipments_data['shipmentsReferenceId'];
-                // 3. Get selected option with fallback
-                $selected_option = $this->get_selected_shipping_option($shipmentsReferenceId);
-                //$selected_option = WC()->session->get('anar_delivery_option_' . $shipmentsReferenceId);
+            // Get selected option with fallback
+            $selected_option = $this->get_selected_shipping_option($shipmentsReferenceId);
 
-                // Check if this shipment reference has already been processed
-                if ($selected_option && !in_array($shipmentsReferenceId, $processed_references)) {
-                    // If a shipping option is selected, add its price to the total
-                    if (isset($shipments_data['delivery'][$selected_option])) {
-                        $total_shipping_fee += awca_convert_price_to_woocommerce_currency(floatval($shipments_data['delivery'][$selected_option]['price']));
-                    }
-                    // Mark this shipment reference as processed
-                    $processed_references[] = $shipmentsReferenceId;
-                }
+            if ($selected_option && isset($shipments_data['delivery'][$selected_option])) {
+                $delivery_price = floatval($shipments_data['delivery'][$selected_option]['price']);
+                $converted_price = awca_convert_price_to_woocommerce_currency($delivery_price);
+                $total_shipping_fee += $converted_price;
+                
+                // Mark this shipment reference as processed
+                $processed_references[] = $shipmentsReferenceId;
             }
         }
 
-        // 4. Add the shipping fee with proper validation
+        // Add the shipping fee if total is greater than 0
         if ($total_shipping_fee > 0) {
             $label = $has_standard_product
                 ? 'مجموع حمل نقل سایر محصولات'
                 : 'مجموع حمل نقل';
 
-            // Remove existing shipping fees before adding new one
-            //$this->remove_existing_shipping_fees();
-
             WC()->cart->add_fee($label, $total_shipping_fee);
+            anar_log('calculated_total_shipping_fee = '. $total_shipping_fee, 'debug');
         } else {
-            if(ANAR_DEBUG)
+            if(ANAR_DEBUG) {
                 awca_log('No shipping fee to add');
+            }
         }
     }
 
 
+
+
+    /**
+     * Check if address has changed and validate delivery selections
+     */
+    private function check_and_clear_delivery_selections_on_address_change($current_city, $current_state) {
+        // Get stored address from session
+        $stored_city = WC()->session->get('anar_last_city');
+        $stored_state = WC()->session->get('anar_last_state');
+        
+        // If address has changed, validate delivery selections
+        if ($stored_city !== $current_city || $stored_state !== $current_state) {
+            // Validate each delivery selection against current address
+            $this->validate_delivery_selections_for_current_address($current_city, $current_state);
+            
+            // Update stored address
+            WC()->session->set('anar_last_city', $current_city);
+            WC()->session->set('anar_last_state', $current_state);
+        }
+    }
+
+    /**
+     * Validate delivery selections against current address
+     */
+    private function validate_delivery_selections_for_current_address($current_city, $current_state) {
+        $cart_items = WC()->cart->get_cart();
+        $current_state_name = WC()->countries->states[WC()->customer->get_billing_country()][$current_state] ?? '';
+        
+        // Try to get city name from PWS plugin
+        $current_city_name = $current_city; // Default to original value
+        if ( function_exists( 'PWS' ) && method_exists( PWS(), 'get_city' ) ) {
+            $current_city_name = PWS()->get_city( $current_city );
+        }
+        
+        foreach ($cart_items as $cart_item_key => $cart_item) {
+            $product_id = $cart_item['product_id'];
+            $shipments_data = ProductData::get_anar_product_shipments($product_id);
+            
+            if ($shipments_data) {
+                $shipmentsReferenceId = $shipments_data['shipmentsReferenceId'];
+                $selected_option = WC()->session->get('anar_delivery_option_' . $shipmentsReferenceId);
+                
+                if ($selected_option) {
+                    // Check if the selected option is valid for current address
+                    $is_valid = $this->is_delivery_option_valid_for_address($shipments_data, $selected_option, $current_city_name, $current_state_name);
+                    
+                    if (!$is_valid) {
+                        WC()->session->set('anar_delivery_option_' . $shipmentsReferenceId, null);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if a delivery option is valid for the given address
+     */
+    private function is_delivery_option_valid_for_address($shipments_data, $selected_option, $current_city, $current_state_name) {
+        // Get the shipment data for the selected option
+        foreach ($shipments_data['shipments'] as $shipment) {
+            foreach ($shipment->delivery as $delivery) {
+                if ($delivery->_id === $selected_option) {
+                    // Check if this delivery option is available for current address
+                    $shipment_types_to_display = [];
+                    
+                    if (
+                        $current_state_name === $shipments_data['shipmentsReferenceState'] &&
+                        $current_city === $shipments_data['shipmentsReferenceCity']
+                    ) {
+                        $shipment_types_to_display = ['insideShopCity'];
+                    } elseif ($current_state_name === $shipments_data['shipmentsReferenceState']) {
+                        $shipment_types_to_display = ['insideShopState'];
+                    } else {
+                        $shipment_types_to_display = ['otherStates'];
+                    }
+                    
+                    $is_valid = $shipment->type === 'allCities' || in_array($shipment->type, $shipment_types_to_display);
+                    return $is_valid;
+                }
+            }
+        }
+        
+        return false;
+    }
 
     /**
      * New method to get selected shipping option with fallback
@@ -399,7 +500,67 @@ class Checkout {
             WC()->session->set('anar_delivery_option_' . $shipmentsReferenceId, $selected_option);
         }
 
+        // If still no option selected, try to get the first available option
+        if (empty($selected_option)) {
+            $selected_option = $this->get_first_available_delivery_option($shipmentsReferenceId);
+            if ($selected_option) {
+                WC()->session->set('anar_delivery_option_' . $shipmentsReferenceId, $selected_option);
+            }
+        }
+
         return $selected_option;
+    }
+
+    /**
+     * Get the first available delivery option for a shipment reference
+     */
+    private function get_first_available_delivery_option($shipmentsReferenceId) {
+        $cart_items = WC()->cart->get_cart();
+        $current_city = WC()->customer->get_billing_city();
+        $current_state = WC()->customer->get_billing_state();
+        $current_state_name = WC()->countries->states[WC()->customer->get_billing_country()][$current_state] ?? '';
+        
+        // Try to get city name from PWS plugin
+        $current_city_name = $current_city; // Default to original value
+        if ( function_exists( 'PWS' ) && method_exists( PWS(), 'get_city' ) ) {
+            $current_city_name = PWS()->get_city( $current_city );
+        }
+        
+        foreach ($cart_items as $cart_item_key => $cart_item) {
+            $product_id = $cart_item['product_id'];
+            $shipments_data = ProductData::get_anar_product_shipments($product_id);
+            
+            if ($shipments_data && $shipments_data['shipmentsReferenceId'] === $shipmentsReferenceId) {
+                // Get available shipment types for current address
+                $shipment_types_to_display = [];
+                
+                if (
+                    $current_state_name === $shipments_data['shipmentsReferenceState'] &&
+                    $current_city_name === $shipments_data['shipmentsReferenceCity']
+                ) {
+                    $shipment_types_to_display = ['insideShopCity'];
+                } elseif ($current_state_name === $shipments_data['shipmentsReferenceState']) {
+                    $shipment_types_to_display = ['insideShopState'];
+                } else {
+                    $shipment_types_to_display = ['otherStates'];
+                }
+                
+                // Find first available delivery option
+                foreach ($shipments_data['shipments'] as $shipment) {
+                    if ($shipment->type === 'allCities' || in_array($shipment->type, $shipment_types_to_display)) {
+                        if ($shipment->active && !empty($shipment->delivery)) {
+                            foreach ($shipment->delivery as $delivery) {
+                                if ($delivery->active) {
+                                    return $delivery->_id;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return null;
     }
 
 
@@ -460,12 +621,48 @@ class Checkout {
         parse_str($posted_data, $output);
         foreach ($output as $key => $value) {
             if (strpos($key, 'anar_delivery_option_') === 0) {
-                WC()->session->set($key, $value);
+                $shipmentsReferenceId = str_replace('anar_delivery_option_', '', $key);
+                
+                // Validate the delivery option against current address before saving
+                $is_valid = $this->validate_delivery_option_for_current_address($shipmentsReferenceId, $value);
+                
+                if ($is_valid) {
+                    WC()->session->set($key, $value);
+                }
+                // Don't save invalid options - let the system auto-select the correct one
             }
         }
 
         // Force recalculation after updating session
         WC()->cart->calculate_totals();
+    }
+
+    /**
+     * Validate a specific delivery option against current address
+     */
+    private function validate_delivery_option_for_current_address($shipmentsReferenceId, $delivery_option_id) {
+        $cart_items = WC()->cart->get_cart();
+        $current_city = WC()->customer->get_billing_city();
+        $current_state = WC()->customer->get_billing_state();
+        $current_state_name = WC()->countries->states[WC()->customer->get_billing_country()][$current_state] ?? '';
+        
+        // Try to get city name from PWS plugin
+        $current_city_name = $current_city; // Default to original value
+        if ( function_exists( 'PWS' ) && method_exists( PWS(), 'get_city' ) ) {
+            $current_city_name = PWS()->get_city( $current_city );
+        }
+        
+        foreach ($cart_items as $cart_item_key => $cart_item) {
+            $product_id = $cart_item['product_id'];
+            $shipments_data = ProductData::get_anar_product_shipments($product_id);
+            
+            if ($shipments_data && $shipments_data['shipmentsReferenceId'] === $shipmentsReferenceId) {
+                $is_valid = $this->is_delivery_option_valid_for_address($shipments_data, $delivery_option_id, $current_city_name, $current_state_name);
+                return $is_valid;
+            }
+        }
+        
+        return false;
     }
 
 

@@ -68,14 +68,18 @@ class Order {
         return $_is_anar_order ? $order_ID : false;
     }
 
-    public function get_order_anar_data($order_id) {
+    private function get_order_meta($order_id, $key) {
         if(awca_is_hpos_enable()){
             $order = wc_get_order($order_id);
-            $_anar_order_data = $order->get_meta('_anar_order_data', true);
+            $order_meta = $order->get_meta($key, true);
         }else{
-            $_anar_order_data = get_post_meta($order_id, '_anar_order_data', true);
+            $order_meta = get_post_meta($order_id, $key, true);
         }
-        return $_anar_order_data;
+        return $order_meta;
+    }
+
+    public function get_order_anar_data($order_id) {
+        return $this->get_order_meta($order_id, '_anar_order_data');
     }
 
     public function create_anar_order($order_id) {
@@ -132,31 +136,6 @@ class Order {
 
         }
 
-        $prepare_data = [
-            'items' => $items
-        ];
-
-        // First API call to prepare the order
-        $prepare_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/prepare', $prepare_data);
-
-        if (is_wp_error($prepare_response)) {
-            $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
-            return ['success' => false , 'message' => 'خطا در برقراری ارتباط با سرور انار.'];
-        }
-
-        // Decode & Return the response data if everything is okay
-        $prepare_response = json_decode(wp_remote_retrieve_body($prepare_response), true);
-        if (isset($prepare_response['statusCode']) && $prepare_response['statusCode'] !== 200) {
-            // Handle error
-            $order->add_order_note('سفارش از سمت انار تایید نشد. خطا: ' . $prepare_response['message']);
-//            awca_log(print_r($prepare_data, true));
-//            awca_log(print_r($prepare_response, true));
-            return ['success' => false , 'message' => 'سفارش از سمت انار تایید نشد.'];
-        } else {
-            $order->add_order_note('سفارش از سمت انار تایید شد. تلاش برای ثبت سفارش جدید در پنل انار ...');
-        }
-
-
         $formatted_address = $order->get_formatted_billing_address();
         // Remove <br> and full name from formatted address
         $formatted_address = str_replace('<br/>', ', ', $formatted_address);
@@ -168,6 +147,18 @@ class Order {
             $formatted_address = trim(str_replace($address['postcode'], '', $formatted_address), ', ');
         }
 
+        // Get city and province from order
+        $billing_city = $order->get_billing_city();
+        $billing_state = $order->get_billing_state();
+        $billing_country = $order->get_billing_country();
+
+        // Get state name from WooCommerce countries
+        $billing_state_name = '';
+        if (!empty($billing_country) && !empty($billing_state)) {
+            $countries = new \WC_Countries();
+            $states = $countries->get_states($billing_country);
+            $billing_state_name = $states[$billing_state] ?? $billing_state;
+        }
 
         $create_data = [
             'type' => 'retail',
@@ -177,10 +168,14 @@ class Order {
                 'detail' => $formatted_address,
                 'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
                 'transFereeMobile' => $address['phone'],
+                'city' => $billing_city, // optional
+                'province' => $billing_state_name ?: '', // optional
             ],
             'externalId' => $order->get_id(),
             'shipments' => $this->prepare_shipments($order),
         ];
+        $order->update_meta_data('_anar_raw_create_data', $create_data); // save raw create data for debugging
+        $order->save();
 
         // Second API call to create the order
         $create_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/', $create_data);
@@ -191,7 +186,6 @@ class Order {
 
         // Decode the response body
         $create_response = json_decode(wp_remote_retrieve_body($create_response), true);
-        awca_log(print_r($create_response, true));
 
         if (!isset($create_response['success']) || !$create_response['success']) {
             // Handle error
@@ -216,6 +210,7 @@ class Order {
                 "orderNumber"   => $result["orderNumber"]
             ];
         }
+
         $order->update_meta_data('_anar_order_data', $anar_order_data); // Save Anar order ID
         $order->update_meta_data('_anar_order_group_id', $create_response['result'][0]['groupId']); // Save Anar order number
         $order->add_order_note('سفارش در پنل انار با موفقیت ایجاد شد. #' . $create_response['result'][0]['groupId']);
@@ -335,38 +330,41 @@ class Order {
             awca_is_hpos_enable() ? "on" : "off"
         );
 
-        if(ANAR_IS_ENABLE_CREATE_ORDER == 'yes'):
-            if( $this->get_order_anar_data($order_id) ):?>
-            <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">
-                <div class="awca-loading-message-spinner">
-                    در حال دریافت اطلاعات...
-                    <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                        <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                    </svg>
-                </div>
+
+        if( $this->get_order_anar_data($order_id) ):?>
+        <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">
+            <div class="awca-loading-message-spinner">
+                در حال دریافت اطلاعات...
+                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                </svg>
             </div>
+        </div>
 
 
-            <?php else:?>
-            <div id="awca-custom-meta-box-container">
-                <p class="anar-alert anar-alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
-                <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
-                    ثبت این سفارش در پنل انار
-                    <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                        <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                    </svg>
-                </button>
-
-                <?php wp_nonce_field( 'awca_nonce', 'awca_nonce_field' ); ?>
-            </div>
-            <?php
-            endif;
-
-        else:
+        <?php else:
             $this->display_packages_shipping_data($order_id);
+        ?>
+        <div id="awca-custom-meta-box-container">
+            <p class="anar-alert anar-alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
+            <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
+                ثبت این سفارش در پنل انار
+                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                </svg>
+            </button>
+
+            <?php wp_nonce_field( 'awca_nonce', 'awca_nonce_field' ); ?>
+        </div>
+        <?php
         endif;
 
+        $raw_create_data = $this->get_order_meta($order_id, '_anar_raw_create_data');
+        if($raw_create_data)
+            printf('<pre class="awca-json-display" style="display:none;"><code>%s</code></pre>', json_encode($raw_create_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
     }
+
 
     public function display_packages_shipping_data($order_id) {
         $wc_order = wc_get_order($order_id);
