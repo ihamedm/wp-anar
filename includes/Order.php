@@ -28,6 +28,7 @@ class Order {
 //        add_action( 'woocommerce_admin_order_data_after_billing_address', [$this, 'display_custom_option_in_admin'], 10, 1 );
         //add_filter('woocommerce_get_order_item_totals', [$this, 'filter_fee_and_shipment_name_in_order_details'], 10, 3);
 
+        add_action('anar_order_meta_box_end', [$this, 'preorder_modal']);
     }
 
     public function custom_address_format_for_dear_iran( $formats ) {
@@ -309,6 +310,46 @@ class Order {
     }
 
 
+    public function preorder_modal(){
+        ?>
+        <div class="modal micromodal-slide" id="preorder-modal" aria-hidden="true">
+            <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+                <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="preorder-modal-title" style="max-width: 500px; width: 500px;">
+                    <header class="modal__header">
+                        <strong class="modal__title" id="preorder-modal-title">
+                            ثبت سفارش در پنل انار
+                        </strong>
+                        <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                    </header>
+                    <main class="modal__content">
+                        <div class="anar-alert anar-alert-warning" style="margin-bottom: 15px;">
+                            <strong>توجه:</strong> قبل از ثبت سفارش در پنل انار، لطفاً موارد زیر را بررسی کنید:
+                        </div>
+                        <ul style="margin: 15px 0; padding-right: 20px; line-height: 1.8;">
+                            <li>✅ اطلاعات آدرس و شماره تماس مشتری کامل و صحیح باشد</li>
+                            <li>✅ کد پستی ۱۰ رقمی و معتبر وارد شده باشد</li>
+                        </ul>
+                        <div class="anar-alert anar-alert-info">
+                            پس از ثبت سفارش، امکان تغییر اطلاعات محدود خواهد بود.
+                        </div>
+                    </main>
+                    <footer class="modal__footer" style="display: flex;">
+
+                        <button id="awca-create-anar-order" class="awca-primary-btn" style="width: 100%;" data-order-id="<?php echo $this->get_order_ID($GLOBALS['post'] ?? $_GET['post'] ?? $_GET['id'] ?? 0); ?>">
+                            تایید و ثبت سفارش
+                            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                            </svg>
+                        </button>
+                        <button class="awca-btn awca-link-btn" data-micromodal-close>انصراف</button>
+                    </footer>
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
+
     public function get_order_ID($order)
     {
         if($order instanceof \WC_Order){
@@ -347,11 +388,8 @@ class Order {
         ?>
         <div id="awca-custom-meta-box-container">
             <p class="anar-alert anar-alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
-            <button id="awca-create-anar-order" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
+            <button id="awca-open-preorder-modal" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>">
                 ثبت این سفارش در پنل انار
-                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                </svg>
             </button>
 
             <?php wp_nonce_field( 'awca_nonce', 'awca_nonce_field' ); ?>
@@ -363,6 +401,8 @@ class Order {
         if($raw_create_data)
             printf('<pre class="awca-json-display" style="display:none;"><code>%s</code></pre>', json_encode($raw_create_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
+
+        do_action('anar_order_meta_box_end');
     }
 
 

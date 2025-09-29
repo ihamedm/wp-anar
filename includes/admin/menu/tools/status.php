@@ -15,6 +15,10 @@
                 <span  style="cursor: pointer">بروزرسانی اجباری</span>
                 <small>بروزرسانی کل محصولات زودتر از برنامه</small>
             </li>
+            <li id="anar-zero-profit-products">
+                <span style="cursor: pointer">محصولات با سود صفر</span>
+                <small>محصولاتی که سود فروشنده صفر است</small>
+            </li>
 
 
         </ul>
@@ -70,6 +74,41 @@
         readonly
         style="width: 100%; direction: ltr; text-align: left; font-family: monospace; resize: vertical; display: none; margin-top: 10px;"
 >در حال دریافت اطلاعات...</textarea>
+
+<!-- Zero Profit Products Modal -->
+<div class="modal micromodal-slide" id="anar-zero-profit-modal" aria-hidden="true">
+    <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="anar-zero-profit-modal-title">
+            <header class="modal__header">
+                <h2 class="modal__title" id="anar-zero-profit-modal-title">محصولات با سود صفر</h2>
+                <div class="modal__header-actions">
+                    <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&zero_profit=1')); ?>" 
+                       class="button button-secondary" 
+                       target="_blank" 
+                       style="margin-left: 10px;">
+                        <span class="dashicons dashicons-list-view"></span>
+                        مشاهده در لیست محصولات
+                    </a>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close>
+                        <span class="dashicons dashicons-no-alt"></span>
+                    </button>
+                </div>
+            </header>
+            <main class="modal__content">
+                <div id="anar-zero-profit-loading" style="text-align: center; padding: 20px;">
+                    <span class="spinner is-active"></span>
+                    <p>در حال بارگذاری...</p>
+                </div>
+                <div id="anar-zero-profit-content" style="display: none;">
+                    <p><strong>تعداد محصولات: <span id="anar-zero-profit-count">0</span></strong></p>
+                    <div id="anar-zero-profit-list">
+                        <!-- Products will be loaded here via AJAX -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
 
 <style>
     .system-report-buttons {
@@ -167,5 +206,89 @@
         width: 14px;
         height: 14px;
         margin-left: 4px;
+    }
+    
+    /* Zero Profit Products Modal Styles */
+    .modal__header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .modal__content {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .modal__close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 5px;
+        color: #666;
+    }
+    
+    .modal__close:hover {
+        color: #000;
+    }
+    
+    .anar-product-item {
+        padding: 10px;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background: #fff;
+    }
+    
+    .anar-product-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .anar-product-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .anar-product-sku {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+    
+    .anar-product-sync-time {
+        color: #555;
+        font-size: 11px;
+        margin-bottom: 8px;
+        padding: 5px 8px;
+        background: #f8f9fa;
+        border-radius: 3px;
+        border-left: 3px solid #0073aa;
+    }
+    
+    .anar-product-actions {
+        margin-top: 8px;
+    }
+    
+    .anar-product-actions a {
+        margin-left: 10px;
+        text-decoration: none;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+    
+    .anar-product-actions .edit-link {
+        background: #0073aa;
+        color: white;
+    }
+    
+    .anar-product-actions .view-link {
+        background: #46b450;
+        color: white;
+    }
+    
+    .anar-product-actions a:hover {
+        opacity: 0.8;
     }
 </style>

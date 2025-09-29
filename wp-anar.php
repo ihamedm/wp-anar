@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.4.5
+ * Version:          	0.5.0
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -188,13 +188,13 @@ class Wp_Anar
         define('ANAR_PLUGIN_URL', self::$plugin_url);
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
-        define('ANAR_DB_VERSION', '1.10.4');
+        define('ANAR_DB_PRODUCTS_NAME', 'anar_products');
+        define('ANAR_DB_VERSION', '1.11.4');
         define('ANAR_CRON_VERSION', '1.14');
 
 
         define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
         define('ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE', get_option('anar_conf_feat__optional_price_sync', 'no') !== 'no');
-        define('ANAR_IS_ENABLE_PAYMENTS_PAGE', false);
         define('ANAR_IS_ENABLE_NOTIF_PAGE', true);
 
 
@@ -261,6 +261,7 @@ class Wp_Anar
         Core\CronJobs::get_instance();
 
         new Admin\Menus();
+        Admin\Tools::get_instance();
         Admin\Product_Status_Changer::get_instance();
         Reset::get_instance();
         Core\Reports::get_instance();
@@ -274,22 +275,14 @@ class Wp_Anar
         new Product\Lists();
         new Product\Front();
 
+        new Notifications();
+
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
         SyncRealTime::get_instance();
-
-        //new Multi_Seller();
-
         Gallery::get_instance();
-
-        new Notifications();
         Checkout::get_instance();
-        new Cart();
-
-        if( ANAR_IS_ENABLE_PAYMENTS_PAGE )
-            Payments::get_instance();
-
         Orders_List::get_instance();
         Order::get_instance();
     }

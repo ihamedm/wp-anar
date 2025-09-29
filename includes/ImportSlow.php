@@ -190,6 +190,9 @@ class ImportSlow {
 
                     $wpdb->query('COMMIT');
                     
+                    // Add small delay after each product creation to reduce race conditions
+                    usleep(100000); // 100ms delay
+                    
                     // Clear object from memory
                     unset($prepared_product);
                     unset($product_creation_data);

@@ -26,13 +26,13 @@ class ProductManager{
         self::$logger = new Logger();
         
         add_action( 'wp_ajax_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
-        add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
+//        add_action( 'wp_ajax_nopriv_awca_get_products_save_on_db_ajax', [$this, 'fetch_and_save_products_from_api_to_db_ajax'] );
         add_action( 'wp_ajax_awca_publish_draft_products_ajax', [$this, 'publish_draft_products_ajax'] );
 
     }
 
     public static function log($message, $level = 'info') {
-        self::$logger->log($message, 'general', $level);
+        self::$logger->log($message, 'import', $level);
     }
 
     public function fetch_and_save_products_from_api_to_db_ajax() {
@@ -77,15 +77,31 @@ class ProductManager{
     }
 
 
-    public static function create_wc_product($product_data, $attributeMap, $categoryMap) {
+    public static function create_wc_product($product_data, $attributeMap, $categoryMap, $options = []) {
         set_time_limit(300);
+
+        // Extract options
+        $use_custom_table = $options['use_custom_table'] ?? false;
 
         try {
             if (!function_exists('wc_get_product')) {
                 return false;
             }
 
-            $existing_product_id = ProductData::check_for_existence_product($product_data['sku']);
+            $sku = $product_data['sku'];
+            
+            // Enhanced logging for debugging duplicate issues
+            awca_log("=== PRODUCT CREATION START ===", 'import', 'debug');
+            awca_log("Processing SKU: {$sku}", 'import', 'debug');
+            awca_log("Current time: " . microtime(true), 'import', 'debug');
+            awca_log("Product name: " . ($product_data['name'] ?? 'N/A'), 'import', 'debug');
+            awca_log("Using custom table: " . ($use_custom_table ? 'YES' : 'NO'), 'import', 'debug');
+            
+            // Check for existing product using only custom method
+            // We don't use WooCommerce SKU checking as it can be modified by users
+            $existing_product_id = ProductData::check_for_existence_product($sku);
+            
+            awca_log("Product existence check result: " . ($existing_product_id ?: 'NOT_FOUND'), 'import', 'debug');
 
             $product_id = 0;
             $product_created = true;
@@ -94,20 +110,104 @@ class ProductManager{
                 $product = wc_get_product($existing_product_id);
                 self::update_existing_product($product, $product_data, $attributeMap);
                 $product_created = false;
+                awca_log("Product already exists - ID: {$existing_product_id}, SKU: {$sku}", 'import', 'info');
+                
+                // Update custom table if enabled
+                if ($use_custom_table) {
+                    self::update_custom_table_status($sku, 'updated', $existing_product_id);
+                }
             } else {
+                awca_log("Creating new product for SKU: {$sku}", 'import', 'debug');
                 $product = self::initialize_new_product($product_data);
                 self::setup_new_product($product, $product_data, $attributeMap, $categoryMap);
+                awca_log("New product created - ID: " . $product->get_id() . ", SKU: {$sku}", 'import', 'info');
+                
+                // Update custom table if enabled
+                if ($use_custom_table) {
+                    self::update_custom_table_status($sku, 'created', $product->get_id());
+                }
             }
 
             $product_id = $product->get_id();
             self::update_common_meta_data($product, $product_data);
 
+            awca_log("=== PRODUCT CREATION COMPLETE - ID: {$product_id}, Created: " . ($product_created ? 'YES' : 'NO') . " ===", 'import', 'debug');
+
             return ['product_id' => $product_id, 'created' => $product_created];
 
         } catch (\Throwable $th) {
-            self::log('Error in awca_create_woocommerce_product: ' . $th->getMessage(), 'error');
+            awca_log('Error in awca_create_woocommerce_product: ' . $th->getMessage() . ' - SKU: ' . ($sku ?? 'UNKNOWN'), 'import', 'error');
+            
+            // Update custom table with failed status if enabled
+            if ($use_custom_table && isset($sku)) {
+                self::update_custom_table_status($sku, 'failed', null);
+            }
+            
             return false;
         }
+    }
+
+    /**
+     * Update product status in custom table
+     * 
+     * @param string $sku Product SKU
+     * @param string $status Status to set (pending, created, updated, failed)
+     * @param int|null $wc_product_id WooCommerce product ID
+     */
+    private static function update_custom_table_status($sku, $status, $wc_product_id = null) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . ANAR_DB_PRODUCTS_NAME;
+        
+        $data = [
+            'status' => $status,
+            'updated_at' => current_time('mysql')
+        ];
+        
+        if ($wc_product_id) {
+            $data['wc_product_id'] = $wc_product_id;
+        }
+        
+        $wpdb->update(
+            $table_name,
+            $data,
+            ['anar_sku' => $sku],
+            ['%s', '%s', '%d'],
+            ['%s']
+        );
+    }
+
+    /**
+     * Insert products batch into custom table
+     * 
+     * @param array $insert_data Array of product data to insert
+     */
+    public static function insert_products_batch($insert_data) {
+        if (empty($insert_data)) {
+            return;
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . ANAR_DB_PRODUCTS_NAME;
+        
+        $values = [];
+        $placeholders = [];
+        
+        foreach ($insert_data as $data) {
+            $values[] = $data['anar_sku'];
+            $values[] = $data['product_data'];
+            $values[] = $data['status'];
+            $placeholders[] = '(%s, %s, %s)';
+        }
+        
+        $sql = "INSERT IGNORE INTO {$table_name} (anar_sku, product_data, status) VALUES " . 
+               implode(', ', $placeholders);
+        
+        $result = $wpdb->query($wpdb->prepare($sql, $values));
+        
+        // Log batch insert completion
+        $total_items = count($insert_data);
+        awca_log("Batch insert: Processed {$total_items} products into custom table", 'import', 'debug');
     }
 
     private static function update_existing_product($product, $product_data, $attributeMap) {
@@ -162,6 +262,8 @@ class ProductManager{
 
     public static function setup_new_product($product, $product_data, $attributeMap, $categoryMap) {
         $product->set_name($product_data['name']);
+        // We don't set WooCommerce SKU as it can be modified by users
+        // We only use custom meta for tracking
         $product->set_status('draft');
         $product->set_description($product_data['description']);
         $product->set_category_ids(
@@ -170,6 +272,7 @@ class ProductManager{
 
         $product_id = $product->save();
 
+        // Store Anar SKU in custom meta for tracking and identification
         update_post_meta($product_id, '_anar_sku', $product_data['sku']);
         update_post_meta($product_id, '_anar_sku_backup', $product_data['sku']);
 
@@ -535,7 +638,6 @@ class ProductManager{
         }
     }
 
-
     public static function restore_product_deprecation($product_id, $log = '') {
         $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
         $anar_products_backup = get_post_meta($product_id, '_anar_products_backup', true);
@@ -565,13 +667,6 @@ class ProductManager{
             }
         }
     }
-
-
-    public static function update_product_logs($product_id, $new_log) {
-        $logs = get_post_meta($product_id, '_anar_logs', true);
-        update_post_meta($product_id, '_anar_logs', $logs .'<hr>'. $new_log);
-    }
-
 
     public static function set_product_variation_out_of_stock($wc_variation_id, $deprecate = false) {
         $variation = wc_get_product($wc_variation_id);

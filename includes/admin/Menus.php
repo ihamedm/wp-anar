@@ -57,16 +57,6 @@ class Menus{
             [$this, 'create_products_page_content']
         );
 
-        if( ANAR_IS_ENABLE_PAYMENTS_PAGE )
-            add_submenu_page(
-                'wp-anar',
-                'تسویه حساب',
-                'تسویه حساب',
-                'manage_options',
-                'payments',
-                [$this, 'payments_page_content']
-            );
-
 
         if(ANAR_IS_ENABLE_NOTIF_PAGE)
             add_submenu_page(
@@ -127,12 +117,6 @@ class Menus{
     {
         $this->force_activation();
         include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/products-wizard.php';
-    }
-
-    public function payments_page_content()
-    {
-        $this->force_activation();
-        include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/payments.php';
     }
 
     public function notifications_page_content()

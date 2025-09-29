@@ -18,13 +18,21 @@ class Import {
     private int $heartbeat_timeout = 300; // 5 minutes
     private ImageDownloader $image_downloader;
     private JobManager $job_manager;
+    private $use_custom_table = false;
+    private $products_table_name;
 
 
     public function __construct()
     {
+        global $wpdb;
         $this->logger = new Logger();
         $this->job_manager = JobManager::get_instance();
         $this->image_downloader = ImageDownloader::get_instance();
+        
+        // Check if we should use custom table tracking
+        $import_type = get_option('anar_conf_feat__import_type', 'pro');
+        $this->use_custom_table = ($import_type === 'pro');
+        $this->products_table_name = $wpdb->prefix . ANAR_DB_PRODUCTS_NAME;
         
         // Initialize failed products tracking if not exists
         if (!get_option('awca_failed_products')) {
@@ -46,25 +54,46 @@ class Import {
     }
 
 
+    /**
+     * MAIN IMPORT PROCESS ENTRY POINT
+     * 
+     * This is the core method that orchestrates the entire product import process.
+     * It handles:
+     * - Lock management to prevent concurrent imports
+     * - Batch processing of products from API data
+     * - Progress tracking and job management
+     * - Error handling and recovery
+     * 
+     * FLOW:
+     * 1. Check for locks (cron lock, row processing lock)
+     * 2. Fetch unprocessed product pages from database
+     * 3. Process each page in batches of 5 products
+     * 4. Create/update WooCommerce products
+     * 5. Update progress and job status
+     * 6. Handle completion and cleanup
+     */
     public function process_the_row() {
+        // STEP 1: LOCK CHECKS - Prevent concurrent processing
         if(self::is_create_products_cron_locked()){
+            $this->log('Import process is locked, skipping execution', 'info');
             return;
         }
 
         if(self::is_process_a_row_on_progress()){
-            $this->log('start new row process, but find a process on progress..., wait until next cronjob trigger.');
+            $this->log('Another row is already being processed, waiting for next cron trigger', 'info');
             return;
         }
 
-        // Set start time for this row process
+        // STEP 2: INITIALIZE PROCESSING PARAMETERS
+        // Set start time for this row process (used for stuck process detection)
         set_transient('awca_create_product_row_start_time', time(), 30 * MINUTE_IN_SECONDS);
 
         $start_time = microtime(true);
         // Set a limit slightly below your server's PHP execution time
-        $max_execution_time = 240;
+        $max_execution_time = 240; // 4 minutes max execution time
         $rows_processed = 0;
-        $batch_size = 5; // Process 5 products at a time
-        $sleep_interval = 1; // Sleep for 1 second between batches
+        $batch_size = 5; // Process 5 products at a time (prevents memory issues)
+        $sleep_interval = 1; // Sleep for 1 second between batches (reduces CPU load)
 
         // Get the job ID at the start of the process
         $job_id = $this->get_jobID();
@@ -74,27 +103,34 @@ class Import {
             $this->log('Continuing import process with job ID: ' . $job_id, 'info');
         }
 
+        // STEP 3: MAIN PROCESSING LOOP
+        // This loop continues until all product pages are processed or time limit is reached
         do {
             try {
                 global $wpdb;
 
-                // Fetch all unprocessed rows from the database
+                // STEP 3.1: FETCH NEXT UNPROCESSED PAGE
+                // Get the next page of products from the API data stored in wp_anar table
                 $table_name = $wpdb->prefix . ANAR_DB_NAME;
                 $row = $wpdb->get_results("SELECT * FROM $table_name WHERE `key` = 'products' AND `processed` = 0 ORDER BY `page` ASC LIMIT 1", ARRAY_A);
 
                 if (empty($row)) {
-                    $this->log('No more unprocessed product pages found.');
+                    $this->log('No more unprocessed product pages found. Import complete!');
                     $this->complete();
                     break;
                 }
 
                 $row = $row[0];
-                $this->log("start to create products of row {$row['page']}");
+                $this->log("Starting to process page {$row['page']} with product data");
+                
+                // STEP 3.2: SET ROW PROCESSING LOCK
+                // Mark this row as being processed to prevent concurrent processing
                 self::set_process_a_row_on_progress();
 
+                // STEP 3.3: JOB MANAGEMENT
                 // Create job only for the first page if no job exists
                 if (!$job_id && $row['page'] == 1) {
-                    // Create new job for first page
+                    // Create new job for first page to track overall progress
                     $awca_products = maybe_unserialize($row['response']);
                     if ($awca_products && isset($awca_products->total)) {
                         $job = $this->job_manager->create_job('anar_api', $awca_products->total);
@@ -106,7 +142,8 @@ class Import {
                     }
                 }
 
-                // Process products in smaller batches
+                // STEP 3.4: PROCESS PRODUCTS IN BATCHES
+                // This is where the actual product creation happens
                 $this->create_products(array(
                     'row_id' => $row['id'],
                     'row_page_number' => $row['page'],
@@ -144,10 +181,34 @@ class Import {
 
 
     /**
-     * Task to perform for each item in the queue.
+     * CORE PRODUCT CREATION METHOD
+     * 
+     * This method handles the actual creation/update of WooCommerce products from API data.
+     * It processes products in batches to prevent memory issues and timeouts.
+     * 
+     * PROCESSING FLOW:
+     * 1. Deserialize API response data
+     * 2. Split products into batches (5 products per batch)
+     * 3. For each batch:
+     *    - Apply batch-level locking to prevent duplicates
+     *    - Process each product individually
+     *    - Create/update WooCommerce products
+     *    - Handle errors and failed products
+     *    - Update progress tracking
+     * 4. Mark page as processed
+     * 
+     * DUPLICATE PREVENTION:
+     * - Batch-level locking prevents same batch from being processed twice
+     * - Failed product tracking prevents infinite retry loops
+     * - Transaction-based error handling ensures data consistency
      *
-     * @param array $item The item to process.
-     * @return mixed
+     * @param array $item The item to process containing:
+     *   - row_id: Database ID of the page being processed
+     *   - row_page_number: Page number from API
+     *   - batch_size: Number of products per batch (default: 5)
+     *   - sleep_interval: Sleep time between batches (default: 1 second)
+     *   - job_id: Job ID for progress tracking
+     * @return bool True if successful, false on error
      */
     protected function create_products($item) {
         global $wpdb;
@@ -205,10 +266,59 @@ class Import {
             $total_products = count($awca_products->items);
             $batches = array_chunk($awca_products->items, $batch_size);
 
+            $this->log("Processing page {$page} with {$total_products} products in " . count($batches) . " batches of {$batch_size}", 'info');
+
             foreach ($batches as $batch_index => $batch) {
+                // BATCH-LEVEL LOCKING: Prevent same batch from being processed multiple times
+                // This prevents race conditions where the same batch gets processed twice in milliseconds
+                $batch_lock_key = "anar_batch_processing_{$page}_{$batch_index}";
+                $batch_lock_duration = 300; // 5 minutes lock
+                
+                // Check if this specific batch is already being processed
+                if (get_transient($batch_lock_key)) {
+                    $this->log("Batch {$batch_index} of page {$page} is already being processed, skipping to prevent duplicates", 'warning');
+                    continue; // Skip this batch, move to next one
+                }
+                
+                // Set lock for this specific batch
+                set_transient($batch_lock_key, [
+                    'page' => $page,
+                    'batch_index' => $batch_index,
+                    'start_time' => time(),
+                    'product_count' => count($batch)
+                ], $batch_lock_duration);
+                
+                $this->log("Starting batch {$batch_index} of page {$page} with " . count($batch) . " products", 'debug');
                 $batch_created = 0;
                 $batch_exist = 0;
                 $batch_failed = 0;
+
+                // If using custom table, prepare batch insert data
+                if ($this->use_custom_table) {
+                    $insert_data = [];
+                    foreach ($batch as $product_item) {
+                        $prepared_product = ProductManager::product_serializer($product_item);
+                        $sku = $prepared_product['sku'];
+                        
+                        // Check if this product should be skipped due to previous failures
+                        if ($this->handle_failed_product($sku)) {
+                            $this->log("Skipping product SKU {$sku} due to previous failures", 'warning');
+                            $batch_failed++;
+                            continue;
+                        }
+
+                        $insert_data[] = [
+                            'anar_sku' => $sku,
+                            'product_data' => json_encode($prepared_product),
+                            'status' => 'pending'
+                        ];
+                    }
+
+                    // Batch insert into custom table (INSERT IGNORE skips duplicates)
+                    if (!empty($insert_data)) {
+                        ProductManager::insert_products_batch($insert_data);
+                    }
+                }
 
                 foreach ($batch as $product_item) {
                     set_transient('awca_create_product_heartbeat', time(), 10 * MINUTE_IN_SECONDS);
@@ -244,21 +354,20 @@ class Import {
                             'shipments_ref' => $prepared_product['shipments_ref'],
                         );
 
-                        $this->log('--------------------------------------------', 'debug');
-                        $this->log('Start to process product sku: ' . $sku, 'debug');
-
-                        $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap);
+                        $product_creation_result = ProductManager::create_wc_product($product_creation_data, $attributeMap, $categoryMap, [
+                            'use_custom_table' => $this->use_custom_table
+                        ]);
 
                         $product_id = $product_creation_result['product_id'];
                         if ($product_creation_result['created']) {
                             $batch_created++;
                             $this->image_downloader->set_product_thumbnail($product_id, $prepared_product['image']);
-                            $this->log('Created new product - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
+                            $this->log('✅ CREATED new product - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
                             // Clear failed status if product was successfully created
                             $this->clear_failed_product($sku);
                         } else {
                             $batch_exist++;
-                            $this->log('Product already exists - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
+                            $this->log('🔄 UPDATED existing product - ID: ' . $product_id . ', SKU: ' . $sku, 'info');
                             // Clear failed status if product exists
                             $this->clear_failed_product($sku);
                         }
@@ -267,6 +376,9 @@ class Import {
                         update_option('awca_proceed_products', $proceed_products);
 
                         $wpdb->query('COMMIT');
+                        
+                        // Add small delay after each product creation to reduce race conditions
+                        usleep(100000); // 100ms delay
                         
                         // Clear object from memory
                         unset($prepared_product);
@@ -301,6 +413,12 @@ class Import {
                     );
                 }
 
+                // BATCH COMPLETION: Release lock and log completion
+                $this->log("Completed batch {$batch_index} of page {$page} - Created: {$batch_created}, Existing: {$batch_exist}, Failed: {$batch_failed}", 'info');
+                
+                // Release the batch lock
+                delete_transient($batch_lock_key);
+                
                 // Sleep between batches to reduce CPU load
                 if ($batch_index < count($batches) - 1) {
                     sleep($sleep_interval);
@@ -332,6 +450,14 @@ class Import {
 
         } catch (\Exception $e) {
             $this->log("Error processing page {$page}: " . $e->getMessage(), 'error');
+            
+            // EMERGENCY CLEANUP: Release all batch locks for this page in case of error
+            // This prevents permanent locks if the process crashes
+            for ($i = 0; $i < count($batches); $i++) {
+                $emergency_lock_key = "anar_batch_processing_{$page}_{$i}";
+                delete_transient($emergency_lock_key);
+            }
+            $this->log("Released all batch locks for page {$page} due to error", 'warning');
             
             // Update job status if there's an error
             if ($job_id) {
@@ -490,6 +616,46 @@ class Import {
                     delete_transient('awca_product_creation_progress');
                 }
             }
+        }
+        
+        // BATCH LOCK CLEANUP: Check for stuck batch locks and clean them up
+        $this->cleanup_stuck_batch_locks();
+    }
+
+    /**
+     * Clean up stuck batch locks that might be left from crashed processes
+     * This prevents permanent locks that would block future processing
+     */
+    private function cleanup_stuck_batch_locks() {
+        global $wpdb;
+        
+        // Get all batch lock transients (they follow the pattern anar_batch_processing_*)
+        $table_name = $wpdb->prefix . 'options';
+        $stuck_locks = $wpdb->get_results($wpdb->prepare("
+            SELECT option_name, option_value 
+            FROM {$table_name} 
+            WHERE option_name LIKE %s 
+            AND option_name LIKE %s
+        ", '%_transient_anar_batch_processing_%', '%_transient_timeout_anar_batch_processing_%'));
+        
+        $current_time = time();
+        $cleaned_count = 0;
+        
+        foreach ($stuck_locks as $lock) {
+            $transient_name = str_replace('_transient_', '', $lock->option_name);
+            $timeout_name = str_replace('_transient_', '_transient_timeout_', $lock->option_name);
+            
+            // Check if lock has expired (timeout passed)
+            $timeout = get_option($timeout_name);
+            if ($timeout && $current_time > $timeout) {
+                delete_transient($transient_name);
+                $cleaned_count++;
+                $this->log("Cleaned up expired batch lock: {$transient_name}", 'debug');
+            }
+        }
+        
+        if ($cleaned_count > 0) {
+            $this->log("Cleaned up {$cleaned_count} stuck batch locks", 'info');
         }
     }
 

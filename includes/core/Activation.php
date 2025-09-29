@@ -2,7 +2,6 @@
 namespace Anar\Core;
 
 use Anar\ApiDataHandler;
-use Anar\Payments;
 
 class Activation{
 

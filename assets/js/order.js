@@ -11,50 +11,68 @@ try {
 
 jQuery(document).ready(function($) {
 
-    var createAnarOrder =  $('#awca-create-anar-order')
-    if(createAnarOrder.length !== 0){
-
-        createAnarOrder.on('click', function(e){
+    // Handle pre-order modal open button
+    var openPreorderModal = $('#awca-open-preorder-modal');
+    if(openPreorderModal.length !== 0){
+        openPreorderModal.on('click', function(e){
             e.preventDefault();
-
-            var loadingIcon = $(this).find('.spinner-loading')
-            var OrderID = $(this).data('order-id')
-            var msgType = 'error'
-
-            jQuery.ajax({
-                url: awca_ajax_object.ajax_url,
-                type: "POST",
-                dataType: "json",
-                data: {
-                    order_id : OrderID ,
-                    action: 'awca_create_anar_order_ajax'
-                },
-                beforeSend: function () {
-                    loadingIcon.show();
-                    $(this).attr("disabled", "disabled");
-                },
-                success: function (response) {
-                    if (response.success) {
-                        location.reload();
-                        msgType = 'success'
-                    }
-                    awca_toast(response.data.message, msgType);
-                },
-                error: function (xhr, status, err) {
-                    awca_toast(xhr.responseText)
-                    loadingIcon.hide();
-                    $(this).removeAttr("disabled");
-
-                },
-                complete: function () {
-                    loadingIcon.hide();
-                    $(this).removeAttr("disabled");
-                },
-            });
-
-        })
-
+            try {
+                MicroModal.show('preorder-modal');
+            } catch (e) {
+                console.error('MicroModal failed to show preorder modal:', e);
+            }
+        });
     }
+
+    // Handle create anar order button (now in modal)
+    $(document).on('click', '#awca-create-anar-order', function(e){
+        e.preventDefault();
+
+        var loadingIcon = $(this).find('.spinner-loading');
+        var OrderID = $(this).data('order-id');
+        var msgType = 'error';
+        var button = $(this);
+
+        jQuery.ajax({
+            url: awca_ajax_object.ajax_url,
+            type: "POST",
+            dataType: "json",
+            data: {
+                order_id : OrderID ,
+                action: 'awca_create_anar_order_ajax'
+            },
+            beforeSend: function () {
+                loadingIcon.show();
+                button.attr("disabled", "disabled");
+            },
+            success: function (response) {
+                if (response.success) {
+                    msgType = 'success';
+                    // Reload page after short delay for success case
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    msgType = 'error';
+                }
+                awca_toast(response.data.message, msgType);
+            },
+            error: function (xhr, status, err) {
+                awca_toast(xhr.responseText);
+            },
+            complete: function () {
+                // Always close modal and reset button after response
+                try {
+                    MicroModal.close('preorder-modal');
+                } catch (e) {
+                    console.error('MicroModal failed to close modal:', e);
+                }
+                
+                loadingIcon.hide();
+                button.removeAttr("disabled");
+            },
+        });
+    });
 
     var anarOrderDetails =  $('#anar-order-details')
     if(anarOrderDetails.length !== 0){

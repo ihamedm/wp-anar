@@ -236,6 +236,7 @@ function anar_log($message, $level = null) {
     $logger->log($message, 'general', $level);
 }
 
+
 function awca_is_import_products_running(){
     return !Anar\Import::is_create_products_cron_locked();
 }

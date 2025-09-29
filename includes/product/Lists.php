@@ -71,6 +71,7 @@ class Lists{
                 $anar_fruit_url = ANAR_WC_API_PLUGIN_URL.'assets/images/anar-fruit-deprecated.svg';
 
                 echo '<a class="anar-fruit" href="'.$anar_url.'" target="_blank" title="از پنل انار حذف شده"><img src="'.$anar_fruit_url.'"></a>';
+                echo '<br><span style="font-size:11px;">از انار حذف شده</span>';
             }
         }
     }

@@ -1,6 +1,8 @@
 import {awca_toast} from "./functions";
 
 jQuery(document).ready(function($) {
+    // Initialize MicroModal
+    MicroModal.init();
     $('#anar-create-indexes').on('click', function(e) {
         e.preventDefault();
 
@@ -286,6 +288,44 @@ jQuery(document).ready(function($) {
             complete: function() {
                 // Re-enable button
                 button.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // Zero Profit Products functionality
+    $('#anar-zero-profit-products').on('click', function(e) {
+        e.preventDefault();
+        
+        // Show loading state in modal
+        $('#anar-zero-profit-loading').show();
+        $('#anar-zero-profit-content').hide();
+        
+        // Open MicroModal
+        MicroModal.show('anar-zero-profit-modal');
+        
+        // Fetch products
+        $.ajax({
+            url: awca_ajax_object.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'anar_get_zero_profit_products',
+                nonce: awca_ajax_object.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    const data = response.data;
+                    $('#anar-zero-profit-count').text(data.count);
+                    $('#anar-zero-profit-list').html(data.html);
+                    $('#anar-zero-profit-loading').hide();
+                    $('#anar-zero-profit-content').show();
+                } else {
+                    $('#anar-zero-profit-loading').hide();
+                    $('#anar-zero-profit-content').html('<p style="text-align: center; color: #dc3232; padding: 20px;">خطا در دریافت اطلاعات: ' + response.data + '</p>').show();
+                }
+            },
+            error: function(xhr, status, err) {
+                $('#anar-zero-profit-loading').hide();
+                $('#anar-zero-profit-content').html('<p style="text-align: center; color: #dc3232; padding: 20px;">خطا در ارتباط با سرور</p>').show();
             }
         });
     });

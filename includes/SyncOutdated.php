@@ -90,78 +90,6 @@ class SyncOutdated {
     }
 
 
-    /**
-     * Get outdated products that haven't been synced in the last day
-     * Optimized version using direct SQL for better performance
-     */
-    private function get_outdated_products_legacy() {
-        $time_ago = date('Y-m-d H:i:s', strtotime("-{$this->outdated_threshold}"));
-
-        $args = array(
-            'post_type' => 'product',
-            'post_status' => ['publish', 'draft'],
-            'posts_per_page' => $this->batch_size,
-            'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'relation' => 'OR',
-                    array(
-                        'key' => '_anar_sku',
-                        'compare' => 'EXISTS'
-                    ),
-                    array(
-                        'key' => '_anar_sku_backup',
-                        'compare' => 'EXISTS'
-                    ),
-                ),
-                array(
-                    'relation' => 'OR',
-                    array(
-                        'key' => '_anar_last_sync_time',
-                        'compare' => 'NOT EXISTS'
-                    ),
-                    array(
-                        'key' => '_anar_last_sync_time',
-                        'value' => $time_ago,
-                        'compare' => '<',
-                        'type' => 'DATETIME'
-                    )
-                )
-            ),
-            'fields' => 'ids'
-        );
-
-        $query = new \WP_Query($args);
-
-        $this->log('Found ' . $query->found_posts . ' products that have been outdated more than '. $this->outdated_threshold);
-
-        $products = [];
-        foreach ($query->posts as $product_id) {
-            //ProductManager::restore_product_deprecation($product_id);
-            $anar_sku = get_post_meta($product_id, '_anar_sku', true);
-
-
-            if(!$anar_sku){
-                $anar_sku_backup = get_post_meta($product_id, '_anar_sku_backup', true);
-                if($anar_sku_backup){
-                    ProductManager::restore_product_deprecation($product_id);
-                    $this->log('Product #' . $product_id . ' was deprecated. restored to check again.');
-                    $anar_sku = $anar_sku_backup;
-                }
-            }
-
-
-            if ($anar_sku) {
-                $products[] = [
-                    'ID' => $product_id,
-                    'anar_sku' => $anar_sku
-                ];
-            }
-        }
-
-        return $products;
-    }
-
     private function get_outdated_products() {
         global $wpdb;
         
@@ -234,6 +162,7 @@ class SyncOutdated {
                 $sync = Sync::get_instance();
                 $wc_product = wc_get_product($product_data['ID']);
                 if (isset($data->attributes) && !empty($data->attributes) && $wc_product && $wc_product->get_type() === 'simple') {
+                    // some products changed to variable because of adding more than 1 variant on Anar by supplier
                     ProductManager::convert_simple_to_variable($wc_product, $data);
                 }
                 if (isset($data->attributes) && !empty($data->attributes)) {

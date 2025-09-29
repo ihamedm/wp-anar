@@ -212,15 +212,17 @@ class ProductData{
         global $wpdb;
 
         try {
-
             if (empty($anar_sku)) {
                 throw new \Exception('Anar SKU cannot be empty');
             }
 
             // Sanitize the input
             $anar_sku = sanitize_text_field($anar_sku);
+            
+            // Log the existence check attempt
+            awca_log("Checking existence for SKU: {$anar_sku}", 'import');
 
-            // Prepare and execute the query
+            // Use only custom meta check as WooCommerce SKU can be modified by users
             $sql = $wpdb->prepare("
                 SELECT post_id 
                 FROM {$wpdb->postmeta} 
@@ -238,6 +240,7 @@ class ProductData{
 
             // If variation found, return it
             if ($variation_id) {
+                awca_log("Found existing product via custom meta check - ID: {$variation_id}, SKU: {$anar_sku}", 'import');
                 return (int) $variation_id;
             }
 
@@ -252,13 +255,14 @@ class ProductData{
 
             $backup_id = $wpdb->get_var($sql_backup);
             if ($backup_id) {
+                awca_log("Found existing product via backup meta check - ID: {$backup_id}, SKU: {$anar_sku}", 'import');
                 ProductManager::restore_product_deprecation((int) $backup_id);
                 return (int) $backup_id;
             }
 
-
-            // If no variation found
-            throw new \Exception(sprintf('No product variation found with Anar SKU: %s', $anar_sku));
+            // If no product found
+            awca_log("No existing product found for SKU: {$anar_sku}", 'import');
+            throw new \Exception(sprintf('No product found with Anar SKU: %s', $anar_sku));
 
         }catch (\Exception $exception){
             awca_log($exception->getMessage(), 'import');

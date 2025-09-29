@@ -2,7 +2,7 @@
 // Get saved options
 
 $new_api_validate_feat = get_option('anar_conf_feat__api_validate', 'new');
-$activate_anar_slow_import_feat = get_option('anar_conf_feat__slow_import', 'no');
+$anar_import_type = get_option('anar_conf_feat__import_type', 'pro');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
 $anar_full_sync_schedule_hours = get_option('anar_full_sync_schedule_hours', 6);
@@ -12,13 +12,13 @@ $anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 100
 if (isset($_POST['save_anar_settings'])) {
     // Sanitize and save the values
     $new_api_validate_feat = $_POST['anar_conf_feat__api_validate'] ?? 'new';
-    $activate_anar_slow_import_feat = $_POST['anar_conf_feat__slow_import'] ?? 'no';
+    $anar_import_type = $_POST['anar_conf_feat__import_type'] ?? 'pro';
     $anar_log_level = $_POST['anar_log_level'] ?? 'info';
     $anar_full_sync_schedule_hours = intval($_POST['anar_full_sync_schedule_hours']);
     $anar_sync_outdated_batch_size = intval($_POST['anar_sync_outdated_batch_size']);
 
 
-    update_option('anar_conf_feat__slow_import', $activate_anar_slow_import_feat);
+    update_option('anar_conf_feat__import_type', $anar_import_type);
     update_option('anar_conf_feat__api_validate', $new_api_validate_feat);
     update_option('anar_log_level', $anar_log_level);
     update_option('anar_full_sync_schedule_hours', $anar_full_sync_schedule_hours);
@@ -96,16 +96,21 @@ if(isset($_GET['anar_optional_price_sync'])){
             </td>
         </tr>
 
-        <tr >
-            <th><label for="anar_conf_feat__slow_import">همگام سازی آهسته؟</label></th>
+        <tr>
+            <th><label for="anar_conf_feat__import_type">روش درون ریزی محصولات</label></th>
             <td>
                 <label>
-                    <select name="anar_conf_feat__slow_import" id="anar_conf_feat__slow_import">
-                        <option value="no" <?php selected($activate_anar_slow_import_feat, 'no'); ?>>خیر</option>
-                        <option value="yes" <?php selected($activate_anar_slow_import_feat, 'yes'); ?>>بله</option>
+                    <select name="anar_conf_feat__import_type" id="anar_conf_feat__import_type">
+                        <option value="normal" <?php selected($anar_import_type, 'normal'); ?>>عادی</option>
+                        <option value="slow" <?php selected($anar_import_type, 'slow'); ?>>آهسته</option>
+                        <option value="pro" <?php selected($anar_import_type, 'pro'); ?>>پیشرفته</option>
                     </select>
                 </label>
-                <p class="description">این گزینه برای هاست هایی که منابع کمتری دارند مناسب است. در هر دقیقه فقط ۳۰ محصول ساخته می شود .</p>
+                <p class="description">
+                    <strong>عادی:</strong> روش استاندارد درون ریزی محصولات<br>
+                    <strong>آهسته:</strong> برای هاست‌هایی که منابع کمتری دارند (۳۰ محصول در دقیقه)<br>
+                    <strong>پیشرفته:</strong> روش یکپارچه با جدول مخصوص برای جلوگیری از تکرار محصولات (عملکرد بهتر)
+                </p>
             </td>
         </tr>
 

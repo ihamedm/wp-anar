@@ -137,7 +137,7 @@ class ImageDownloader{
 
             // Create a temporary file with the image data
             $tmp = wp_tempnam($image_name);
-            if (!$tmp) {
+            if (!$tmp || is_wp_error($tmp)) {
                 anar_log("Failed to create temporary file for image: $image_url");
                 return new WP_Error('temp_file_creation_failed', 'ایجاد فایل موقت ناموفق بود.');
             }

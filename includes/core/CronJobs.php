@@ -84,12 +84,21 @@ class CronJobs {
     }
 
     /**
-     * Get the appropriate import class based on the slow import option
+     * Get the appropriate import class based on the import type setting
      * 
-     * @return string The class name to use (Import or ImportSlow)
+     * @return string The class name to use (ImportSlow or Import)
      */
     private function get_import_class() {
-        return get_option('anar_conf_feat__slow_import', 'no') == 'yes' ? 'Anar\ImportSlow' : 'Anar\Import';
+        $import_type = get_option('anar_conf_feat__import_type', 'pro');
+        
+        switch ($import_type) {
+            case 'slow':
+                return 'Anar\ImportSlow';
+            case 'pro':
+            case 'normal':
+            default:
+                return 'Anar\Import';
+        }
     }
 
     public function create_products_job(){

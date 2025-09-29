@@ -647,7 +647,11 @@ input#plugin_activation_button {
   font-weight: 400 !important;
 }
 
-
+.awca-link-btn{
+  color: var(--line-border-fill) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;:;
+}
 
 
 

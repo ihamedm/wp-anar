@@ -12,3 +12,6 @@ import './system-reports';
 import './dl-gallery';
 import './notifications';
 import './status-tools';
+
+// Import MicroModal
+import MicroModal from 'micromodal';
