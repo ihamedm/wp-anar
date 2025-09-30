@@ -742,6 +742,128 @@ class ProductManager{
         ], $attributeMap);
     }
 
+    /**
+     * Convert a variable product to simple product
+     * Used when Anar product changes from variable to simple (1 variant)
+     * 
+     * @param WC_Product_Variable $product The variable product to convert
+     * @param object $anar_product The Anar product data
+     * @return WC_Product_Simple|false The converted simple product or false on failure
+     */
+    public static function convert_variable_to_simple($product, $anar_product) {
+        if (!$product || $product->get_type() !== 'variable' || empty($anar_product->variants) || count($anar_product->variants) !== 1) {
+            return false;
+        }
+
+        global $wpdb;
+        $product_id = $product->get_id();
+
+        try {
+            // Get the single variant data
+            $variant = $anar_product->variants[0];
+            
+            // Delete all existing variations
+            $children = $product->get_children();
+            foreach ($children as $variation_id) {
+                wp_delete_post($variation_id, true);
+            }
+
+            // Change post type to simple product
+            $wpdb->update(
+                $wpdb->posts,
+                array('post_type' => 'product'),
+                array('ID' => $product_id)
+            );
+
+            // Clear all attributes
+            $product->set_attributes(array());
+            $product->save();
+
+            // Re-instantiate as simple product
+            $simple_product = new \WC_Product_Simple($product_id);
+
+            // Set simple product data from the single variant
+            $simple_product->set_price(awca_convert_price_to_woocommerce_currency($variant->price));
+            $simple_product->set_regular_price(awca_convert_price_to_woocommerce_currency($variant->price));
+            $simple_product->set_stock_quantity($variant->stock);
+            $simple_product->set_manage_stock(true);
+            $simple_product->set_stock_status($variant->stock > 0 ? 'instock' : 'outofstock');
+
+            // Update Anar meta data
+            update_post_meta($product_id, '_anar_variant_id', $variant->_id);
+            
+            $simple_product->save();
+
+            self::log("Converted variable product #{$product_id} to simple product", 'info');
+            
+            return $simple_product;
+
+        } catch (\Exception $e) {
+            self::log("Error converting variable to simple product #{$product_id}: " . $e->getMessage(), 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Check if product needs transformation between simple and variable
+     * Compares current WooCommerce product with Anar product data
+     * 
+     * @param WC_Product $product Current WooCommerce product
+     * @param object $anar_product Anar product data
+     * @return string|false 'simple_to_variable', 'variable_to_simple', or false if no transformation needed
+     */
+    public static function check_product_transformation_needed($product, $anar_product) {
+        if (!$product || !$anar_product) {
+            return false;
+        }
+
+        $current_type = $product->get_type();
+        $has_attributes = !empty($anar_product->attributes);
+        $variant_count = isset($anar_product->variants) ? count($anar_product->variants) : 0;
+
+        // Determine what the product should be based on Anar data
+        $should_be_variable = $has_attributes && $variant_count > 1;
+        $should_be_simple = !$has_attributes || $variant_count <= 1;
+
+        // Check if transformation is needed
+        if ($current_type === 'simple' && $should_be_variable) {
+            return 'simple_to_variable';
+        } elseif ($current_type === 'variable' && $should_be_simple) {
+            return 'variable_to_simple';
+        }
+
+        return false; // No transformation needed
+    }
+
+    /**
+     * Apply the necessary product transformation based on Anar data
+     * 
+     * @param \WC_Product $product Current WooCommerce product
+     * @param object $anar_product Anar product data
+     * @return \WC_Product|false The transformed product or false on failure
+     */
+    public static function apply_product_transformation($product, $anar_product) {
+        $transformation_type = self::check_product_transformation_needed($product, $anar_product);
+        
+        if (!$transformation_type) {
+            return $product; // No transformation needed
+        }
+
+        self::log("Product transformation needed: {$transformation_type} for product #{$product->get_id()}", 'info');
+
+        switch ($transformation_type) {
+            case 'simple_to_variable':
+                self::convert_simple_to_variable($product, $anar_product);
+                return new \WC_Product_Variable($product->get_id());
+                
+            case 'variable_to_simple':
+                return self::convert_variable_to_simple($product, $anar_product);
+                
+            default:
+                return $product;
+        }
+    }
+
     public function publish_draft_products_ajax() {
         // Verify nonce
         if (!isset($_POST['security_nonce']) || !wp_verify_nonce($_POST['security_nonce'], 'publish_anar_products_ajax_nonce')) {

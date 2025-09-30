@@ -161,10 +161,8 @@ class SyncOutdated {
             if ($response_code === 200 && $data) {
                 $sync = Sync::get_instance();
                 $wc_product = wc_get_product($product_data['ID']);
-                if (isset($data->attributes) && !empty($data->attributes) && $wc_product && $wc_product->get_type() === 'simple') {
-                    // some products changed to variable because of adding more than 1 variant on Anar by supplier
-                    ProductManager::convert_simple_to_variable($wc_product, $data);
-                }
+                ProductManager::apply_product_transformation($wc_product, $data);
+
                 if (isset($data->attributes) && !empty($data->attributes)) {
                     $sync->processVariableProduct($data,$product_data['ID'], true);
                 } else {
