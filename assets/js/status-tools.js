@@ -1,8 +1,7 @@
 import {awca_toast} from "./functions";
+import MicroModal from 'micromodal';
 
 jQuery(document).ready(function($) {
-    // Initialize MicroModal
-    MicroModal.init();
     $('#anar-create-indexes').on('click', function(e) {
         e.preventDefault();
 

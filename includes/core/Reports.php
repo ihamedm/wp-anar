@@ -1,7 +1,7 @@
 <?php
 namespace Anar\Core;
 
-use Anar\OrderData;
+use Anar\OrderReports;
 use Anar\ProductData;
 use Anar\SyncTools;
 

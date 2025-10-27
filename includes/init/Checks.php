@@ -60,6 +60,8 @@ class Checks {
      * Check if shipping rates are configured and show notice if missing
      */
     public function admin_notice_missing_shipping_rates() {
+        if(anar_is_ship_to_stock_enabled())
+            return;
         // Only check on WooCommerce pages to improve performance
         $screen = get_current_screen();
         if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-settings', 'edit-shop_order', 'dashboard'])) {

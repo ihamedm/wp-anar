@@ -1,6 +1,6 @@
 <?php
 namespace Anar\Core;
-use Anar\OrderData;
+use Anar\OrderReports;
 use Anar\ProductData;
 use Anar\SyncTools;
 
@@ -72,8 +72,8 @@ class UsageData {
             'not_synced' =>  $sync_tools->found_not_synced_products(1),
             'last_full_sync' =>  mysql2date('j F Y - H:i', $sync->getLastSyncTime(true)),
             'last_partial_sync' =>  mysql2date('j F Y - H:i', $sync->getLastSyncTime()),
-            'anar_orders' => OrderData::count_anar_orders(),
-            'anar_registered_orders' => OrderData::count_anar_orders_submited(),
+            'anar_orders' => OrderReports::count_anar_orders(),
+            'anar_registered_orders' => OrderReports::count_anar_orders_submited(),
         );
 
         // Merge with any additional data provided

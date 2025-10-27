@@ -1,9 +1,15 @@
 # تغییرات
 تمام تغییرات قابل توجه این پروژه در این فایل مستند خواهد شد.
 
-## [0.5.1] - 1404/07/
-- بهبود فرآیندهای همگام سازی قیمت و موجودی
+## [0.6.0] - 1404/08/05
+- جدید : امکان غیرفعال سازی حمل و نقل انار
+- جدید : ثبت سفارش در انار برای سفارش های ایجاد شده بصورت دستی در داشبورد وردپرس
+- جدید : ثبت اتوماتیک سفارش در انار برای سفارش های باسلام
+- بهبود فرآیندهای ثبت سفارش و تسویه حساب
 
+
+## [0.5.1] - 1404/07/07
+- بهبود فرآیندهای همگام سازی قیمت و موجودی
 
 
 ## [0.5.0] - 1404/07/05
@@ -20,143 +26,25 @@
 
 
 ## [0.4.4] - 1404/06/22
-- feat : add force syncOutdated on tools/status
-- fix : js error on import wizard
-- fix : improve image downloader 
-- fix : improve download thumbnail and gallery button on edit product page
-- fix : remove country from woocommerce address
-- fix : calculate sync total time 
+- رفع تداخل ایمپورت محصولات با پلاگین‌های ووکامرس و سایر افزونه‌ها در موارد گزارش شده
+- بهبود لاگ های سیستم
+- بهبود سیستم دانلود تصاویر برای هاست های ایران
+- بهبود دکمه دانلود تصاویر گالری و تصویر محصول در صفحه ویرایش محصول
+- حذف ایران از آدرس سفارشات ثبت شده در انار
 
 
 ## [0.4.3] - 1404/05/28
-- fix : improve Sync query
+- بهبود عملکرد سیستم همگام‌سازی
+
 
 ## [0.4.2] - 1404/05/18
-- feat : force and auto activation wp-persian plugin
-- fix : localization Iran address format even if wp-persian not installed
+- فعال‌سازی خودکار پلاگین وردپرس فارسی
+- بهبود نمایش فرمت آدرس‌های ایرانی حتی بدون نصب پلاگین وردپرس فارسی
+
 
 ## [0.4.0] - 1404/05/18
-- feat : limit plugin use only for Pro users
+- محدود کردن استفاده از پلاگین فقط برای کاربران حرفه‌ای
 
-
-## [0.3.22] - 1404/05/16
-- fix : null variation_id in some cases
-- fix : prevent duplicate product creation
-
-## [0.3.21] - 1404/05/13
-- feat : add DB-Index system to improve query performance more than 90%
-- feat : add performance tests tool on states page
-- feat : DB-Index tools on states page
-- fix : improve daily sync strategy performance
-
-
-## [0.3.20] - 1404/05/08
-- fix : update shipment and order status Persian labels
-
-## [0.3.19] - 1404/05/07
-- fix : validating postcode on order creating
-- fix : improved gallery downloader tool
-- fix : update shipment and order status Persian labels 
-
-
-## [0.3.18] - 1404/04/29
-- fix : some styles
-- fix : sync product type when product type changed from anar
-- fix : validate post_code & phone on create anar order
-
-
-## [0.3.17] - 1404/04/25
-- feat : checking for Persian WordPress plugin installation
-- feat : add button to mark as read notification
-- feat : add sql method to publish products tool
-- fix : add dismiss button to cronjob alert
-- fix : improve counting unread notifications 
-- fix : change menu and tab names more readable for users
-- fix : issue about updating variable products on checkout
-
-
-## [0.3.16] - 1404/04/22
-- feat : notification center
-- fix : required postcode on create anar order
-
-
-## [0.3.15] - 1404/04/11
-- fix : change scheduler cleanup to once pr day
-- fix : restore deprecated variation products set _anar_sku as null
-
-
-## [0.3.14] - 1404/04/08
-- fix : _anar_sku of deprecated variable products not restored properly
-
-
-## [0.3.13] - 1404/04/08
-- feat : restore deprecation on syncOutdated
-- feat : show shopUrl and subscription data on setting page
-- feat : show anar product link based on shopUrl
-- 
-
-## [0.3.11] - 1404/03/12
-- feat : slow Import method for low resources hosts
-- feat : option to switch between slow/fast import
-- feat : option to control how many products must update on each batch 
-- feat : check some php requirements to have better compatibility on low resource hosts
-- feat : new sync strategy to decrease resource usage: sync existence products every 24 hours + sync realtime per user product views
-- feat : monitor and free up resources during import and sync
-- feat : add jobManager methods to better control import process 
-- fix : better strategy for deprecate and pending products
-- fix : some shipping names
-- fix : change import strategy to prevent stuck on low resource hosts
-- fix : handle removed products on realtime sync
-- fix : remove some dev logs from public js
-- fix : remove unneeded data on anar orders details on WordPress order edit screen
-- fix : log file links have problem on system status
-- remove : full and partial sync completely disable to free up resources
-
-
-## [0.3.10] - 1404/02/29
-- fix : improve styles of anar shipping methods on checkout
-- fix : improve some anar shipment names
-- fix : remove some dev js logs
-
-## [0.3.9] - 1404/02/16
-- fix : issue with orders state name on some websites
-
-## [0.3.8] - 1404/02/10
-- fix : issue about state name send to anar orders when PWS plugin installed
-- fix : improved updating shipments 
-
-
-## [0.3.7] - 1404/02/08
-- fix : issue about sync variable products with 1 variant 
-
-
-## [0.3.6] - 1404/02/07
-- new : add async real-time product updates on loading product page and checkout
-- new : add labelPrice to products as regular price
-
-## [0.3.5] - 1404/01/18
-- fix : checkout process sometimes doesn't save anar order data
-- fix : show deprecated products alert dismiss not working
-- fix : syncOutdated log file doesn't archive correctly
-- fix : recently not synced product link have problem by timezone
-- fix : improved estimated time to complete import products calculation
-- fix : anar automatic order creation option not working
-- update : refactor and add table for system status on tools page 
-
-
-## [0.3.4] - 1404/01/16
-- new : set outofstock for removed variant on sync
-- new : download galley images of all products
-- update : improved log system and add log level option on plugin features
-
-
-## [0.3.3] - 1403/12/23
-- new : SyncOutdated class
-- new : force to woocommerce activate first
-- new : alert to update to the new version
-- new : fullSync schedule time option on tools/feature tab 
-- new : organize tools with new sub tabs
-- update : upgrade styles and features of sync widget to have better UX 
 
 ## [0.3.2] - 1403/12/14
 - رفع باگ نمایش دکمه پرداخت بعد از تغییر وضعیت به پرداخت شده

@@ -2,7 +2,7 @@
 
 namespace Anar;
 
-class Orders_List {
+class OrderList {
 
     protected static $instance = null;
 
@@ -24,8 +24,8 @@ class Orders_List {
         add_action('manage_shop_order_posts_custom_column', [$this, 'anar_column_content'], 10, 2);
         add_action('manage_woocommerce_page_wc-orders_custom_column', [$this, 'anar_column_content'], 10, 2);
 
-        // add anar-orders filter after default woocommerce order filters on order list page
 
+        // add anar-orders filter after default woocommerce order filters on order list page
         if (awca_is_hpos_enable()) {
             // For HPOS enabled stores
             add_action( 'woocommerce_order_list_table_restrict_manage_orders', [$this, 'anar_order_filter'], 25, 2 );
@@ -65,6 +65,9 @@ class Orders_List {
 
 
     private function display_anar_order_data_column($order) {
+        $classes = 'anar-label';
+        $order_id = is_object($order) ? $order->get_id() : $order;
+        $icon = '';
 
         if (awca_is_hpos_enable()) {
             $is_anar_order = $order->get_meta('_is_anar_order', true);
@@ -74,13 +77,19 @@ class Orders_List {
             $anar_order_number = get_post_meta($order, '_anar_order_group_id', true);
         }
 
+        if( anar_order_can_ship_to_stock($order_id) ){
+            $classes .= ' has-icon can-ship-to-stock';
+            $icon = '<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-cube-send"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 12.5l-5 -3l5 -3l5 3v5.5l-5 3z" /><path d="M11 9.5v5.5l5 3" /><path d="M16 12.545l5 -3.03" /><path d="M7 9h-5" /><path d="M7 12h-3" /><path d="M7 15h-1" /></svg>';
+        }
+
+
         if($is_anar_order){
             if ($is_anar_order == 'anar')
-                printf('<span class="anar-label anar-not-paid-label">%s</span>', 'سفارش انار');
+                printf('<span class="%s anar-not-paid-label">%s %s</span>',  $classes, $icon, 'سفارش انار');
 
 
             if($anar_order_number)
-                printf('<span class="anar-label-info anar-label">#%s</span>', $anar_order_number);
+                printf('<span class="%s anar-label-info">#%s</span>', $classes, $anar_order_number);
         }
 
     }
@@ -92,7 +101,7 @@ class Orders_List {
             return;
         }
 
-        $count = OrderData::count_anar_orders();
+        $count = OrderReports::count_anar_orders();
 
         $is_anar_order = isset( $_GET[ 'is_anar_order' ] ) ? $_GET[ 'is_anar_order' ] : '';
 
@@ -107,7 +116,7 @@ class Orders_List {
     }
 
     public function anar_orders_filter_link($views) {
-        $count = OrderData::count_anar_orders();
+        $count = OrderReports::count_anar_orders();
 
         // Check if current filter is active
         $current = isset($_GET['is_anar_order']) ? ' class="current"' : '';

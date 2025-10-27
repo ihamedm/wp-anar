@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.5.1
+ * Version:          	0.6.0
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -150,7 +150,7 @@ class Wp_Anar
 
         add_action('admin_notices', array($this, 'show_new_version_notice'));
 
-        add_Action('admin_init', [$this, 'check_woocommerce_activate']);
+        add_action('admin_init', [$this, 'check_woocommerce_activate']);
         $this->check_and_update_db();
         $this->plugin_update_check();
         $this->wc_hpos_compatibility();
@@ -193,7 +193,7 @@ class Wp_Anar
         define('ANAR_CRON_VERSION', '1.14');
 
 
-        define('ANAR_DEBUG', get_option('anar_debug', 'no') == 'yes');
+        define('ANAR_DEBUG', get_option('anar_log_level', 'info') == 'debug');
         define('ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE', get_option('anar_conf_feat__optional_price_sync', 'no') !== 'no');
         define('ANAR_IS_ENABLE_NOTIF_PAGE', true);
 
@@ -252,39 +252,52 @@ class Wp_Anar
 
     public function instances()
     {
-//        Plugins::get_instance();
+
+        // Initial
         Checks::get_instance();
         Update::get_instance();
-        StatusTools::get_instance();
         new Core\Activation();
         new Core\Assets();
+        new Admin\Menus();
         Core\CronJobs::get_instance();
 
-        new Admin\Menus();
-        Admin\Tools::get_instance();
-        Admin\Product_Status_Changer::get_instance();
-        Reset::get_instance();
-        Core\Reports::get_instance();
-
+        // Import
         new Wizard\Wizard();
         new Wizard\Category();
         new Wizard\Attributes();
         Wizard\ProductManager::get_instance();
 
+        // Product
         new Product\Edit();
         new Product\Lists();
         new Product\Front();
 
+        // Tools & Features
+        Gallery::get_instance();
         new Notifications();
+        Admin\Tools::get_instance();
+        StatusTools::get_instance();
+        Reset::get_instance();
+        Core\Reports::get_instance();
 
+        // Sync
         Sync::get_instance();
         SyncTools::get_instance();
         SyncOutdated::get_instance();
         SyncRealTime::get_instance();
-        Gallery::get_instance();
-        Checkout::get_instance();
-        Orders_List::get_instance();
+
+        // Order
         Order::get_instance();
+        OrderManager::get_instance();
+        OrderList::get_instance();
+        OrderFront::get_instance();
+
+        // Checkout
+        Checkout::get_instance();
+        if(anar_shipping_enabled()){
+            new CheckoutDropShipping();
+        }
+
     }
 
 

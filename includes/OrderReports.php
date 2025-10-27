@@ -1,7 +1,7 @@
 <?php
 namespace Anar;
 
-class OrderData{
+class OrderReports{
 
     public static function count_anar_orders() {
         global $wpdb;

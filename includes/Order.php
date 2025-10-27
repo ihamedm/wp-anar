@@ -1,12 +1,49 @@
 <?php
 namespace Anar;
 
-use WP_Post;
-
+/**
+ * Order Class
+ * 
+ * Manages Anar order display and interaction in WooCommerce admin interface.
+ * Provides admin meta box, pre-order creation modal, and AJAX endpoints for
+ * order management, address handling, and Anar order data retrieval.
+ * 
+ * Key Responsibilities:
+ * - Display Anar order meta box on WooCommerce order edit screen
+ * - Show Anar order details (status, tracking, pricing)
+ * - Provide pre-order modal for creating orders in Anar system
+ * - Handle order type selection (retail vs wholesale/ship-to-stock)
+ * - Manage stock address CRUD operations
+ * - Display shipping options in admin modal
+ * - Show package/shipment information
+ * - Fetch live order status from Anar API
+ * - Display payment links for unpaid orders
+ * 
+ * Modal Features:
+ * - Customer address display
+ * - Stock address management (add/edit/load)
+ * - Shipping method selection for retail orders
+ * - Shipping fee calculation for wholesale orders
+ * - Order type toggle (retail/wholesale)
+ * - Tehran-only validation for ship-to-stock
+ * 
+ * @package Anar
+ * @since 1.0.0
+ */
 class Order {
 
+    /**
+     * Singleton instance
+     * @var Order|null
+     */
     protected static $instance = null;
 
+    /**
+     * Get singleton instance
+     * 
+     * @return Order The singleton instance
+     * @since 1.0.0
+     */
     public static function get_instance() {
         if ( is_null( self::$instance ) ) {
             self::$instance = new self();
@@ -14,33 +51,44 @@ class Order {
         return self::$instance;
     }
 
+    /**
+     * Constructor - Register hooks for order management UI
+     * 
+     * Registers WordPress/WooCommerce hooks for:
+     * - Meta box display on order edit screen
+     * - Pre-order modal injection
+     * - AJAX endpoints for order operations
+     * - Address management
+     * - Shipping calculations
+     * 
+     * @since 1.0.0
+     */
     public function __construct() {
-        add_filter('woocommerce_localisation_address_formats', [$this, 'custom_address_format_for_dear_iran'] , 30, 1);
         add_action('add_meta_boxes', [$this, 'anar_order_meta_box'] );
-        add_action('woocommerce_order_details_after_order_table', [$this, 'display_anar_order_details_front'], 10, 1);
-        add_action('wp_ajax_awca_create_anar_order_ajax', [$this, 'create_anar_order_ajax']);
+        add_action('admin_footer', [$this, 'preorder_modal']);
         add_action('wp_ajax_awca_fetch_order_details_ajax', [$this, 'fetch_order_details_ajax']);
-        add_action('wp_ajax_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
-        add_action('wp_ajax_nopriv_awca_fetch_order_details_public_ajax', [$this, 'fetch_order_details_public_ajax']);
-
-
-        // @todo show order shipments data [need when anar order not created from wordpress]
-//        add_action( 'woocommerce_admin_order_data_after_billing_address', [$this, 'display_custom_option_in_admin'], 10, 1 );
-        //add_filter('woocommerce_get_order_item_totals', [$this, 'filter_fee_and_shipment_name_in_order_details'], 10, 3);
-
-        add_action('anar_order_meta_box_end', [$this, 'preorder_modal']);
+        add_action('wp_ajax_awca_get_order_address_ajax', [$this, 'get_order_address_ajax']);
+        add_action('wp_ajax_awca_save_stock_address_ajax', [$this, 'save_stock_address_ajax']);
+        add_action('wp_ajax_awca_load_stock_address_ajax', [$this, 'load_stock_address_ajax']);
+        add_action('wp_ajax_awca_get_shipping_fee_ajax', [$this, 'get_shipping_fee_ajax']);
+        add_action('wp_ajax_awca_force_check_anar_products', [$this, 'force_check_anar_products_ajax']);
     }
 
-    public function custom_address_format_for_dear_iran( $formats ) {
-        $formats['IR'] = "{company}\n{first_name} {last_name}\n{state}\n{city}\n{address_1}\n{address_2}\n{postcode}";
-        return $formats;
-    }
+
 
     /**
-     * Check if order is an Anar order and return order ID if true
-     *
-     * @param \WC_Order|\WP_Post|int $order Order object, post object or order ID
+     * Check if order contains Anar products
+     * 
+     * Validates if a WooCommerce order contains Anar products by checking
+     * for '_is_anar_order' meta. Handles multiple input types (order object,
+     * post object, or order ID) and is HPOS compatible.
+     * 
+     * Used throughout admin to determine if Anar UI elements should be shown.
+     * 
+     * @param \WC_Order|\WP_Post|int $order Order object, post object, or numeric order ID
      * @return int|false Order ID if it's an Anar order, false otherwise
+     * @since 1.0.0
+     * @access public
      */
     public function is_anar_order($order) {
         // If we got an ID, get the order object
@@ -69,6 +117,18 @@ class Order {
         return $_is_anar_order ? $order_ID : false;
     }
 
+    /**
+     * Get order meta data (HPOS compatible)
+     * 
+     * Retrieves order meta with HPOS compatibility check.
+     * Uses $order->get_meta() for HPOS, get_post_meta() for legacy.
+     * 
+     * @param int $order_id Order ID
+     * @param string $key Meta key to retrieve
+     * @return mixed Meta value
+     * @since 1.0.0
+     * @access private
+     */
     private function get_order_meta($order_id, $key) {
         if(awca_is_hpos_enable()){
             $order = wc_get_order($order_id);
@@ -79,202 +139,40 @@ class Order {
         return $order_meta;
     }
 
+    /**
+     * Get Anar order data from order meta
+     * 
+     * Retrieves '_anar_order_data' meta containing Anar order IDs,
+     * group IDs, and order numbers saved after order creation.
+     * 
+     * @param int $order_id Order ID
+     * @return array|false Anar order data or false if not set
+     * @since 1.0.0
+     * @access public
+     */
     public function get_order_anar_data($order_id) {
         return $this->get_order_meta($order_id, '_anar_order_data');
     }
 
-    public function create_anar_order($order_id) {
-        $order = wc_get_order($order_id);
-
-        if (awca_is_hpos_enable()) {
-            $anar_order_number = $order->get_meta('_anar_order_group_id', true);
-        } else {
-            $anar_order_number = get_post_meta($order_id, '_anar_order_group_id', true);
-        }
-        if($anar_order_number){
-            awca_log('anar order created before successfully: #' . $anar_order_number);
-            return ['success' => false , 'message' => 'سفارش قبلا ساخته شده است.'];
-        }
-
-
-        // validate required data
-        $address = $order->get_address('billing');
-        $validation_fields = true;
-        $validation_message  = '';
-
-        if ($address['phone'] == ''){
-            $validation_fields = false;
-            $validation_message .= ' :: [انار] شماره موبایل خریدار اجباری است';
-
-        }
-        if ($address['postcode'] == ''){
-            $validation_fields = false;
-            $validation_message .= ' :: [انار] کد پستی خریدار اجباری است';
-        }
-        if( $address['postcode'] != '' && !preg_match('/^\d{10}$/' , $address['postcode']) ){
-            $validation_fields = false;
-            $validation_message .= sprintf(" :: [انار] کدپستی %s معتبر نیست. کدپستی باید اعداد انگلیسی بدون فاصله و ۱۰ رقمی باشد.", $address['postcode']);
-        }
-
-        if(!$validation_fields){
-            $order->add_order_note($validation_message);
-            return ['success' => false, 'message' => $validation_message];
-        }
-
-
-        // Prepare the data for the first API call
-        $items = [];
-        foreach ($order->get_items() as $item_id => $item) {
-            $anar_variation_id = $this->get_variation_id($item);
-
-            if($anar_variation_id){
-                $items[] = [
-                    'variation' => $anar_variation_id,
-                    'amount' => $item->get_quantity(),
-                    'info' => []
-                ];
-            }
-
-        }
-
-        $formatted_address = $order->get_formatted_billing_address();
-        // Remove <br> and full name from formatted address
-        $formatted_address = str_replace('<br/>', ', ', $formatted_address);
-        $formatted_address = str_replace('<br>', ', ', $formatted_address);
-        $formatted_address = preg_replace('/^[^,]+,\s*/', '', $formatted_address);
-        
-        // Remove postcode from end of address if it exists
-        if (!empty($address['postcode'])) {
-            $formatted_address = trim(str_replace($address['postcode'], '', $formatted_address), ', ');
-        }
-
-        // Get city and province from order
-        $billing_city = $order->get_billing_city();
-        $billing_state = $order->get_billing_state();
-        $billing_country = $order->get_billing_country();
-
-        // Get state name from WooCommerce countries
-        $billing_state_name = '';
-        if (!empty($billing_country) && !empty($billing_state)) {
-            $countries = new \WC_Countries();
-            $states = $countries->get_states($billing_country);
-            $billing_state_name = $states[$billing_state] ?? $billing_state;
-        }
-
-        $create_data = [
-            'type' => 'retail',
-            'items' => $items,
-            'address' => [
-                'postalCode' => $address['postcode'],
-                'detail' => $formatted_address,
-                'transFeree' => $address['first_name'] . ' ' . $address['last_name'],
-                'transFereeMobile' => $address['phone'],
-                'city' => $billing_city, // optional
-                'province' => $billing_state_name ?: '', // optional
-            ],
-            'externalId' => $order->get_id(),
-            'shipments' => $this->prepare_shipments($order),
-        ];
-        $order->update_meta_data('_anar_raw_create_data', $create_data); // save raw create data for debugging
-        $order->save();
-
-        // Second API call to create the order
-        $create_response = ApiDataHandler::postAnarApi('https://api.anar360.com/wp/orders/', $create_data);
-        if (is_wp_error($create_response)) {
-            $order->add_order_note('خطا در برقراری ارتباط با سرور انار.');
-            return ['success' => false , 'message' => 'خطا در برقراری ارتباط با سرور انار.'];
-        }
-
-        // Decode the response body
-        $create_response = json_decode(wp_remote_retrieve_body($create_response), true);
-
-        if (!isset($create_response['success']) || !$create_response['success']) {
-            // Handle error
-            if(isset($create_response['data']['message'])){
-                $error_message = $create_response['data']['message'];
-            }elseif(isset($create_response['message'])){
-                $error_message = $create_response['message'];
-            }else{
-                $error_message = 'Unknown error';
-            }
-
-            $order->add_order_note('ساخت سفارش در پنل انار انجام نشد: ' . $error_message);
-            return ['success' => false , 'message' => 'ساخت سفارش در پنل انار انجام نشد'];
-        }
-
-        // Save useful data in order meta
-        $anar_order_data = [];
-        foreach($create_response['result'] as $result){
-            $anar_order_data[] = [
-                "_id"           => $result["_id"],
-                "groupId"       => $result["groupId"],
-                "orderNumber"   => $result["orderNumber"]
-            ];
-        }
-
-        $order->update_meta_data('_anar_order_data', $anar_order_data); // Save Anar order ID
-        $order->update_meta_data('_anar_order_group_id', $create_response['result'][0]['groupId']); // Save Anar order number
-        $order->add_order_note('سفارش در پنل انار با موفقیت ایجاد شد. #' . $create_response['result'][0]['groupId']);
-        $order->save();
-
-        // update anar unpaid orders on wpdb to show alert
-        //(new Payments())->count_unpaid_orders_count();
-
-        return ['success' => true , 'message' => 'ساخت سفارش در پنل انار با موفقیت انجام شد'];
-    }
-
-
-    private function get_variation_id($item) {
-
-        // Get the product object
-        $product = $item->get_product();
-
-        if(!$product || is_wp_error($product)) {
-            return false;
-        }
-
-        // Check if the product is a variation
-        if ($product->is_type('variation')) {
-            // For variable products, get the variation SKU
-            return get_post_meta($product->get_id(), '_anar_sku', true);
-        } else {
-            // For simple products, get the variant SKU
-            return get_post_meta($product->get_id(), '_anar_variant_id', true);
-        }
-    }
-
-
     /**
-     * @param $order \WC_Order
-     * @return array
+     * Register Anar meta box on order edit screen
+     * 
+     * Adds Anar meta box to WooCommerce order edit screen (HPOS compatible).
+     * Only displays for orders containing Anar products.
+     * 
+     * Meta box shows:
+     * - Order creation button (if not created in Anar)
+     * - Order details from Anar API (if created)
+     * - Package information
+     * - Ship-to-stock eligibility
+     * - Raw API data (if ANAR_DEBUG enabled)
+     * 
+     * Hooked to: add_meta_boxes
+     * 
+     * @return \WC_Order|false Order object if Anar order, false otherwise
+     * @since 1.0.0
+     * @access public
      */
-    private function prepare_shipments($order) {
-        $shipments = [];
-
-        // Check if HPOS is enabled
-        if (awca_is_hpos_enable()) {
-            $shipping_data = $order->get_meta('_anar_shipping_data', true);
-            $customer_note = $order->get_customer_note();
-        } else {
-            $shipping_data = get_post_meta($order->get_id(), '_anar_shipping_data', true);
-            $customer_note = $order->get_customer_note();
-        }
-
-
-        foreach ($shipping_data as $shipping) {
-            // Assuming each shipping entry has the necessary keys
-            $shipments[] = [
-                'shipmentId' => $shipping['shipmentId'],
-                'deliveryId' => $shipping['deliveryId'],
-                'shipmentsReferenceId' => $shipping['shipmentsReferenceId'],
-                'description' => esc_html($customer_note),
-            ];
-        }
-
-        return $shipments;
-    }
-
-
     public function anar_order_meta_box() {
 
         if(isset($_GET['post'])){
@@ -290,9 +188,10 @@ class Order {
             return false;
         }
 
-        // don't show meta box if is not anar order
         $order = wc_get_order($order_id);
-        if(!$this->is_anar_order($order)){
+        
+        // Only show meta box if is anar order OR if order exists (to allow force check)
+        if(!$order){
             return false;
         }
 
@@ -300,21 +199,64 @@ class Order {
         $screen = awca_is_hpos_enable() ? wc_get_page_screen_id( 'shop-order' ) : 'shop_order';
 
         add_meta_box(
-            'anar_order_meta_box',            // Unique ID
-            'انار',                  // Box title
-            [$this, 'anar_order_meta_box_html'],       // Content callback
-            $screen,                         // Post type
-            'side',                            // Context (side, advanced, etc.)
-            'high'                          // Priority (default, high, low, etc.)
+            'anar_order_meta_box',
+            'انار',
+            [$this, 'anar_order_meta_box_html'],
+            $screen,
+            'side',
+            'high'
         );
+        return $order;
     }
 
-
+    /**
+     * Inject pre-order creation modal into admin footer
+     * 
+     * Displays modal dialog for creating Anar orders from admin interface.
+     * Only injects on WooCommerce order edit screens for Anar orders.
+     * 
+     * Modal includes:
+     * - Order type selector (retail/wholesale)
+     * - Customer address display
+     * - Stock address management form
+     * - Shipping options display (for retail)
+     * - Shipping fee display (for wholesale)
+     * - Create order button
+     * 
+     * Hooked to: admin_footer
+     * 
+     * @return void Outputs HTML modal markup
+     * @since 1.0.0
+     * @access public
+     */
     public function preorder_modal(){
+        $screen = get_current_screen();
+        if(isset($_GET['post'])){
+            $order_id = $_GET['post'];
+        }elseif(isset($_GET['id'])){
+            $order_id = $_GET['id'];
+        }else{
+            $order_id = false;
+        }
+
+        // don't show meta box for new orders
+        if(!$order_id) {
+            return;
+        }
+
+        if (
+            !$screen ||
+            !in_array($screen->id, ['shop_order', 'woocommerce_page_wc-orders'], true) ||
+            ! $this->is_anar_order($order_id)
+        ) {
+            return;
+        }
+        $order_id = $this->get_order_ID($GLOBALS['post'] ?? $_GET['post'] ?? $_GET['id'] ?? 0);
+        $can_ship_to_stock = $this->canShipToResellerStock($order_id);
         ?>
         <div class="modal micromodal-slide" id="preorder-modal" aria-hidden="true">
-            <div class="modal__overlay" tabindex="-1" data-micromodal-close>
-                <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="preorder-modal-title" style="max-width: 500px; width: 500px;">
+            <div class="modal__overlay" tabindex="-1" data-micromodal-close1>
+                <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="preorder-modal-title" style="max-width: 50vw; width: 600px;">
                     <header class="modal__header">
                         <strong class="modal__title" id="preorder-modal-title">
                             ثبت سفارش در پنل انار
@@ -322,26 +264,156 @@ class Order {
                         <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
                     </header>
                     <main class="modal__content">
-                        <div class="anar-alert anar-alert-warning" style="margin-bottom: 15px;">
-                            <strong>توجه:</strong> قبل از ثبت سفارش در پنل انار، لطفاً موارد زیر را بررسی کنید:
-                        </div>
-                        <ul style="margin: 15px 0; padding-right: 20px; line-height: 1.8;">
-                            <li>✅ اطلاعات آدرس و شماره تماس مشتری کامل و صحیح باشد</li>
-                            <li>✅ کد پستی ۱۰ رقمی و معتبر وارد شده باشد</li>
-                        </ul>
-                        <div class="anar-alert anar-alert-info">
-                            پس از ثبت سفارش، امکان تغییر اطلاعات محدود خواهد بود.
-                        </div>
-                    </main>
-                    <footer class="modal__footer" style="display: flex;">
 
-                        <button id="awca-create-anar-order" class="awca-primary-btn" style="width: 100%;" data-order-id="<?php echo $this->get_order_ID($GLOBALS['post'] ?? $_GET['post'] ?? $_GET['id'] ?? 0); ?>">
+                        
+                        <?php if (!anar_order_can_ship_to_customer($order_id)): ?>
+                        <div class="anar-order-type-section" style="">
+                            <?php if (anar_is_ship_to_stock_enabled()): ?>
+                                <?php if ($can_ship_to_stock): ?>
+                                    <h4 style="margin: 0 0 15px 0; color: #333;">شیوه ارسال سفارش:</h4>
+                                    <div class="order-type-options">
+                                        <label>
+                                            <input type="radio" name="order_type" value="retail" checked>
+                                            <span>ارسال به مشتری</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="order_type" value="wholesale">
+                                            <span>ارسال به انبار شما</span>
+                                        </label>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="anar-alert anar-alert-warning" style="margin-bottom: 15px;">
+                                        <strong>توجه:</strong> اقلام این سفارش قابلیت ارسال به انبار را ندارند. این سفارش فقط امکان ارسال مستقیم برای مشتری را دارد.
+                                    </div>
+                                <?php endif; ?>
+                            <?php else: ?>
+
+                                <input type="hidden" name="order_type" value="retail">
+                            <?php endif; ?>
+                            
+                            <!-- Customer Address (Default) -->
+                            <div id="customer-address-section" class="address-section">
+                                <strong style="margin: 0 0 10px 0; color: #666;">آدرس مشتری:</strong>
+                                <div id="customer-address-display">
+                                    <!-- Customer address will be populated by JavaScript -->
+                                </div>
+                            </div>
+                            
+                            <!-- Shipping Options Section (for retail orders) -->
+                            <div id="shipping-options-section" class="address-section">
+                                <p style="margin: 0 0 10px 0; color: #666;">روش ارسال:</p>
+                                <div id="shipping-options-display" style="font-size: 12px;">
+                                    <!-- Shipping options will be populated by JavaScript -->
+                                </div>
+                            </div>
+                            
+                            <!-- Stock Address Display -->
+                            <div id="stock-address-display-section" class="address-section">
+                                <div style="display: flex; gap: 8px; align-items: center;justify-content: space-between; margin-bottom: 8px">
+                                    <strong>آدرس انبار شما:</strong>
+                                    <span href="#" id="edit-stock-address-btn" class="awca-btn-link" style="display: flex; align-items: center; gap:4px; color: blue; cursor:pointer">
+                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="16"  height="16"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="1.25"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                        <span>ویرایش آدرس</span>
+                                    </span>
+                                </div>
+                                <div id="stock-address-display">
+                                    <!-- Stock address will be populated by JavaScript -->
+                                </div>
+
+                            </div>
+
+                            <!-- No Stock Address State -->
+                            <div id="no-stock-address-section" class="address-section">
+                                <div class="no-address-message">
+                                    <p>آدرس انبار شما هنوز ثبت نشده است.</p>
+                                    <a href="#" id="add-stock-address-btn" class="awca-btn awca-primary-btn" style="text-decoration: none; display: inline-block;">
+                                        افزودن آدرس انبار
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Stock Address Form -->
+                            <div id="stock-address-section" class="address-section">
+                                <h5>آدرس انبار شما:</h5>
+                                <div class="stock-address-form">
+                                    <div>
+                                        <label>نام:</label>
+                                        <input type="text" id="stock_first_name" name="stock_first_name" required>
+                                    </div>
+                                    <div>
+                                        <label>نام خانوادگی:</label>
+                                        <input type="text" id="stock_last_name" name="stock_last_name" required>
+                                    </div>
+                                    <div style="display: none;">
+                                        <label>استان:</label>
+                                        <input type="text" id="stock_state" name="stock_state" value="تهران" readonly>
+                                    </div>
+                                    <div style="display: none;">
+                                        <label>شهر:</label>
+                                        <input type="text" id="stock_city" name="stock_city" value="تهران" readonly>
+                                    </div>
+                                    <div>
+                                        <label>آدرس کامل در تهران:</label>
+                                        <textarea id="stock_address" name="stock_address" required placeholder="آدرس کامل در تهران"></textarea>
+                                    </div>
+                                    <div>
+                                        <label>کد پستی:</label>
+                                        <input type="text" id="stock_postcode" name="stock_postcode" required pattern="[0-9]{10}">
+                                    </div>
+                                    <div>
+                                        <label>شماره تماس:</label>
+                                        <input type="tel" id="stock_phone" name="stock_phone" required>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tehran Only Notice -->
+                                <div class="anar-alert anar-alert-info" style="margin-top: 15px; padding: 12px; background-color: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #0073aa; flex-shrink: 0;">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                            <circle cx="12" cy="10" r="3"></circle>
+                                        </svg>
+                                        <div>
+                                            <strong style="color: #0073aa;">ارسال به انبار فقط در تهران امکان‌پذیر است</strong>
+                                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                                آدرس انبار شما باید در محدوده شهر تهران باشد
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Shipping Fee (for wholesale orders) -->
+                            <div class="stock-shipping-fee">
+                                <!-- Shipping fee will be loaded via AJAX -->
+                            </div>
+
+                        </div>
+                        <?php else: ?>
+                            <div class="anar-alert anar-alert-warning" style="margin-bottom: 15px;">
+                                <strong>توجه:</strong> قبل از ثبت سفارش در پنل انار، لطفاً موارد زیر را بررسی کنید:
+                            </div>
+                            <ul style="margin: 15px 0; padding-right: 20px; line-height: 1.8;">
+                                <li>✅ اطلاعات آدرس و شماره تماس مشتری کامل و صحیح باشد</li>
+                                <li>✅ کد پستی ۱۰ رقمی و معتبر وارد شده باشد</li>
+                            </ul>
+                            <div class="anar-alert anar-alert-info">
+                                پس از ثبت سفارش، امکان تغییر اطلاعات محدود خواهد بود.
+                            </div>
+                        <?php endif; ?>
+
+
+                    </main>
+                    <footer class="modal__footer" style="display: flex; justify-content: end">
+
+                        <button class="awca-btn awca-link-btn" style="color: #333 !important;" data-micromodal-close>انصراف</button>
+                        <button id="awca-create-anar-order" class="awca-btn awca-info-btn " style="width: fit-content" data-order-id="<?php echo $order_id; ?>">
                             تایید و ثبت سفارش
                             <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                                 <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
                             </svg>
                         </button>
-                        <button class="awca-btn awca-link-btn" data-micromodal-close>انصراف</button>
+
                     </footer>
                 </div>
             </div>
@@ -349,7 +421,17 @@ class Order {
         <?php
     }
 
-
+    /**
+     * Extract order ID from various input types
+     * 
+     * Normalizes different order representations (WC_Order object,
+     * WP_Post object, or numeric ID) to a simple order ID integer.
+     * 
+     * @param \WC_Order|\WP_Post|int $order Order in various formats
+     * @return int|false Order ID or false if invalid
+     * @since 1.0.0
+     * @access public
+     */
     public function get_order_ID($order)
     {
         if($order instanceof \WC_Order){
@@ -363,6 +445,22 @@ class Order {
         }
     }
 
+    /**
+     * Render Anar meta box HTML content
+     * 
+     * Displays meta box content showing:
+     * - HPOS status indicator
+     * - Anar order details (if created) via AJAX
+     * - Package/shipment information
+     * - Order creation button (if not created)
+     * - Ship-to-stock eligibility notice
+     * - Raw API data (debug mode)
+     * 
+     * @param \WC_Order|\WP_Post|int $order Order object or ID
+     * @return void Outputs HTML content
+     * @since 1.0.0
+     * @access public
+     */
     public function anar_order_meta_box_html($order) {
         $order_id = $this->get_order_ID($order);
 
@@ -371,7 +469,27 @@ class Order {
             awca_is_hpos_enable() ? "on" : "off"
         );
 
+        // Check if this is an Anar order
+        $is_anar_order = $this->is_anar_order($order);
 
+        // If not an Anar order, show force check button
+        if( !$is_anar_order ):?>
+        <div id="awca-force-check-container">
+            <p class="anar-alert anar-alert-info">این سفارش هنوز بررسی نشده است.</p>
+            <p style="font-size: 12px; color: #666; margin: 10px 0;">
+                اگر این سفارش شامل محصولات انار است اما لیبل سفارش انار ندارد، روی دکمه زیر کلیک کنید.
+            </p>
+            <button type="button" id="awca-force-check-btn" class="awca-primary-btn meta-box-btn" data-order-id="<?php echo $order_id;?>" style="width: 100%;">
+                <span class="dashicons dashicons-update" style="margin-top: 3px;"></span>
+                بررسی و شناسایی محصولات انار
+            </button>
+            <?php wp_nonce_field( 'awca_force_check_nonce', 'awca_force_check_nonce_field' ); ?>
+        </div>
+        <?php 
+        return; // Exit early if not an Anar order
+        endif;
+
+        // If it is an Anar order, show the regular content
         if( $this->get_order_anar_data($order_id) ):?>
         <div class="anar-text" id="anar-order-details" data-order-id="<?php echo $order_id?>">
             <div class="awca-loading-message-spinner">
@@ -384,7 +502,7 @@ class Order {
 
 
         <?php else:
-            $this->display_packages_shipping_data($order_id);
+            $this->get_packages_shipping_data($order_id);
         ?>
         <div id="awca-custom-meta-box-container">
             <p class="anar-alert anar-alert-warning">این سفارش هنوز در پنل انار شما ثبت نشده است.</p>
@@ -397,16 +515,20 @@ class Order {
         <?php
         endif;
 
+        if( anar_is_ship_to_stock_enabled() && $this->canShipToResellerStock($order_id) )
+            echo '<p class="anar-alert anar-alert-info">امکان ارسال به انبار دارد</p>';
+
         $raw_create_data = $this->get_order_meta($order_id, '_anar_raw_create_data');
         if($raw_create_data)
-            printf('<pre class="awca-json-display" style="display:none;"><code>%s</code></pre>', json_encode($raw_create_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
+            printf('<pre class="awca-json-display" style="%s"><code>%s</code></pre>',
+                ANAR_DEBUG ? "" : "display:none;",
+                json_encode($raw_create_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            );
 
         do_action('anar_order_meta_box_end');
     }
 
-
-    public function display_packages_shipping_data($order_id) {
+    public function get_packages_shipping_data($order_id) {
         $wc_order = wc_get_order($order_id);
         if (!$wc_order) {
             return;
@@ -438,14 +560,27 @@ class Order {
 
             $product_shipments = ProductData::get_anar_product_shipments($product_id);
 
+            if (empty($product_shipments)) {
+                return;
+            }
+
+            // Ensure shipmentsReferenceId is a scalar value for use as array key
+            $reference_id = $product_shipments['shipmentsReferenceId'] ?? '';
+            
+            // Skip if reference ID is not scalar (string/integer)
+            if (!is_scalar($reference_id) || empty($reference_id)) {
+                error_log('Invalid shipmentsReferenceId for product ' . $product_id . ': ' . print_r($reference_id, true));
+                continue;
+            }
+
             $user_selected_shipments = '';
             foreach ($order_shipping_data as $selected){
-                if($selected['shipmentsReferenceId'] == $product_shipments['shipmentsReferenceId']){
+                if($selected['shipmentsReferenceId'] == $reference_id){
                     $user_selected_shipments = $selected;
                 }
             }
 
-            $all_packages_data[$product_shipments['shipmentsReferenceId']][] = [
+            $all_packages_data[$reference_id][] = [
                 'products_info' => $products_info,
                 'product_shipments' => $product_shipments,
                 'selected_shipments' => $user_selected_shipments
@@ -543,23 +678,35 @@ class Order {
 
     }
 
-    public function create_anar_order_ajax(){
-
-        if ( !isset( $_POST['order_id'] ) ) {
-            wp_send_json_error( array( 'message' => 'order_id required') );
-        }
-
-        $creation_result = $this->create_anar_order($_POST['order_id']);
-
-        if($creation_result['success']){
-            wp_send_json_success(array('message' => 'سفارش با موفقیت در پنل انار ثبت شد.'));
-        }else{
-            wp_send_json_error(array('message' => $creation_result['message']));
-        }
-
-    }
-
-
+    /**
+     * AJAX handler: Fetch order details from Anar API
+     * 
+     * Retrieves live order data from Anar API and formats it for display
+     * in the admin meta box. Fetches data for all packages in an order group.
+     * 
+     * Process:
+     * 1. Validate order_id from POST
+     * 2. Get '_anar_order_data' from order meta
+     * 3. Loop through each Anar order/package
+     * 4. Make API call to fetch current status
+     * 5. Format package data with items, pricing, status
+     * 6. Add payment link if order is unpaid
+     * 7. Return formatted HTML output
+     * 
+     * Displays:
+     * - Order number and package number
+     * - Product items with links
+     * - Price breakdown (items, reseller share, delivery, total)
+     * - Order status and delivery method
+     * - Tracking number and creation date
+     * - Payment link for unpaid orders
+     * 
+     * Hooked to: wp_ajax_awca_fetch_order_details_ajax
+     * 
+     * @return void Sends JSON response with formatted HTML
+     * @since 1.0.0
+     * @access public
+     */
     public function fetch_order_details_ajax() {
 
         if ( !isset( $_POST['order_id'] ) ) {
@@ -724,132 +871,265 @@ class Order {
 
     }
 
+    /**
+     * Check if order can be shipped to reseller's stock
+     * 
+     * Determines if order contains products eligible for ship-to-stock
+     * by checking 'anar_can_ship_stock' meta.
+     * 
+     * @param int $order_id Order ID
+     * @return bool True if eligible for ship-to-stock
+     * @since 1.0.0
+     * @access public
+     */
+    public function canShipToResellerStock($order_id){
+        $anar_order_ship_stock = $this->get_order_meta($order_id, 'anar_can_ship_stock');
+        return (bool)$anar_order_ship_stock;
+    }
 
-    public function fetch_order_details_public_ajax() {
+    /**
+     * Check if order can be shipped to customer
+     * 
+     * Determines if order has shipping data for customer delivery
+     * by checking '_anar_shipping_data' meta.
+     * 
+     * @param int $order_id Order ID
+     * @return bool True if has customer shipping data
+     * @since 1.0.0
+     * @access public
+     */
+    public function canShipToCustomer($order_id){
+        $anar_shipping_data = $this->get_order_meta($order_id, '_anar_shipping_data');
+        return (bool)$anar_shipping_data;
+    }
 
-        if ( !isset( $_POST['order_id'] ) ) {
-            wp_send_json_error( array( 'message' => 'order_id required') );
+    /**
+     * AJAX handler: Get customer address for modal display
+     * 
+     * Retrieves and formats customer's billing address from order
+     * for display in pre-order creation modal.
+     * 
+     * Formatting:
+     * - Replaces <br> tags with commas
+     * - Strips remaining HTML tags
+     * - Removes line breaks
+     * - Trims whitespace
+     * 
+     * Hooked to: wp_ajax_awca_get_order_address_ajax
+     * 
+     * @return void Sends JSON response with formatted address
+     * @since 1.0.0
+     * @access public
+     */
+    public function get_order_address_ajax() {
+        if (!isset($_POST['order_id']) || !$_POST['order_id']) {
+            wp_send_json_error(array('message' => 'order_id required'));
         }
+
         $order_id = $_POST['order_id'];
-        $order = wc_get_order($_POST['order_id']);
+        $order = wc_get_order($order_id);
 
-        $anar_order_data = $order->get_meta('_anar_order_data', true);
-        if(isset($anar_order_data) && count($anar_order_data) > 0){
-            $output = '';
-            foreach($anar_order_data as $order_index => $order){
-
-                $url = "https://api.anar360.com/wp/orders/" . $order['_id'];
-                $response = wp_remote_get($url, [
-                    'headers' => [
-                        'Authorization' => anar_get_saved_token()
-                    ],
-                    'timeout' => 300,
-                ]);
-
-                if (is_wp_error($response)) {
-                    $message = $response->get_error_message();
-                    wp_send_json_error(["message" => $message]);
-                }
-
-                $response_body = json_decode(wp_remote_retrieve_body($response), true);
-
-                if ($response_body['success']) {
-
-                    $package = $response_body['result'];
-                    $package_number = $order_index + 1 ; // Start numbering from 1
-
-                    // Collect items list
-                    $product_list_markup = '<ul class="package-items">';
-                    foreach ($package['items'] as $item) {
-//                        $item_wc_id = awca_get_product_by_anar_variant_id($item['product']);
-                        $item_wc_id = ProductData::get_product_variation_by_anar_variation($item['product']);
-
-                        // Check if the product ID is valid and get the product link
-                        if ($item_wc_id && !is_wp_error($item_wc_id)) {
-                            $product = wc_get_product($item_wc_id);
-                            if ($product && $product->is_type('variation')) {
-                                // Return the parent ID
-                                $product_id = $product->get_parent_id();
-                            }else{
-                                $product_id = $product->get_id();
-                            }
-
-                            $product_list_markup .= sprintf('<li><a class="awca-tooltip-on" href="%s" title="%s"><img src="%s" alt="%s"></a></li>',
-                                get_permalink($product_id),
-                                $item['title'],
-                                get_the_post_thumbnail_url($product_id),
-                                $item['title'],
-                            );
-                        } else {
-                            // If the product ID is not valid, just use the title without a link
-                            $product_list_markup .= esc_html($item['title']) . ' , ';
-                        }
-                    }
-                    $product_list_markup .= '</ul>';
-
-                    $output .= sprintf('<div class="package-title">
-                            <div class="icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-                                </svg>
-                            </div>
-                            <div class="text">
-                                <div>مرسوله %d <span class="chip">%s کالا</span></div>
-                            </div>
-                        </div>',
-                        $package_number,
-                        count($package['items'])
-                    );
-                    $output .= sprintf('<ul class="package-data-list">
-                            <li><b>شماره مرسوله: </b>%s</li>
-                            <li>%s</li>
-                            <li><b>شیوه ارسال: </b>%s</li>
-                            <li><b>زمان ارسال: </b>%s</li>
-                            <li><b>کد رهگیری: </b>%s</li>
-                            <li><b>تاریخ ثبت: </b>%s</li>
-                        </ul>',
-                        $package['orderNumber'],
-                        $product_list_markup,
-
-                        anar_translator($package['delivery']['deliveryType']),
-                        $package['delivery']['estimatedTime'],
-                        $package['trackingNumber'],
-                        date_i18n('j F Y ساعت H:i', strtotime($package['createdAt'])),
-                    );
-
-                    $output .= '</ul>';
-
-                } else {
-                    $message =  $response_body['message'] ?? 'مشکلی در دریافت اطلاعات سفارش بوجود آمد.';
-                    wp_send_json_error(["message" => $message]);
-                }
-            }
-
-            $message = "اظلاعات سفارش از دریافت شد.";
-            wp_send_json_success(['message' => $message, "output" => $output]);
-        }else{
-            wp_send_json_error(["message" => "اطلاعات سفارش معتبر نیست!"]);
+        if (!$order) {
+            wp_send_json_error(array('message' => 'Order not found'));
         }
 
+        $address = $order->get_formatted_billing_address();
+
+        if($address == '')
+            wp_send_json_success(array('address' => 'آدرس مشتری ثبت نشده است. بدون آدرس امکان ثبت سفارش در انار نیست!'));
+
+        // Format address for single line display (replace HTML tags with commas first, then strip remaining tags)
+        $formatted_address = str_replace(['<br>', '<br/>', '<br />'], ' ، ', $address);
+        $formatted_address = strip_tags($formatted_address);
+        $formatted_address = str_replace(["\n", "\r"], ' ، ', $formatted_address);
+        $formatted_address = preg_replace('/\s+/', ' ', $formatted_address);
+        $formatted_address = trim($formatted_address);
+        
+        wp_send_json_success(array('address' => $formatted_address));
     }
 
+    /**
+     * AJAX handler to save stock address to wp_options
+     */
+    public function save_stock_address_ajax() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['awca_nonce_field'], 'awca_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+        }
 
-    public function display_anar_order_details_front($order) {
-        $_anar_order_data = $order->get_meta('_anar_order_data', true);
-        $_is_anar_order = $order->get_meta('_is_anar_order', true);
-        if($_is_anar_order && $_anar_order_data):?>
-            <section class="woocommerce-order-details">
-                <h2 class="woocommerce-order-details__title">وضعیت مرسوله ها</h2>
-                <div id="anar-order-details-front" class="anar-package-items-list" data-order-id="<?php echo $order->get_id();?>">
-                    <div class="awca-loading-message-spinner">
-                        <span>در حال دریافت اطلاعات مرسوله ها ...</span>
-                        <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                            <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                        </svg>
+        // Get and sanitize stock address data
+        $stock_address = array(
+            'first_name' => sanitize_text_field($_POST['stock_first_name'] ?? ''),
+            'last_name' => sanitize_text_field($_POST['stock_last_name'] ?? ''),
+            'state' => sanitize_text_field($_POST['stock_state'] ?? ''),
+            'city' => sanitize_text_field($_POST['stock_city'] ?? ''),
+            'address' => sanitize_textarea_field($_POST['stock_address'] ?? ''),
+            'postcode' => sanitize_text_field($_POST['stock_postcode'] ?? ''),
+            'phone' => sanitize_text_field($_POST['stock_phone'] ?? ''),
+        );
+
+        // Validate required fields
+        $required_fields = ['first_name', 'last_name', 'state', 'city', 'address', 'postcode', 'phone'];
+        foreach ($required_fields as $field) {
+            if (empty($stock_address[$field])) {
+                wp_send_json_error(array('message' => "فیلد {$field} اجباری است"));
+            }
+        }
+
+        // Validate postcode format
+        if (!preg_match('/^\d{10}$/', $stock_address['postcode'])) {
+            wp_send_json_error(array('message' => 'کد پستی باید ۱۰ رقم باشد'));
+        }
+
+        // Validate phone format
+        if (!preg_match('/^09\d{9}$/', $stock_address['phone'])) {
+            wp_send_json_error(array('message' => 'شماره موبایل باید با ۰۹ شروع شده و ۱۱ رقم باشد'));
+        }
+
+        // Save to wp_options
+        $saved = update_option('_anar_user_stock_address', $stock_address);
+
+        if ($saved) {
+            wp_send_json_success(array('message' => 'آدرس انبار با موفقیت ذخیره شد'));
+        } else {
+            wp_send_json_error(array('message' => 'خطا در ذخیره آدرس انبار'));
+        }
+    }
+
+    /**
+     * AJAX handler to load stock address from wp_options
+     */
+    public function load_stock_address_ajax() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['awca_nonce_field'], 'awca_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+        }
+
+        $stock_address = get_option('_anar_user_stock_address', array());
+
+        if (empty($stock_address)) {
+            wp_send_json_error(array('message' => 'آدرس انبار ذخیره نشده است'));
+        }
+
+        // Format address for single line display
+        $formatted_address = sprintf(
+            '%s %s، %s، %s، %s، کد پستی: %s، تلفن: %s',
+            $stock_address['first_name'],
+            $stock_address['last_name'],
+            $stock_address['state'],
+            $stock_address['city'],
+            $stock_address['address'],
+            $stock_address['postcode'],
+            $stock_address['phone']
+        );
+
+        wp_send_json_success(array(
+            'address' => $formatted_address,
+            'data' => $stock_address
+        ));
+    }
+
+    /**
+     * AJAX handler to get shipping fee information
+     */
+    public function get_shipping_fee_ajax() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['awca_nonce_field'], 'awca_nonce')) {
+            wp_send_json_error(['message' => 'Security check failed']);
+            return;
+        }
+
+        // For now, return a static message
+        // In the future, this can be replaced with an API call
+        $shipping_fee = '۲۰۰ هزار تومان'; // This can be fetched from an API
+        $date = 'شنبه ۱۲ مهر'; // This can be calculated dynamically
+        
+        // Create pretty formatted message
+        $message = sprintf(
+            '<div class="shipping-fee-display" style="">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="text-align: right;">
+                        <span style="color: #333; font-weight: 600;">هزینه ارسال به انبار شما</span>
                     </div>
+                    <div style="text-align: left;">
+                        <span style="color: #0073aa; font-weight: 600; ">%s</span>
+                    </div>
+                  
                 </div>
-            </section>
+                <div style="color: #666; font-size: 12px; line-height: 1.4; text-align: right;">
+                    📌 امروز %s می توانید <strong>۴ مرسوله دیگر</strong> ثبت سفارش کنید تا با مرسوله فعلی ارسال شود و هزینه ی اضافی پرداخت نکنید.
+                </div>
+            </div>',
+            $shipping_fee,
+            $date,
+        );
 
-        <?php endif;
+        wp_send_json_success(array(
+            'message' => $message,
+            'fee' => $shipping_fee,
+            'date' => $date
+        ));
     }
+
+    /**
+     * AJAX handler: Force check for Anar products in order
+     * 
+     * Manually triggers Anar product detection for orders created by plugins
+     * that bypass WooCommerce standard order creation hooks. Useful for orders
+     * created directly via database or custom importers.
+     * 
+     * Expected POST parameters:
+     * - order_id: WooCommerce order ID
+     * - awca_force_check_nonce_field: Security nonce
+     * 
+     * Response JSON:
+     * - success: bool
+     * - data.message: string - User-friendly message
+     * 
+     * @return void Outputs JSON response
+     * @since 1.0.0
+     * @access public
+     */
+    public function force_check_anar_products_ajax() {
+        // Verify nonce
+        if (!isset($_POST['awca_force_check_nonce_field']) || 
+            !wp_verify_nonce($_POST['awca_force_check_nonce_field'], 'awca_force_check_nonce')) {
+            wp_send_json_error(['message' => 'خطای امنیتی. لطفا صفحه را رفرش کنید.']);
+            return;
+        }
+
+        // Verify order ID
+        $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+        
+        if (!$order_id) {
+            wp_send_json_error(['message' => 'شناسه سفارش معتبر نیست.']);
+            return;
+        }
+
+        $order = wc_get_order($order_id);
+        
+        if (!$order) {
+            wp_send_json_error(['message' => 'سفارش یافت نشد.']);
+            return;
+        }
+
+        // Get Checkout instance and run detection
+        $checkout = \Anar\Checkout::get_instance();
+        $detection = $checkout->detect_anar_products_in_order($order);
+
+        // Update order meta
+        $checkout->update_anar_order_meta(
+            $order_id,
+            $detection['has_anar_product'],
+            $detection['can_ship_to_stock']
+        );
+
+        // Return simple success/error message
+        if ($detection['has_anar_product']) {
+            wp_send_json_success(['message' => 'بررسی موفق! محصولات انار شناسایی شد.']);
+        } else {
+            wp_send_json_error(['message' => 'هیچ محصول انار در این سفارش یافت نشد.']);
+        }
+    }
+
 }

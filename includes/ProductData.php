@@ -304,10 +304,8 @@ class ProductData{
         $shipments_ref = get_post_meta($product_id, '_anar_shipments_ref', true);
 
         if(!$shipments_json || $shipments_json == '' || count(json_decode($shipments_json)) == 0){
-            $Res = (new SyncRealTime())->sync_product_with_anar($product_id);
-//            awca_log('Checkout: show shipments, shipments is empty, Res : ' . $Res);
-            return false;
-//            @todo check the usage of this function, replace false with []
+            (new SyncRealTime())->sync_product_with_anar($product_id);
+            return [];
         }
 
 
@@ -328,18 +326,22 @@ class ProductData{
             }
         }
 
-        $serialized_shipments = [
-            'shipments' => $shipments,
-            'shipmentsReferenceId' => $shipments_ref['shipmentsReferenceId'],
-            'shipmentsReferenceState' => $shipments_ref['shipmentsReferenceState'],
-            'shipmentsReferenceCity' => $shipments_ref['shipmentsReferenceCity'],
+        // Ensure shipmentsReferenceId is scalar (string/int), not array
+        $reference_id = $shipments_ref['shipmentsReferenceId'] ?? '';
+        if (is_array($reference_id)) {
+            // If it's an array, try to get the first value or convert to string
+            $reference_id = !empty($reference_id) ? (string) reset($reference_id) : '';
+        }
 
-            'shipmentId' => $shipments_ref['shipmentsReferenceId'],
+        return [
+            'shipments' => $shipments,
+            'shipmentsReferenceId' => $reference_id,
+            'shipmentsReferenceState' => $shipments_ref['shipmentsReferenceState'] ?? '',
+            'shipmentsReferenceCity' => $shipments_ref['shipmentsReferenceCity'] ?? '',
+
+            'shipmentId' => $reference_id,
             'delivery' => $deliveryArray,
         ];
-
-
-        return $serialized_shipments;
     }
 
 

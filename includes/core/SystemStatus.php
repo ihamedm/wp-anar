@@ -2,7 +2,7 @@
 
 namespace Anar\Core;
 
-use Anar\OrderData;
+use Anar\OrderReports;
 use Anar\ProductData;
 use Anar\SyncTools;
 
@@ -178,13 +178,13 @@ class SystemStatus{
             ],
             'wc_anar_orders' => [
                 'label' => 'Anar Orders',
-                'value' => OrderData::count_anar_orders(),
+                'value' => OrderReports::count_anar_orders(),
                 'status' => 'good',
                 'group' => 'WooCommerce Information'
             ],
             'wc_anar_register_orders' => [
                 'label' => 'Anar Register Orders',
-                'value' => OrderData::count_anar_orders_submited(),
+                'value' => OrderReports::count_anar_orders_submited(),
                 'status' => 'good',
                 'group' => 'WooCommerce Information'
             ]

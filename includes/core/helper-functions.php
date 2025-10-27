@@ -277,3 +277,39 @@ function awca_get_first_admin_user_id() {
 
     return 0; // Return 0 if no admin found
 }
+
+function anar_shipping_enabled() {
+    $ship_to_stock = get_option('anar_conf_feat__anar_shipping', 'yes');
+
+    if($ship_to_stock == 'yes') {
+        return true;
+    }
+    return false;
+}
+
+function anar_is_ship_to_stock_enabled() {
+    $ship_to_stock = get_option('anar_conf_feat__ship_to_stock', 'no');
+
+    if($ship_to_stock == 'yes') {
+        return true;
+    }
+    return false;
+}
+
+
+function anar_order_can_ship_to_stock($order_id) {
+
+    if(!anar_is_ship_to_stock_enabled())
+        return false;
+
+    $anar_order = \Anar\Order::get_instance();
+    return $anar_order->canShipToResellerStock($order_id);
+}
+
+
+function anar_order_can_ship_to_customer($order_id) {
+    $anar_order = \Anar\Order::get_instance();
+    return $anar_order->canShipToCustomer($order_id);
+}
+
+
