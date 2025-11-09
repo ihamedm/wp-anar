@@ -40,12 +40,10 @@ class Uninstall
         update_option('awca_create_product_cron_lock', 'lock');
 
         self::truncate_table();
+//        @todo add remove_safe_options (for reset purpose)
         self::remove_options();
         self::clear_scheduled();
 
-        // Unschedule outdated sync cron
-        $sync_outdated = \Anar\SyncOutdated::get_instance();
-        $sync_outdated->unscheduled_cron();
     }
 
 

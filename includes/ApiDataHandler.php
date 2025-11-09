@@ -17,8 +17,16 @@ use Exception;
  */
 class ApiDataHandler
 {
-    private $key;
+    /**
+     * Base API domain for Anar360 API
+     * 
+     * Can be filtered via 'anar_api_domain' filter for custom domains.
+     *
+     * @var string
+     */
+    const API_DOMAIN = 'https://api.anar360.com/wp';
 
+    private $key;
     private $token;
     private $api_url;
     private $wpdb;
@@ -34,6 +42,39 @@ class ApiDataHandler
         $this->table_name = $wpdb->prefix . ANAR_DB_NAME;
     }
 
+    /**
+     * Gets the API base domain
+     *
+     * Allows filtering via 'anar_api_domain' filter for custom domains (e.g., staging).
+     *
+     * @return string API base domain
+     */
+    public static function getApiDomain() {
+        return apply_filters('anar_api_domain', self::API_DOMAIN);
+    }
+
+    /**
+     * Builds complete API URL for a given endpoint
+     *
+     * @param string $endpoint API endpoint (e.g., 'products')
+     * @return string Complete API URL for the endpoint
+     * @throws \Exception If endpoint is not supported
+     */
+    public static function getApiUrl($endpoint, $query_args = null, $id = null) {
+        $api_domain = self::getApiDomain();
+        
+        // Map endpoints to their URL paths
+        $endpoints = [
+            'products' => '/products',
+        ];
+
+        if (!isset($endpoints[$endpoint])) {
+            new \WP_Error(400, "Unsupported API endpoint: {$endpoint}");
+        }
+
+        $api_url = $api_domain . $endpoints[$endpoint] . ($id ? '/' . $id : '');
+        return $query_args ? add_query_arg($query_args, $api_url) : $api_url;
+    }
 
     public static function callAnarApi($url){
 
@@ -94,6 +135,7 @@ class ApiDataHandler
 
 
     /**
+     * @deprecated
      * @param $url
      * @return false|mixed
      */
@@ -259,6 +301,7 @@ class ApiDataHandler
     }
 
     /**
+     * @deprecated
      * Retrieve stored Anar API response by key and page.
      *
      * @param int $page

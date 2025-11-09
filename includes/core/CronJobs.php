@@ -5,8 +5,6 @@ use Anar\Import;
 use Anar\ImportSlow;
 use Anar\Notifications;
 use Anar\ProductData;
-use Anar\Sync;
-use Anar\SyncTools;
 
 class CronJobs {
 

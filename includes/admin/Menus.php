@@ -173,7 +173,7 @@ class Menus{
         $productData = new ProductData();
 
         // Only add the menu item if the transient exists
-        if (awca_is_import_products_running()) {
+        if (anar_is_import_in_progress()) {
             $cronJob = Import::get_instance();
             $progress = $cronJob->get_progress_data();
             

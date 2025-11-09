@@ -4,11 +4,64 @@ namespace Anar\Core;
 
 use Anar\OrderReports;
 use Anar\ProductData;
-use Anar\SyncTools;
 
 class SystemStatus{
 
-    public static function verify_db_table_health() {
+    private static $instance;
+
+    public static function get_instance(){
+        if( null == self::$instance ){
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function __construct()
+    {
+        add_action( 'wp_ajax_anar_get_system_reports', [ $this, 'get_system_reports'] );
+    }
+
+    public function get_system_reports() {
+        // Create structured data
+        $table_data = array_merge(
+            $this->get_wordpress_info(),
+            $this->get_woocommerce_info(),
+            $this->get_theme_info(),
+            $this->get_server_info(),
+            $this->get_anar_data(),
+            $this->verify_db_table_health(),
+            $this->verify_cron_health(),
+            $this->get_logs_info()
+        );
+
+        // Generate text report from table data
+        $text_report = $this->generate_text_report($table_data);
+
+        wp_send_json_success([
+            'text_report' => $text_report,
+            'table_data' => $table_data,
+            'toast' => 'گزارش سیستم دریافت شد'
+        ]);
+    }
+
+    private function generate_text_report($data) {
+        $report = '';
+        $current_group = '';
+
+        foreach ($data as $item) {
+            if ($item['group'] !== $current_group) {
+                $current_group = $item['group'];
+                $report .= "\n=== {$current_group} ===\n";
+            }
+
+            $status_icon = $item['status'] === 'good' ? '✓' : ($item['status'] === 'warning' ? '⚠' : '✗');
+            $report .= sprintf("%s %s: %s\n", $status_icon, $item['label'], $item['value']);
+        }
+
+        return $report;
+    }
+
+    private function verify_db_table_health() {
         global $wpdb;
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
 
@@ -43,12 +96,12 @@ class SystemStatus{
         return $results;
     }
 
-    public static function verify_cron_health() {
+    private function verify_cron_health() {
         return [
             'cron_running' => [
                 'label' => 'Cron Status',
-                'value' => awca_is_import_products_running() ? 'Running' : 'Not Running',
-                'status' => awca_is_import_products_running() ? 'good' : 'warning',
+                'value' => '',
+                'status' => '',
                 'group' => 'Cron Health'
             ],
             'cron_last_run' => [
@@ -68,11 +121,9 @@ class SystemStatus{
         ];
     }
 
-    public static function get_anar_data() {
-        $sync_tools = SyncTools::get_instance();
+    private function get_anar_data() {
         $product_data = new ProductData();
-        $sync = \Anar\Sync::get_instance();
-        
+
         return [
             'anar_versions' => [
                 'label' => 'Anar Versions',
@@ -88,26 +139,20 @@ class SystemStatus{
             ],
             'not_synced_products' => [
                 'label' => 'Not Synced (Last Hour)',
-                'value' => $sync_tools->found_not_synced_products(1),
-                'status' => 'good',
-                'group' => 'Anar Information'
-            ],
-            'last_full_sync' => [
-                'label' => 'Last Full Sync',
-                'value' => mysql2date('j F Y - H:i', $sync->getLastSyncTime(true)),
+                'value' => 'deprecated',
                 'status' => 'good',
                 'group' => 'Anar Information'
             ],
             'last_partial_sync' => [
                 'label' => 'Last Partial Sync',
-                'value' => mysql2date('j F Y - H:i', $sync->getLastSyncTime()),
+                'value' => mysql2date('j F Y - H:i', anar_get_last_regular_sync_time()),
                 'status' => 'good',
                 'group' => 'Anar Information'
             ]
         ];
     }
 
-    public static function get_wordpress_info() {
+    private function get_wordpress_info() {
         return [
             'wp_version' => [
                 'label' => 'WordPress Version',
@@ -168,7 +213,7 @@ class SystemStatus{
         ];
     }
 
-    public static function get_woocommerce_info() {
+    private function get_woocommerce_info() {
         return [
             'wc_hpos' => [
                 'label' => 'HPOS',
@@ -191,7 +236,7 @@ class SystemStatus{
         ];
     }
 
-    public static function get_theme_info() {
+    private function get_theme_info() {
         $theme = wp_get_theme();
         return [
             'theme_name' => [
@@ -227,7 +272,7 @@ class SystemStatus{
         ];
     }
 
-    public static function get_server_info() {
+    private function get_server_info() {
         return [
             'php_version' => [
                 'label' => 'PHP Version',
@@ -286,7 +331,7 @@ class SystemStatus{
         ];
     }
 
-    public static function get_logs_info() {
+    private function get_logs_info() {
         $logs_status = Logger::get_logs_status();
         $logs_data = [];
 

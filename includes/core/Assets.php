@@ -27,7 +27,7 @@ class Assets {
      */
     public function load_public_assets() {
         wp_enqueue_style($this->plugin_name . '-public', $this->plugin_url . '/assets/css/awca-public.css', null, $this->plugin_version);
-        wp_enqueue_script($this->plugin_name . '-public', $this->plugin_url. '/assets/dist/public.js', ['jquery'], $this->plugin_version, true);
+        wp_enqueue_script($this->plugin_name . '-public', $this->plugin_url. '/assets/dist/public.min.js', ['jquery'], $this->plugin_version, true);
 
 
         wp_localize_script($this->plugin_name . '-public', 'awca_ajax_object', array(
@@ -46,8 +46,7 @@ class Assets {
         wp_enqueue_style($this->plugin_name . '-micromodal-style', $this->plugin_url . '/assets/css/micromodal.css', array(), $this->plugin_version, 'all');
 
 
-        wp_enqueue_script($this->plugin_name, $this->plugin_url . '/assets/dist/admin.js' , array('jquery'), $this->plugin_version, false);
-
+        wp_enqueue_script($this->plugin_name, $this->plugin_url . '/assets/dist/admin.min.js' , array('jquery'), $this->plugin_version, false);
 
         wp_localize_script($this->plugin_name, 'awca_ajax_object', array(
             'ajax_url' => admin_url('admin-ajax.php'),

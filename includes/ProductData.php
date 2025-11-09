@@ -3,8 +3,63 @@
 namespace Anar;
 
 use Anar\Wizard\ProductManager;
+use WP_Error;
 
 class ProductData{
+
+    /**
+     * @param $wc_product_id
+     * @return mixed|WP_Error
+     */
+    public static function get_anar_sku($wc_product_id){
+        try{
+            $anar_sku = get_post_meta($wc_product_id, 'anar_sku', true);
+            if (!$anar_sku) {
+                $anar_sku_backup = get_post_meta($wc_product_id, '_anar_sku_backup', true);
+                if ($anar_sku_backup) {
+                    anar_log('Product #' . $wc_product_id . ' was deprecated. try to restore it.', 'debug');
+                    ProductManager::restore_product_deprecation($wc_product_id);
+                    return $anar_sku_backup;
+                }
+                return new WP_Error(404, 'این محصول انار نیست.');
+            }
+            return $anar_sku;
+        }catch (\Exception $exception){
+            return new WP_Error(400 , $exception->getMessage());
+        }
+    }
+
+
+    public static function fetch_anar_product($anar_sku){
+        try {
+            $apiUrl = ApiDataHandler::getApiUrl("products", null,  $anar_sku);
+            $api_response = ApiDataHandler::callAnarApi($apiUrl);
+
+            if (is_wp_error($api_response)) {
+                throw new \Exception($api_response->get_error_message());
+            }
+
+            $response_code = wp_remote_retrieve_response_code($api_response);
+            $response_body = wp_remote_retrieve_body($api_response);
+            $data = json_decode($response_body);
+
+            if ($response_code === 200 && $data) {
+                return $data;
+            } elseif ($response_code === 404) {
+                return new \WP_Error(404, 'محصول در انار حذف شده است یا اینکه حق فروش این محصول انار را ندارید.');
+            }elseif ($response_code === 403) {
+                // 403 means token is invalid - this will affect all subsequent API calls
+                anar_log("اکانت انار شما فعال نمی باشد. لطفا به صفحه فعالسازی پلاگین مراجعه کنید.", 'error');
+                return new \WP_Error(403, 'اکانت انار شما فعال نمی باشد. لطفا به صفحه فعالسازی پلاگین مراجعه کنید.');
+            }
+
+        } catch (\Exception $exception) {
+            anar_log("Error processing product {$anar_sku}: " . $exception->getMessage(), 'error');
+            return new \WP_Error(500, $exception->getMessage());
+        }
+
+        return new \WP_Error(400, 'Bad request');
+    }
 
     /**
      * @param $sku
@@ -304,7 +359,7 @@ class ProductData{
         $shipments_ref = get_post_meta($product_id, '_anar_shipments_ref', true);
 
         if(!$shipments_json || $shipments_json == '' || count(json_decode($shipments_json)) == 0){
-            (new SyncRealTime())->sync_product_with_anar($product_id);
+            anar_sync_product($product_id);
             return [];
         }
 
@@ -346,12 +401,11 @@ class ProductData{
 
 
     public function count_anar_products($refresh = false) {
-        $transient_key = OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB;
         $cache_duration = 3600; // 1 hour in seconds
 
         // If not forced refresh, try to get from cache first
         if (!$refresh) {
-            $cached_count = get_transient($transient_key);
+            $cached_count = get_transient(OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB);
             if ($cached_count !== false) {
                 return (int)$cached_count;
             }
@@ -373,7 +427,7 @@ class ProductData{
         ));
 
         // Store in cache
-        set_transient($transient_key, $count, $cache_duration);
+        set_transient(OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB, $count, $cache_duration);
 
         return (int)$count;
     }

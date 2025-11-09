@@ -11,6 +11,6 @@ import './system-reports';
 // import './sync-force';
 import './dl-gallery';
 import './notifications';
-import './status-tools';
+// import './status-tools';
 import './multi-package-fee';
 import './force-check-anar';

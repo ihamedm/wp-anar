@@ -62,9 +62,38 @@ jQuery(document).ready(function($) {
                     // Trigger custom event for error handling
                     $link.trigger('anar_ajax_action_error', [xhr, status, err]);
 
+                    // Extract a readable error message from JSON or plain text
+                    var message = 'An error occurred';
+                    try {
+                        if (xhr.responseJSON) {
+                            // WordPress wp_send_json_error wraps payload in { success:false, data: {...} }
+                            if (xhr.responseJSON.data) {
+                                if (typeof xhr.responseJSON.data === 'string') {
+                                    message = xhr.responseJSON.data;
+                                } else if (xhr.responseJSON.data.message) {
+                                    message = xhr.responseJSON.data.message;
+                                }
+                            } else if (xhr.responseJSON.message) {
+                                message = xhr.responseJSON.message;
+                            }
+                        } else if (xhr.responseText) {
+                            var parsed = JSON.parse(xhr.responseText);
+                            if (parsed && parsed.data) {
+                                message = typeof parsed.data === 'string' ? parsed.data : (parsed.data.message || message);
+                            } else if (parsed && parsed.message) {
+                                message = parsed.message;
+                            } else {
+                                message = xhr.responseText;
+                            }
+                        }
+                    } catch (e) {
+                        message = xhr.responseText || message;
+                    }
+
                     // Show error toast
-                    awca_toast(xhr.responseText || 'An error occurred', 'error');
-                    
+                    awca_toast(message, 'error');
+                    console.log(message, 'error');
+
                     // Handle reload on error
                     if (reloadOnError) {
                         var delay = reloadTimeout > 0 ? reloadTimeout : 2000; // Default 2 seconds

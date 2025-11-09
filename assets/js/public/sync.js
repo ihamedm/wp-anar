@@ -22,12 +22,10 @@ jQuery(document).ready(function($) {
                 nonce: awca_ajax_object.nonce
             },
             success: function(response) {
-                if (response.success && response.data) {
-                } else {
-                }
                 console.log(response);
             },
             error: function(xhr, status, error) {
+                console.log(xhr.responseText);
             },
             complete: function() {
             }

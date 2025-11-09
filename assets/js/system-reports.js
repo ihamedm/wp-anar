@@ -167,5 +167,5 @@ jQuery(document).ready(function($) {
     showBtn.on('click', toggleReport);
 
     // Initial load of system reports
-    getSystemReports();
+    //getSystemReports();
 });

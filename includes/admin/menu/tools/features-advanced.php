@@ -4,7 +4,7 @@ $new_api_validate_feat = get_option('anar_conf_feat__api_validate', 'new');
 $anar_import_type = get_option('anar_conf_feat__import_type', 'pro');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
-$anar_full_sync_schedule_hours = get_option('anar_full_sync_schedule_hours', 6);
+$anar_regular_sync_update_since = get_option('anar_regular_sync_update_since', 10);
 $anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 100);
 
 // Handle form submission
@@ -13,13 +13,13 @@ if (isset($_POST['save_anar_advanced_settings'])) {
     $new_api_validate_feat = $_POST['anar_conf_feat__api_validate'] ?? 'new';
     $anar_import_type = $_POST['anar_conf_feat__import_type'] ?? 'pro';
     $anar_log_level = $_POST['anar_log_level'] ?? 'info';
-    $anar_full_sync_schedule_hours = intval($_POST['anar_full_sync_schedule_hours']);
+    $anar_regular_sync_update_since = intval($_POST['anar_regular_sync_update_since']);
     $anar_sync_outdated_batch_size = intval($_POST['anar_sync_outdated_batch_size']);
 
     update_option('anar_conf_feat__import_type', $anar_import_type);
     update_option('anar_conf_feat__api_validate', $new_api_validate_feat);
     update_option('anar_log_level', $anar_log_level);
-    update_option('anar_full_sync_schedule_hours', $anar_full_sync_schedule_hours);
+    update_option('anar_regular_sync_update_since', $anar_regular_sync_update_since);
     update_option('anar_sync_outdated_batch_size', $anar_sync_outdated_batch_size);
 
     // Success message
@@ -52,13 +52,12 @@ if(isset($_GET['anar_optional_price_sync'])){
         </tr>
 
         <tr style="display: none;">
-            <th><label for="anar_full_sync_schedule_hours">بروزرسانی اجباری کل محصولات</label></th>
+            <th><label for="anar_regular_sync_update_since">regular sync [updateSince] - minutes</label></th>
             <td>
                 <label>
-                    <input type="number" name="anar_full_sync_schedule_hours" id="anar_full_sync_schedule_hours" value="<?php echo esc_attr($anar_full_sync_schedule_hours); ?>" class="small-text" min="1"> ساعت
+                    <input type="number" name="anar_regular_sync_update_since" id="anar_regular_sync_update_since" value="<?php echo esc_attr($anar_regular_sync_update_since); ?>" class="small-text" min="1"> minutes
                 </label>
-                <p class="description">این متد بروزرسانی، علاوه بر بروزرسانی های لحظه ایی قیمت و موجودی که هنگام افزودن به سبد خرید توسط مشتری انجام می شود ،کل محصولات را اجبارا بروزرسانی میکند. </p>
-                <p class="description" style="background: rgba(255,0,0,0.13); padding: 4px 12px 6px;border-radius: 5px;"><strong style="color:red">توجه</strong> : فقط در صورتی این عدد را کوچکتر از ۶ ساعت تنظیم کنید که هاست شما منابع کافی داشته باشد، چون این پردازش نسبتا سنگین است و مداوم انجام می شود.</p>
+                <p class="description"><strong>updateSync</strong> param on RegularSync strategy, default 10 minutes</p>
             </td>
 
         </tr>

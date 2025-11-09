@@ -7,11 +7,12 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Anar\\Wizard\\' => array($baseDir . '/includes/wizard'),
+    'Anar\\Sync\\' => array($baseDir . '/includes/sync'),
     'Anar\\Product\\' => array($baseDir . '/includes/product'),
-    'Anar\\Lib\\BackgroundProcessing\\' => array($baseDir . '/includes/lib/BackgroundProcessing'),
     'Anar\\Lib\\' => array($baseDir . '/includes/lib'),
     'Anar\\Init\\' => array($baseDir . '/includes/init'),
     'Anar\\Core\\' => array($baseDir . '/includes/core'),
+    'Anar\\Admin\\Widgets\\' => array($baseDir . '/includes/admin/widgets'),
     'Anar\\Admin\\' => array($baseDir . '/includes/admin'),
     'Anar\\' => array($baseDir . '/includes'),
 );

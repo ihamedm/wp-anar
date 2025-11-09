@@ -95,9 +95,15 @@ class Activation{
             if(isset($tokenValidation->subscriptionRemaining)){
                 update_option('_anar_subscription_remaining', $tokenValidation->subscriptionRemaining);
             }
+            if(isset($tokenValidation->domainConnectedAt)){
+                update_option('_anar_domain_connected_at', $tokenValidation->domainConnectedAt);
+            }
 
             if (isset($tokenValidation->success) && $tokenValidation->success === true) {
                 update_option('_anar_token_validation', 'valid');
+                if (!get_option('_anar_activation_first_time_at')) {
+                    update_option('_anar_activation_first_time_at', current_time('mysql'));
+                }
                 return true;
             }
 

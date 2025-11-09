@@ -1,9 +1,6 @@
 <?php
 namespace Anar\Init;
 
-use Anar\Sync;
-use Anar\SyncOutdated;
-use Anar\SyncRealTime;
 use Anar\Core\CronJobs;
 
 /**
@@ -64,35 +61,23 @@ class Update {
      * Unschedule all cron jobs
      */
     private function unschedule_cron_jobs() {
-        // Unschedule Sync cron
-        $sync = Sync::get_instance();
-        $sync->unschedule_cron();
-
-        // Unschedule SyncOutdated cron
-        $sync_outdated = SyncOutdated::get_instance();
-        $sync_outdated->unscheduled_cron();
+        anar_schedule_sync_factory('regular', 'unschedule');
+        anar_schedule_sync_factory('outdated', 'unschedule');
     }
 
     /**
      * Schedule all cron jobs
      */
     private function schedule_cron_jobs() {
-        // Schedule Sync cron
-        $sync = Sync::get_instance();
-        $sync->schedule_cron();
-
-        // Schedule SyncOutdated cron
-        $sync_outdated = SyncOutdated::get_instance();
-        $sync_outdated->schedule_cron();
+        anar_schedule_sync_factory('regular', 'schedule');
+        anar_schedule_sync_factory('outdated', 'schedule');
     }
 
     public function deactivate() {
-        $sync = Sync::get_instance();
-        $sync->unschedule_cron();
+        $this->unschedule_cron_jobs();
     }
 
     public function activate() {
-        $sync = Sync::get_instance();
-        $sync->schedule_cron();
+        $this->schedule_cron_jobs();
     }
 } 

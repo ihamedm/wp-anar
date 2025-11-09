@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.6.0
+ * Version:          	0.6.1
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -209,6 +209,9 @@ class Wp_Anar
 
         define('OPT_KEY__COUNT_ANAR_PRODUCT_ON_DB', 'anar_count_anar_products_on_db');
 
+        define('OPT_KEY__REPORT_ANAR_ORDERS', 'anar_report_orders');
+        define('OPT_KEY__REPORT_ANAR_ORDERS_SUBMITTED', 'anar_report_orders_submitted');
+
 	}
 
 
@@ -242,11 +245,7 @@ class Wp_Anar
         require_once dirname(__FILE__) . '/includes/lib/puc/plugin-update-checker.php';
 
 
-        /**
-         * Some require functions
-         * @todo move to classes
-         */
-        require_once dirname(__FILE__) . '/includes/core/helper-functions.php';
+        require_once dirname(__FILE__) . '/includes/anar-core-functions.php';
     }
 
 
@@ -278,13 +277,11 @@ class Wp_Anar
         Admin\Tools::get_instance();
         StatusTools::get_instance();
         Reset::get_instance();
-        Core\Reports::get_instance();
 
-        // Sync
-        Sync::get_instance();
-        SyncTools::get_instance();
-        SyncOutdated::get_instance();
-        SyncRealTime::get_instance();
+        Sync\RegularSync::get_instance();
+        Sync\OutdatedSync::get_instance();
+        Sync\RealTimeSync::get_instance();
+        Sync\ForceSync::get_instance();
 
         // Order
         Order::get_instance();

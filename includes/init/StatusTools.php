@@ -508,25 +508,14 @@ class StatusTools{
         }
 
         try {
-            // Import the SyncOutdated class
-            $sync_outdated = \Anar\SyncOutdated::get_instance();
-            
-            // Manually trigger the sync process with results
-            $results = $sync_outdated->process_outdated_products_cronjob(true);
-            
-            if (isset($results['error'])) {
-                wp_send_json_error([
-                    'message' => 'خطا در اجرای همگام‌سازی: ' . $results['error']
-                ]);
-                return;
-            }
-            
+            do_action('anar_sync_outdated_products');
+
             // Return the actual results
             wp_send_json_success([
-                'message' => 'همگام‌سازی محصولات منسوخ با موفقیت اجرا شد',
-                'processed' => $results['processed'],
-                'failed' => $results['failed'],
-                'total_checked' => $results['total_checked']
+                'message' => 'ایونت کرون جاب sync_outdated خارج از برنامه اجرا شد',
+                'processed' => 0,
+                'failed' => 0,
+                'total_checked' => 0
             ]);
 
         } catch (\Exception $e) {

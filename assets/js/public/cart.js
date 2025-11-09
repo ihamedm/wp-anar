@@ -28,12 +28,10 @@ jQuery(document).ready(function($) {
                         setTimeout(function() {
                             anarCartUpdateInProgress = false;
                         }, 500);
-                    } else {
                     }
-                    console.info("Checkout items synced with Anar.");
-                } else {
-                    console.error('Anar: Cart product update check failed.', response.data ? response.data.message : 'No error message provided.');
                 }
+
+                console.info(response);
             },
             error: function(xhr, status, error) {
                 console.error('Anar: AJAX error during cart product update.', status, error, xhr.responseText);

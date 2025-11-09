@@ -3,20 +3,38 @@
 use Anar\ApiDataHandler;
 
 /**
- * @return false|mixed|null
+ * Gets the saved Anar activation token
+ *
+ * Retrieves the activation key/token that was previously saved during plugin activation.
+ *
+ * @return false|mixed|null The activation token if available, false or null otherwise
  */
 function anar_get_saved_token(){
     return Anar\Core\Activation::get_saved_activation_key();
 }
 
+/**
+ * Gets an Anar icon by name and size
+ *
+ * Retrieves an icon SVG string from the Icons class based on the provided name and size.
+ *
+ * @param string $name The icon name/identifier
+ * @param int|string $size The size of the icon (width/height)
+ * @return string The icon SVG markup
+ */
 function get_anar_icon($name, $size){
     return Anar\Core\Icons::get_sized_icon($name, $size);
 }
 
 /**
- * @param $string
- * @param $maxLength
- * @return string
+ * Limits a string to a maximum length
+ *
+ * Truncates a string to the specified maximum length, ensuring UTF-8 encoding
+ * and appending '...' if the string is longer than the limit.
+ *
+ * @param string $string The string to truncate
+ * @param int $maxLength Maximum number of characters
+ * @return string The truncated string with '...' appended if needed
  */
 function awca_limit_chars($string, $maxLength): string
 {
@@ -29,8 +47,13 @@ function awca_limit_chars($string, $maxLength): string
 
 
 /**
- * @param $db_time
- * @return string
+ * Converts a database timestamp to a human-readable "time ago" string in Persian
+ *
+ * Calculates the time difference between the provided database timestamp and the current time,
+ * then returns a localized Persian string (e.g., "5 دقیقه قبل", "2 ساعت قبل").
+ *
+ * @param string $db_time Database timestamp in MySQL datetime format (Y-m-d H:i:s)
+ * @return string Human-readable time difference in Persian (e.g., "5 دقیقه قبل")
  */
 function awca_time_ago($db_time): string
 {
@@ -66,12 +89,20 @@ function awca_time_ago($db_time): string
 }
 
 /**
- * This function only compare input time that passed as argument with current time
- * @param $db_time
- * @return bool
+ * Checks if a database timestamp has expired based on a threshold
+ *
+ * Compares the provided database timestamp with the current time and determines
+ * if the time difference exceeds 60000 seconds (approximately 16.67 hours).
+ * Used to check if cached data or temporary values have expired.
+ *
+ * @param string|false|null $db_time Database timestamp in MySQL datetime format (Y-m-d H:i:s), or false/null
+ * @return bool True if expired (time difference > 60000 seconds) or if $db_time is falsy, false otherwise
  */
 function awca_check_expiration_by_db_time($db_time): bool
 {
+
+    anar_log(print_r($db_time, true), 'debug');
+
     if(!$db_time)
         return true;
 
@@ -79,14 +110,21 @@ function awca_check_expiration_by_db_time($db_time): bool
     $current_time = current_time('timestamp');
     $time_difference = $current_time - $db_time_unix;
 
-    return ($time_difference > 60) ?? false;
+    anar_log(print_r($time_difference, true), 'debug');
+
+    return ($time_difference > 60000) ?? false;
 }
 
 
 
 /**
- * @param $url
- * @return string
+ * Transforms an image URL using the ImageDownloader service
+ *
+ * Processes an image URL through the ImageDownloader to potentially download,
+ * cache, or transform it to a local WordPress media library URL.
+ *
+ * @param string $url The original image URL to transform
+ * @return string The transformed image URL (may be local or original)
  */
 function awca_transform_image_url($url): string
 {
@@ -123,6 +161,15 @@ function awca_convert_price_to_woocommerce_currency($price_in_irt)
     }
 }
 
+/**
+ * Formats an Anar price for display with WooCommerce currency formatting
+ *
+ * Converts an Anar price (in IRT) to WooCommerce currency, formats it with
+ * thousand separators and decimal places, and appends the currency symbol.
+ *
+ * @param float|string $anar_price The price from Anar API (in IRT)
+ * @return string Formatted price string with currency symbol (e.g., "1,000,000 ریال")
+ */
 function anar_get_formatted_price($anar_price){
     $converted_price = awca_convert_price_to_woocommerce_currency($anar_price);
     $currency_symbol = get_woocommerce_currency_symbol();
@@ -137,7 +184,12 @@ function anar_get_formatted_price($anar_price){
 
 
 /**
- * @return bool
+ * Checks if WooCommerce High-Performance Order Storage (HPOS) is enabled
+ *
+ * Verifies if the site is using WooCommerce's custom orders table (HPOS) instead of
+ * the traditional WordPress posts table for order storage.
+ *
+ * @return bool True if HPOS is enabled, false otherwise or if WooCommerce is not active
  */
 function awca_is_hpos_enable(): bool
 {
@@ -157,8 +209,14 @@ function awca_is_hpos_enable(): bool
 
 
 /**
- * @param $string
- * @return string
+ * Translates Anar order and shipping status strings to Persian
+ *
+ * Converts English order statuses (e.g., 'unpaid', 'paid', 'delivered') and shipping
+ * methods (e.g., 'bike', 'post', 'express') to their Persian equivalents.
+ * Returns the original string if no translation is found.
+ *
+ * @param string $string The English status or shipping method string to translate
+ * @return string The Persian translation if available, otherwise the original string
  */
 function anar_translator($string) {
     $orders = [
@@ -219,7 +277,14 @@ function anar_translator($string) {
 
 
 /**
- * @param $message
+ * Logs a message using the Anar Logger with a specific prefix
+ *
+ * Wrapper function for the Logger class that logs messages with a specified prefix
+ * (e.g., 'sync', 'import', 'general') for better log organization.
+ *
+ * @param string $message The log message to record
+ * @param string $prefix The log prefix/context (e.g., 'sync', 'import', 'general')
+ * @param string|null $level Log level ('info', 'error', 'warning', 'debug'). Defaults to 'info' if null
  * @return void
  */
 function awca_log($message, $prefix = 'general', $level = null) {
@@ -230,6 +295,15 @@ function awca_log($message, $prefix = 'general', $level = null) {
     $logger->log($message, $prefix, $level);
 }
 
+/**
+ * Logs a message using the Anar Logger with 'general' prefix
+ *
+ * Convenience function for general-purpose logging. Uses 'general' prefix and 'debug' level by default.
+ *
+ * @param string $message The log message to record
+ * @param string|null $level Log level ('info', 'error', 'warning', 'debug'). Defaults to 'debug' if null
+ * @return void
+ */
 function anar_log($message, $level = null) {
     $logger = Anar\Core\Logger::get_instance();
     $level = $level ?? 'debug';
@@ -237,32 +311,26 @@ function anar_log($message, $level = null) {
 }
 
 
-function awca_is_import_products_running(){
+/**
+ * Checks if the product import process is currently in progress
+ *
+ * Determines if the Anar product import cron job is currently running by checking
+ * if the import lock is active.
+ *
+ * @return bool True if import is in progress (not locked), false if import is locked/not running
+ */
+function anar_is_import_in_progress(){
     return !Anar\Import::is_create_products_cron_locked();
 }
 
-
-function awca_get_dokan_vendors() {
-    if ( ! current_user_can( 'manage_woocommerce' ) ) {
-        return false;
-    }
-
-    $vendors = [];
-
-    $results = dokan()->vendor->all();
-
-    if ( ! empty( $results ) ) {
-        foreach ( $results as $vendor ) {
-            $vendors[] = [
-                'id'     => $vendor->get_id(),
-                'text'   => ! empty( $vendor->get_shop_name() ) ? $vendor->get_shop_name() : $vendor->get_name(),
-            ];
-        }
-    }
-
-    return $vendors;
-}
-
+/**
+ * Gets the user ID of the first administrator user
+ *
+ * Retrieves the ID of the first administrator user ordered by ID (lowest ID first).
+ * Useful for assigning default ownership or notifications.
+ *
+ * @return int The administrator user ID, or 0 if no administrator is found
+ */
 function awca_get_first_admin_user_id() {
     $admins = get_users(array(
         'role'    => 'administrator',
@@ -278,6 +346,13 @@ function awca_get_first_admin_user_id() {
     return 0; // Return 0 if no admin found
 }
 
+/**
+ * Checks if Anar shipping feature is enabled
+ *
+ * Verifies if the Anar shipping integration is enabled via the plugin settings.
+ *
+ * @return bool True if Anar shipping is enabled ('yes'), false otherwise
+ */
 function anar_shipping_enabled() {
     $ship_to_stock = get_option('anar_conf_feat__anar_shipping', 'yes');
 
@@ -287,6 +362,14 @@ function anar_shipping_enabled() {
     return false;
 }
 
+/**
+ * Checks if "Ship to Stock" feature is enabled
+ *
+ * Verifies if the Ship to Stock feature (allowing orders to be shipped to reseller stock)
+ * is enabled via the plugin settings.
+ *
+ * @return bool True if Ship to Stock is enabled ('yes'), false otherwise
+ */
 function anar_is_ship_to_stock_enabled() {
     $ship_to_stock = get_option('anar_conf_feat__ship_to_stock', 'no');
 
@@ -296,7 +379,16 @@ function anar_is_ship_to_stock_enabled() {
     return false;
 }
 
-
+/**
+ * Checks if an order can be shipped to reseller stock
+ *
+ * Determines if a specific order is eligible to be shipped to reseller stock.
+ * This requires the Ship to Stock feature to be enabled and the order to meet
+ * certain criteria defined by the Order class.
+ *
+ * @param int $order_id WooCommerce order ID
+ * @return bool True if the order can be shipped to reseller stock, false otherwise
+ */
 function anar_order_can_ship_to_stock($order_id) {
 
     if(!anar_is_ship_to_stock_enabled())
@@ -306,7 +398,15 @@ function anar_order_can_ship_to_stock($order_id) {
     return $anar_order->canShipToResellerStock($order_id);
 }
 
-
+/**
+ * Checks if an order can be shipped directly to the customer
+ *
+ * Determines if a specific order is eligible to be shipped directly to the end customer.
+ * Uses the Order class to validate order-specific shipping rules.
+ *
+ * @param int $order_id WooCommerce order ID
+ * @return bool True if the order can be shipped to customer, false otherwise
+ */
 function anar_order_can_ship_to_customer($order_id) {
     $anar_order = \Anar\Order::get_instance();
     return $anar_order->canShipToCustomer($order_id);

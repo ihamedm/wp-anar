@@ -4,6 +4,11 @@ namespace Anar;
 class OrderReports{
 
     public static function count_anar_orders() {
+        // Return cached value if available
+        $cached = get_transient(OPT_KEY__REPORT_ANAR_ORDERS);
+        if ($cached !== false) {
+            return (int) $cached;
+        }
         global $wpdb;
 
         try {
@@ -50,7 +55,7 @@ class OrderReports{
             }
 
             // Ensure count is numeric and not null
-            return is_null($count) ? 0 : (int)$count;
+            $order_count = is_null($count) ? 0 : (int)$count;
 
         } catch (\Exception $e) {
             // Log the error with detailed information
@@ -60,11 +65,19 @@ class OrderReports{
                 $e->getMessage(),
                 isset($query) ? $query : 'Query not set'
             ));
-            return 0; // Return 0 as a safe fallback
+            $order_count = 0;
         }
+
+        set_transient(OPT_KEY__REPORT_ANAR_ORDERS, $order_count, DAY_IN_SECONDS);
+        return $order_count;
     }
 
     public static function count_anar_orders_submited() {
+        // Return cached value if available
+        $cached = get_transient(OPT_KEY__REPORT_ANAR_ORDERS_SUBMITTED);
+        if ($cached !== false) {
+            return (int) $cached;
+        }
         global $wpdb;
 
         try {
@@ -99,13 +112,16 @@ class OrderReports{
             }
 
             // Ensure count is numeric and not null
-            return is_null($count) ? 0 : (int)$count;
+            $order_count = is_null($count) ? 0 : (int)$count;
 
         } catch (\Exception $e) {
             // Log the error
             error_log('Error in count_anar_group_orders: ' . $e->getMessage());
-            return 0; // Return 0 as a safe fallback
+            $order_count = 0; // Return 0 as a safe fallback
         }
+
+        set_transient(OPT_KEY__REPORT_ANAR_ORDERS_SUBMITTED, $order_count, DAY_IN_SECONDS);
+        return $order_count;
     }
 
 }

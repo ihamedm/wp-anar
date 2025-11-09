@@ -10,11 +10,12 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         'A' => 
         array (
             'Anar\\Wizard\\' => 12,
+            'Anar\\Sync\\' => 10,
             'Anar\\Product\\' => 13,
-            'Anar\\Lib\\BackgroundProcessing\\' => 30,
             'Anar\\Lib\\' => 9,
             'Anar\\Init\\' => 10,
             'Anar\\Core\\' => 10,
+            'Anar\\Admin\\Widgets\\' => 19,
             'Anar\\Admin\\' => 11,
             'Anar\\' => 5,
         ),
@@ -25,13 +26,13 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         array (
             0 => __DIR__ . '/../..' . '/includes/wizard',
         ),
+        'Anar\\Sync\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/sync',
+        ),
         'Anar\\Product\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/product',
-        ),
-        'Anar\\Lib\\BackgroundProcessing\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/includes/lib/BackgroundProcessing',
         ),
         'Anar\\Lib\\' => 
         array (
@@ -44,6 +45,10 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         'Anar\\Core\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/core',
+        ),
+        'Anar\\Admin\\Widgets\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/admin/widgets',
         ),
         'Anar\\Admin\\' => 
         array (
