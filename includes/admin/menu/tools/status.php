@@ -3,11 +3,6 @@
     <div class="access-menu">
         <span class="access-menu-toggle"><?php echo get_anar_icon('dots-vertical', 24);  ?></span>
         <ul>
-            <li>
-                <a href="<?php echo esc_url(admin_url('edit.php?post_type=product&anar_deprecated=true'));?>" target="_blank">محصولات منسوخ شده</a>
-                <small>محصولات منسوخ شده - حق فروش در انار حذف شده</small>
-            </li>
-
             <li id="anar-zero-profit-products">
                 <span style="cursor: pointer">محصولات با سود صفر</span>
                 <small>محصولاتی که سود فروشنده صفر است</small>
@@ -20,49 +15,68 @@
                 <span style="cursor: pointer">محصولات تکراری</span>
                 <small>محصولاتی که SKU یکسان دارند</small>
             </li>
+            <li id="anar-need-fix-products">
+                <span style="cursor: pointer">محصولات نیازمند تعمیر</span>
+                <small>محصولاتی که نیاز به بازسازی دارند</small>
+            </li>
         </ul>
     </div>
 </div>
+
+<?php
+// Show success notice if cron was run
+if (isset($_GET['anar_cron_run']) && $_GET['anar_cron_run'] === 'success' && isset($_GET['anar_cron_hook'])) {
+    $hook_name = esc_html($_GET['anar_cron_hook']);
+    echo '<div class="notice notice-success is-dismissible"><p>';
+    echo sprintf('کرون جاب <strong>%s</strong> با موفقیت اجرا شد.', $hook_name);
+    echo '</p></div>';
+}
+?>
 
 <h2>وضعیت سیستم</h2>
 
 <p class="anar-alert anar-alert-warning">این بخش فقط برای پشتیبانی فنی می باشد، لطفا فقط در صورت اعلام و دریافت راهنمایی از پشتیبان فنی استفاده کنید.</p>
 
-<?php
-// Initialize widget manager
-use Anar\Admin\Widgets\WidgetManager;
-$widget_manager = WidgetManager::get_instance();
-$widget_manager->render_widgets_grid(); ?>
-
 <div class="system-report-buttons">
-    <button class="button button-primary" id="anar-download-system-report" disabled>
-        <span class="dashicons dashicons-download"></span>
-        دانلود فایل گزارش
-    </button>
+
     
     <button class="button button-secondary" id="anar-create-indexes">
         <span class="dashicons dashicons-performance"></span>
         ساخت ایندکس
     </button>
 
-    <button class="button button-secondary" id="anar-clear-sync-times">
-        <span class="dashicons dashicons-performance"></span>
-        ریست زمان‌ آپدیت محصولات
-    </button>
-    
-    <button class="button button-secondary" id="anar-test-performance">
-        <span class="dashicons dashicons-chart-line"></span>
-        تست عملکرد
-    </button>
-    
     <button class="button button-secondary" id="anar-check-index-status">
         <span class="dashicons dashicons-list-view"></span>
         بررسی وضعیت ایندکس‌ها
     </button>
-    
+
+    <button class="button button-secondary" id="anar-test-performance">
+        <span class="dashicons dashicons-chart-line"></span>
+        تست عملکرد کوئری
+    </button>
+
+    <span>|</span>
+
+    <button class="button button-secondary" id="anar-clear-sync-times">
+        <span class="dashicons dashicons-performance"></span>
+        ریست زمان‌ آپدیت محصولات
+    </button>
+
     <button class="button button-secondary" id="anar-manual-sync-outdated">
         <span class="dashicons dashicons-update"></span>
          Manually OutdatedSync
+    </button>
+    
+    <button class="button button-primary" id="anar-system-diagnostics">
+        <span class="dashicons dashicons-admin-tools"></span>
+        all tests
+    </button>
+
+    <span>|</span>
+
+    <button class="button button-primary" id="awca-open-single-product-modal-legacy">
+        <span class="dashicons dashicons-plus-alt"></span>
+        ساخت محصول تکی (Legacy)
     </button>
 </div>
 
@@ -71,15 +85,14 @@ $widget_manager->render_widgets_grid(); ?>
     <div id="anar-performance-message"></div>
 </div>
 
-<div id="anar-system-reports-table" class="anar-system-reports-table"></div>
 
-<textarea
-        id="anar-system-reports"
-        rows="20"
-        data-action="anar_get_system_reports"
-        readonly
-        style="width: 100%; direction: ltr; text-align: left; font-family: monospace; resize: vertical; display: none; margin-top: 10px;"
->در حال دریافت اطلاعات...</textarea>
+<?php
+// Initialize widget manager
+use Anar\Admin\Widgets\WidgetManager;
+$widget_manager = WidgetManager::get_instance();
+$widget_manager->render_widgets_grid(); ?>
+
+
 
 <?php
 /**
@@ -165,6 +178,15 @@ $modal_configs = [
         'warning_text' => 'قدیمی‌ترین محصول (با کمترین ID) از هر گروه حفظ می‌شود و بقیه به "در انتظار بررسی" تغییر وضعیت می‌یابند.',
         'modal_size' => 'large',
         'show_total' => true
+    ],
+    [
+        'modal_id' => 'anar-need-fix-modal',
+        'title' => 'محصولات نیازمند تعمیر',
+        'change_status_action' => 'anar_manual_fix_products',
+        'change_status_text' => 'اجرای دستی تعمیر محصولات',
+        'warning_text' => 'این محصولات دارای خطای همگام‌سازی هستند و نیاز به بازسازی دارند. می‌توانید با دکمه "اجرای دستی تعمیر محصولات" آنها را تعمیر کنید.',
+        'modal_size' => 'normal',
+        'show_total' => false
     ]
 ];
 
@@ -172,481 +194,114 @@ $modal_configs = [
 foreach ($modal_configs as $config) {
     render_report_modal($config);
 }
+
+// Render log preview modal
+?>
+<div class="modal micromodal-slide" id="anar-log-preview-modal" aria-hidden="true">
+    <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container modal__container--log-preview" role="dialog" aria-modal="true" aria-labelledby="anar-log-preview-modal-title">
+            <header class="modal__header">
+                <h2 class="modal__title" id="anar-log-preview-modal-title">پیش‌نمایش فایل لاگ</h2>
+                <div class="modal__header-actions">
+                    <label class="anar-auto-refresh-label" title="به‌روزرسانی خودکار هر 5 ثانیه (tail -f)">
+                        <input type="checkbox" id="anar-log-preview-auto-refresh" />
+                        <span>به‌روزرسانی خودکار</span>
+                    </label>
+                    <button class="button button-small" id="anar-log-preview-refresh" title="به‌روزرسانی">
+                        <span class="dashicons dashicons-update"></span>
+                        به‌روزرسانی
+                    </button>
+                    <a class="modal__close" aria-label="Close modal" data-micromodal-close></a>
+                </div>
+            </header>
+            <main class="modal__content">
+                <div id="anar-log-preview-loading" style="text-align: center; padding: 20px;">
+                    <span class="spinner is-active"></span>
+                    <p>در حال بارگذاری...</p>
+                </div>
+                <div id="anar-log-preview-content" style="display: none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden;">
+                    <div class="anar-log-preview-info" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; flex-shrink: 0;">
+                        <p style="margin: 0;">
+                            <strong>فایل:</strong> <span id="anar-log-preview-filename"></span> | 
+                            <strong>اندازه:</strong> <span id="anar-log-preview-size"></span> | 
+                            <strong>تعداد خطوط:</strong> <span id="anar-log-preview-lines"></span>
+                            <span id="anar-log-preview-truncated" style="display: none; color: #ffb900; margin-right: 10px;">⚠️ فقط آخرین 10MB نمایش داده می‌شود</span>
+                        </p>
+                    </div>
+                    <div id="anar-log-preview-text" style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5; overflow: auto; white-space: pre-wrap; word-wrap: break-word; direction: ltr; text-align: left; flex: 1; min-height: 0;">
+                        <!-- Log content will be loaded here -->
+                    </div>
+                </div>
+                <div id="anar-log-preview-error" style="display: none; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; color: #856404;">
+                    <!-- Error messages will be shown here -->
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- System Diagnostics Modal -->
+<div class="modal micromodal-slide" id="anar-system-diagnostics-modal" aria-hidden="true">
+    <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+        <div class="modal__container modal__container--large" role="dialog" aria-modal="true" aria-labelledby="anar-system-diagnostics-modal-title">
+            <header class="modal__header">
+                <h2 class="modal__title" id="anar-system-diagnostics-modal-title">تست سیستم</h2>
+                <a class="modal__close" aria-label="Close modal" data-micromodal-close></a>
+            </header>
+            <main class="modal__content">
+                <div id="anar-diagnostics-content">
+                    <div id="anar-diagnostics-summary" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; display: none;">
+                        <h3 style="margin-top: 0;">خلاصه نتایج</h3>
+                        <div id="anar-diagnostics-summary-content"></div>
+                    </div>
+                    <div id="anar-diagnostics-tests-list">
+                        <!-- Test items will be added here -->
+                    </div>
+                    <div id="anar-diagnostics-loading" style="text-align: center; padding: 20px; display: none;">
+                        <span class="spinner is-active" style="float: none; margin: 0 auto;"></span>
+                        <p>در حال اجرای تست‌ها...</p>
+                    </div>
+                    <div id="anar-diagnostics-error" style="display: none; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; color: #856404;">
+                        <!-- Error messages will be shown here -->
+                    </div>
+                </div>
+            </main>
+            <footer class="modal__footer">
+                <button class="button button-secondary" id="anar-diagnostics-close" data-micromodal-close>بستن</button>
+                <button class="button button-primary" id="anar-diagnostics-rerun" style="display: none;">اجرای مجدد</button>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<?php
 ?>
 
-<style>
-    .system-report-buttons {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
+<!-- Legacy Single Product Creation Modal -->
+<div class="awca-import-modal" id="awca-single-product-modal-legacy" aria-hidden="true">
+    <div class="awca-import-modal__overlay" data-modal-close></div>
+    <div class="awca-import-modal__content" role="dialog" aria-modal="true" aria-labelledby="awca-single-product-modal-legacy-title">
+        <button class="awca-import-modal__close" data-modal-close>&times;</button>
 
-    .system-report-buttons .button {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
+        <h3 id="awca-single-product-modal-legacy-title">ساخت محصول تکی (Legacy)</h3>
+        <p>شناسه SKU انار مورد نظر را وارد کنید تا محصول مستقیماً با سیستم قدیمی ساخته شود.</p>
 
-    .system-report-buttons .dashicons {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        margin-top: 0;
-    }
+        <form id="awca-single-product-form-legacy">
+            <label for="awca-single-product-sku-legacy">شناسه SKU انار</label>
+            <input type="text" id="awca-single-product-sku-legacy" name="anar_sku" class="regular-text" placeholder="مثال: 667558ab7f5816f7f58f3fb5" required />
 
-    #anar-system-reports {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        padding: 15px;
-        border-radius: 4px;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
-    }
+            <div class="awca-modal-actions">
+                <button type="button" class="button button-secondary" data-modal-close>انصراف</button>
+                <button type="submit" class="button button-primary">ساخت محصول</button>
+            </div>
+        </form>
 
-    .anar-system-reports-table {
-        margin-top: 20px;
-    }
-    
-    .anar-report-group {
-        margin-bottom: 30px;
-        background: #fff;
-        border: 1px solid #ccd0d4;
-        box-shadow: 0 1px 1px rgba(0,0,0,.04);
-    }
-    
-    .anar-report-group h3 {
-        margin: 0;
-        padding: 12px 15px;
-        border-bottom: 1px solid #ccd0d4;
-        background: #f8f9fa;
-    }
-    
-    .anar-report-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .anar-report-table tr {
-        border-bottom: 1px solid #f0f0f1;
-    }
-    
-    .anar-report-table tr:last-child {
-        border-bottom: none;
-    }
-    
-    .anar-report-table td {
-        padding: 12px 15px;
-    }
-    
-    .anar-report-table td:first-child {
-        width: 25%;
-        font-weight: 600;
-    }
-    
-    .status-icon {
-        margin-right: 5px;
-    }
-    
-    .status-good {
-        color: #46b450;
-    }
-    
-    .status-warning {
-        color: #ffb900;
-    }
-    
-    .status-critical {
-        color: #dc3232;
-    }
-    
-    .report-link {
-        color: #0073aa;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    .report-link .dashicons {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-        margin-left: 4px;
-    }
-    
-    /* Zero Profit Products Modal Styles */
-    .modal__header-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .modal__content {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-    
-    .modal__container--large {
-        max-width: 900px !important;
-    }
-    
-    .modal__close {
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        padding: 5px;
-        color: #666;
-    }
-    
-    .modal__close:hover {
-        color: #000;
-    }
-    
-    .anar-product-item {
-        padding: 10px;
-        border: 1px solid #e0e0e0;
-        margin-bottom: 10px;
-        border-radius: 4px;
-        background: #fff;
-    }
-    
-    .anar-product-item:hover {
-        background: #f8f9fa;
-    }
-    
-    .anar-product-title {
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    .anar-product-sku {
-        color: #666;
-        font-size: 12px;
-        margin-bottom: 5px;
-    }
-    
-    .anar-product-meta {
-        display: flex;
-        align-items: center;
-        margin-bottom: 5px;
-    }
-    
-    .anar-product-status {
-        display: inline-block;
-        font-weight: 600;
-    }
-    
-    .anar-product-sync-time {
-        color: #555;
-        font-size: 11px;
-        margin-bottom: 8px;
-        padding: 5px 8px;
-        background: #f8f9fa;
-        border-radius: 3px;
-        border-left: 3px solid #0073aa;
-    }
-    
-    .anar-product-actions {
-        margin-top: 8px;
-    }
-    
-    .anar-product-actions a {
-        margin-left: 10px;
-        text-decoration: none;
-        padding: 4px 8px;
-        border-radius: 3px;
-        font-size: 12px;
-    }
-    
-    .anar-product-actions .edit-link {
-        background: #0073aa;
-        color: white;
-    }
-    
-    .anar-product-actions .view-link {
-        background: #46b450;
-        color: white;
-    }
-    
-    .anar-product-actions a:hover {
-        opacity: 0.8;
-    }
+        <div class="awca-modal-feedback" id="awca-single-product-feedback-legacy"></div>
+        
+        <div class="awca-single-product-logs" id="awca-single-product-logs-legacy" style="display: none;">
+            <h4>گزارش ساخت محصول:</h4>
+            <div class="awca-single-product-logs__container" id="awca-single-product-logs-container-legacy"></div>
+        </div>
+    </div>
+</div>
 
-    /* Report Widgets Styles */
-    .anar-widgets-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-    }
-
-    .anar-widget-grid-item {
-        background: #fff;
-        border: 1px solid #ccd0d4;
-        border-radius: 4px;
-        box-shadow: 0 1px 1px rgba(0,0,0,.04);
-        overflow: hidden;
-    }
-
-    .anar-report-widget {
-        padding: 0;
-    }
-
-    .anar-widget-header {
-        display: flex;
-        align-items: center;
-        padding: 15px;
-        background: #f8f9fa;
-        border-bottom: 1px solid #ccd0d4;
-    }
-
-    .anar-widget-icon {
-        margin-left: 10px;
-        font-size: 24px;
-        color: #0073aa;
-    }
-
-    .anar-widget-info {
-        flex: 1;
-    }
-
-    .anar-widget-title {
-        margin: 0 0 5px 0;
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    .anar-widget-description {
-        margin: 0;
-        color: #666;
-        font-size: 13px;
-        line-height: 1.4;
-    }
-
-    .anar-widget-content {
-        padding: 15px;
-        min-height: 100px;
-    }
-
-    .anar-widget-loading {
-        text-align: center;
-        padding: 20px;
-        color: #666;
-    }
-
-    .anar-widget-loading .spinner {
-        margin-left: 10px;
-    }
-
-    .anar-widget-results {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-
-    .anar-widget-error {
-        color: #dc3232;
-    }
-
-    .anar-widget-actions {
-        padding: 15px;
-        background: #f8f9fa;
-        border-top: 1px solid #ccd0d4;
-        text-align: center;
-    }
-
-    .anar-widget-actions .button {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .anar-widget-section {
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #f0f0f1;
-    }
-
-    .anar-widget-section:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-
-    .anar-widget-section h4 {
-        margin: 0 0 10px 0;
-        font-size: 14px;
-        color: #0073aa;
-    }
-
-    .anar-info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
-
-    .anar-info-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 5px 0;
-        border-bottom: 1px solid #f0f0f1;
-    }
-
-    .anar-info-item:last-child {
-        border-bottom: none;
-    }
-
-    .anar-info-label {
-        font-weight: 600;
-        color: #555;
-    }
-
-    .anar-info-value {
-        color: #333;
-        font-family: monospace;
-        font-size: 12px;
-    }
-
-    .anar-stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    .anar-stat-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-right: 3px solid #0073aa;
-    }
-
-    .anar-stat-label {
-        font-weight: 600;
-        color: #555;
-    }
-
-    .anar-stat-value {
-        font-weight: bold;
-        color: #0073aa;
-        font-size: 16px;
-    }
-
-    .anar-table-health {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .anar-table-item {
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f1;
-    }
-
-    .anar-table-item:last-child {
-        border-bottom: none;
-    }
-
-    .anar-table-name {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 4px;
-    }
-
-    .anar-table-details {
-        display: flex;
-        gap: 15px;
-        font-size: 12px;
-        color: #666;
-    }
-
-    .anar-indexes-health {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .anar-index-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 5px 8px;
-        background: #f8f9fa;
-        border-radius: 3px;
-    }
-
-    .anar-index-name {
-        font-family: monospace;
-        font-size: 12px;
-        color: #555;
-    }
-
-    .anar-error-summary {
-        background: #fff3cd;
-        border: 1px solid #ffc107;
-        border-radius: 4px;
-        padding: 10px;
-        margin-bottom: 15px;
-    }
-
-    .anar-error-total {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #856404;
-    }
-
-    .anar-error-level {
-        display: inline-block;
-        margin-left: 10px;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .anar-error-logs {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .anar-error-log-item {
-        padding: 8px;
-        margin-bottom: 8px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        border-right: 3px solid #dc3232;
-    }
-
-    .anar-error-log-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 5px;
-    }
-
-    .anar-error-level {
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-    }
-
-    .anar-error-time {
-        font-size: 11px;
-        color: #666;
-    }
-
-    .anar-error-message {
-        font-size: 12px;
-        color: #333;
-        line-height: 1.4;
-    }
-
-    .status-good {
-        color: #46b450;
-    }
-
-    .status-warning {
-        color: #ffb900;
-    }
-
-    .status-critical {
-        color: #dc3232;
-    }
-</style>

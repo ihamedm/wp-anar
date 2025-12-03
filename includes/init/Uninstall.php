@@ -2,8 +2,8 @@
 
 namespace Anar\Init;
 
+use Anar\Admin\Tools\DatabaseTools;
 use Anar\core\CronJobs;
-use Anar\core\SyncOutdated;
 
 /**
  * Fired during plugin deactivation
@@ -89,7 +89,7 @@ class Uninstall
 
     public static function truncate_table(){
         Db::truncate_table();
-        StatusTools::remove_indexes();
+        DatabaseTools::remove_indexes();
     }
 
 

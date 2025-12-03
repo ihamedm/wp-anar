@@ -29,9 +29,8 @@ class Import {
         $this->job_manager = JobManager::get_instance();
         $this->image_downloader = ImageDownloader::get_instance();
         
-        // Check if we should use custom table tracking
-        $import_type = get_option('anar_conf_feat__import_type', 'pro');
-        $this->use_custom_table = ($import_type === 'pro');
+        // Always use custom table tracking for better performance and duplicate prevention
+        $this->use_custom_table = true;
         $this->products_table_name = $wpdb->prefix . ANAR_DB_PRODUCTS_NAME;
         
         // Initialize failed products tracking if not exists

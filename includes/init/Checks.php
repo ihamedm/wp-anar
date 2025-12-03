@@ -63,10 +63,10 @@ class Checks {
         if(anar_is_ship_to_stock_enabled())
             return;
         // Only check on WooCommerce pages to improve performance
-        $screen = get_current_screen();
-        if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-settings', 'edit-shop_order', 'dashboard'])) {
-            return;
-        }
+//        $screen = get_current_screen();
+//        if (!$screen || !in_array($screen->id, ['woocommerce_page_wc-settings', 'edit-shop_order', 'dashboard'])) {
+//            return;
+//        }
 
         // Get shipping zones which is more reliable than checking methods
         $zones = \WC_Shipping_Zones::get_zones();

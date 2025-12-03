@@ -144,7 +144,7 @@ class JobManager {
         );
 
         if ($error_log) {
-            $data['error_log'] = $error_log;
+            $data['error_logs'] = $error_log;
         }
 
         return $this->update_job($job_id, $data);
@@ -280,7 +280,7 @@ class JobManager {
         );
 
         if ($error_log) {
-            $data['error_log'] = $error_log;
+            $data['error_logs'] = $error_log;
         }
 
         return $this->update_job($job_id, $data);

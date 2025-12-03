@@ -15,19 +15,22 @@ class ErrorLogWidget extends AbstractReportWidget
     {
         $this->widget_id = 'anar-error-log-widget';
         $this->title = 'گزارش خطاها';
-        $this->description = 'نمایش آخرین خطاهای سیستم و لاگ‌های انار';
+        $this->description = 'لاگ‌های انار';
         $this->icon = '<span class="dashicons dashicons-warning"></span>';
         $this->ajax_action = 'anar_get_error_logs';
         $this->button_text = 'دریافت گزارش خطاها';
         $this->button_class = 'button-secondary';
 
-        // Register AJAX handler
+        // Register AJAX handlers
         add_action('wp_ajax_' . $this->ajax_action, [$this, 'handle_ajax']);
+        add_action('wp_ajax_anar_get_log_file_content', [$this, 'get_log_file_content']);
+        add_action('wp_ajax_anar_download_log_file', [$this, 'download_log_file']);
     }
 
     protected function get_report_data()
     {
         $logs = [
+            'log_files' => $this->get_all_log_files(),
             'anar_logs' => $this->get_anar_logs(),
             'wp_debug_log' => $this->get_wp_debug_log(),
             'php_errors' => $this->get_php_errors(),
@@ -35,6 +38,53 @@ class ErrorLogWidget extends AbstractReportWidget
         ];
 
         return $logs;
+    }
+
+    /**
+     * Get all log files from the log directory
+     */
+    private function get_all_log_files()
+    {
+        $log_dir = WP_CONTENT_DIR . '/wp-anar-logs';
+        $log_files = [];
+
+        if (!file_exists($log_dir) || !is_dir($log_dir)) {
+            return $log_files;
+        }
+
+        // Get all .log files
+        $files = glob($log_dir . '/*.log');
+
+        if (!$files) {
+            return $log_files;
+        }
+
+        // Sort by modification time (newest first)
+        usort($files, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+
+        foreach ($files as $file) {
+            $filename = basename($file);
+            $file_size = filesize($file);
+            $modified_time = filemtime($file);
+            
+            // Create a safe identifier for the file (base64 encoded filename)
+            $file_id = base64_encode($filename);
+            
+            $log_files[] = [
+                'id' => $file_id,
+                'filename' => $filename,
+                'size' => size_format($file_size, 2),
+                'size_bytes' => $file_size,
+                'modified' => wp_date('Y-m-d H:i:s', $modified_time),
+                'modified_timestamp' => $modified_time,
+                'download_url' => admin_url('admin-ajax.php?action=anar_download_log_file&file=' . urlencode($file_id) . '&nonce=' . wp_create_nonce('anar_log_file_' . $file_id)),
+                'preview_url' => '#', // Will be handled by JavaScript
+            ];
+        }
+
+        return $log_files;
     }
 
     private function get_anar_logs()
@@ -186,5 +236,128 @@ class ErrorLogWidget extends AbstractReportWidget
         }
 
         return $summary;
+    }
+
+    /**
+     * Get log file content for preview
+     */
+    public function get_log_file_content()
+    {
+        $this->verify_permissions();
+
+        if (!isset($_POST['file_id'])) {
+            wp_send_json_error(['message' => 'File ID not provided']);
+            return;
+        }
+
+        $file_id = sanitize_text_field($_POST['file_id']);
+        $filename = base64_decode($file_id);
+
+        if (!$filename || !preg_match('/^[a-zA-Z0-9._-]+\.log$/', $filename)) {
+            wp_send_json_error(['message' => 'Invalid file ID']);
+            return;
+        }
+
+        $log_dir = WP_CONTENT_DIR . '/wp-anar-logs';
+        $file_path = $log_dir . '/' . $filename;
+
+        // Security check: ensure file is within log directory
+        $real_log_dir = realpath($log_dir);
+        $real_file_path = realpath($file_path);
+
+        if (!$real_file_path || !$real_log_dir || strpos($real_file_path, $real_log_dir) !== 0) {
+            wp_send_json_error(['message' => 'Invalid file path']);
+            return;
+        }
+
+        if (!file_exists($file_path)) {
+            wp_send_json_error(['message' => 'File not found']);
+            return;
+        }
+
+        // Read file content (limit to last 10MB to prevent memory issues)
+        $max_size = 10 * 1024 * 1024; // 10MB
+        $file_size = filesize($file_path);
+
+        if ($file_size > $max_size) {
+            // Read only the last 10MB
+            $handle = fopen($file_path, 'r');
+            fseek($handle, -$max_size, SEEK_END);
+            $content = fread($handle, $max_size);
+            fclose($handle);
+            $truncated = true;
+        } else {
+            $content = file_get_contents($file_path);
+            $truncated = false;
+        }
+
+        // Remove UTF-8 BOM if present
+        if (substr($content, 0, 3) === "\xEF\xBB\xBF") {
+            $content = substr($content, 3);
+        }
+
+        wp_send_json_success([
+            'filename' => $filename,
+            'content' => $content,
+            'size' => $file_size,
+            'size_formatted' => size_format($file_size, 2),
+            'truncated' => $truncated,
+            'lines' => substr_count($content, "\n") + 1
+        ]);
+    }
+
+    /**
+     * Download log file
+     */
+    public function download_log_file()
+    {
+        // Verify nonce
+        if (!isset($_GET['nonce']) || !isset($_GET['file'])) {
+            wp_die('Invalid request');
+        }
+
+        $file_id = sanitize_text_field($_GET['file']);
+        $nonce = sanitize_text_field($_GET['nonce']);
+
+        if (!wp_verify_nonce($nonce, 'anar_log_file_' . $file_id)) {
+            wp_die('Security check failed');
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $filename = base64_decode($file_id);
+
+        if (!$filename || !preg_match('/^[a-zA-Z0-9._-]+\.log$/', $filename)) {
+            wp_die('Invalid file ID');
+        }
+
+        $log_dir = WP_CONTENT_DIR . '/wp-anar-logs';
+        $file_path = $log_dir . '/' . $filename;
+
+        // Security check: ensure file is within log directory
+        $real_log_dir = realpath($log_dir);
+        $real_file_path = realpath($file_path);
+
+        if (!$real_file_path || !$real_log_dir || strpos($real_file_path, $real_log_dir) !== 0) {
+            wp_die('Invalid file path');
+        }
+
+        if (!file_exists($file_path)) {
+            wp_die('File not found');
+        }
+
+        // Set headers for download
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($file_path));
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+
+        // Output file
+        readfile($file_path);
+        exit;
     }
 }

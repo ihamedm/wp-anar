@@ -36,7 +36,11 @@ class WidgetManager
             'system_info' => new SystemInfoWidget(),
             'database_health' => new DatabaseHealthWidget(),
             'product_stats' => new ProductStatsWidget(),
-            'error_logs' => new ErrorLogWidget()
+            'error_logs' => new ErrorLogWidget(),
+            'benchmark' => new BenchmarkWidget(),
+            'api_health' => new ApiHealthWidget(),
+            'cron_health' => new CronHealthWidget(),
+            'crontrol' => new CrontrolWidget()
         ];
     }
 

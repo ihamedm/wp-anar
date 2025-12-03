@@ -2,7 +2,6 @@
 namespace Anar\Core;
 
 use Anar\Import;
-use Anar\ImportSlow;
 use Anar\Notifications;
 use Anar\ProductData;
 
@@ -31,11 +30,8 @@ class CronJobs {
         // create custom interval that not exist by default on cron_schedules
         add_filter('cron_schedules', [$this, 'add_custom_cron_interval']);
 
-        // Get the appropriate import class based on the option
-        $import_class = $this->get_import_class();
-
         if (!wp_next_scheduled('anar_import_products')
-            && !$import_class::is_create_products_cron_locked()
+            && !Import::is_create_products_cron_locked()
         ) {
             wp_schedule_event(time(), 'every_one_min', 'anar_import_products');
         }
@@ -81,27 +77,8 @@ class CronJobs {
         return $schedules;
     }
 
-    /**
-     * Get the appropriate import class based on the import type setting
-     * 
-     * @return string The class name to use (ImportSlow or Import)
-     */
-    private function get_import_class() {
-        $import_type = get_option('anar_conf_feat__import_type', 'pro');
-        
-        switch ($import_type) {
-            case 'slow':
-                return 'Anar\ImportSlow';
-            case 'pro':
-            case 'normal':
-            default:
-                return 'Anar\Import';
-        }
-    }
-
     public function create_products_job(){
-        $import_class = $this->get_import_class();
-        $cron_product_generator = $import_class::get_instance();
+        $cron_product_generator = Import::get_instance();
 
         // First check if there's a stuck process
         $cron_product_generator->check_for_stuck_processes();

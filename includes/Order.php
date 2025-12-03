@@ -165,7 +165,7 @@ class Order {
      * - Order details from Anar API (if created)
      * - Package information
      * - Ship-to-stock eligibility
-     * - Raw API data (if ANAR_DEBUG enabled)
+     * - Raw API data (if ANAR_SUPPORT_MODE enabled)
      * 
      * Hooked to: add_meta_boxes
      * 
@@ -521,7 +521,7 @@ class Order {
         $raw_create_data = $this->get_order_meta($order_id, '_anar_raw_create_data');
         if($raw_create_data)
             printf('<pre class="awca-json-display" style="%s"><code>%s</code></pre>',
-                ANAR_DEBUG ? "" : "display:none;",
+                ANAR_SUPPORT_MODE ? "" : "display:none;",
                 json_encode($raw_create_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
             );
 

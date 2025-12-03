@@ -7,8 +7,16 @@
         همه اعلان هایی که در پنل انار برای شما ارسال شده است را در این صفحه می توانید ببینید.
     </p>
 
+    <div class="anar-notification-tabs">
+        <button class="anar-tab-btn active" data-application="wordpress">
+            اعلان های وردپرس
+        </button>
+        <button class="anar-tab-btn" data-application="all">
+           اعلان های انار
+        </button>
+    </div>
 
-    <div style="display:flex; justify-content: end; padding: 0 0 32px">
+    <div style="display:none; justify-content: end; padding: 0 0 32px">
         <button type="submit" class="awca-btn awca-success-btn" id="mark-page-as-read-btn" data-page="1">
             نشانه گذاری همه به عنوان خوانده شده                <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg" style="display: none;">
                 <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
@@ -16,7 +24,7 @@
         </button>
     </div>
 
-    <div class="list" id="awca_notification_list">
+    <div class="list" id="anar_notification_list">
 
         <div class="awca-loading-message-spinner">
             در حال دریافت اعلان ها ...

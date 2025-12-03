@@ -11,3 +11,4 @@
 require_once ANAR_PLUGIN_PATH . '/includes/functions/helper-functions.php';
 require_once ANAR_PLUGIN_PATH . '/includes/functions/sync-functions.php';
 require_once ANAR_PLUGIN_PATH . '/includes/functions/product-functions.php';
+require_once ANAR_PLUGIN_PATH . '/includes/functions/import-functions.php';

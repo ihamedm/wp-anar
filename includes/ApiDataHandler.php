@@ -26,6 +26,15 @@ class ApiDataHandler
      */
     const API_DOMAIN = 'https://api.anar360.com/wp';
 
+    const ENDPOINTS = [
+            'validate' => '/auth/validate',
+            'products' => '/products',
+            'categories' => '/categories',
+            'attributes' => '/attributes',
+            'notifications' => '/notifications',
+            'orders' => '/orders',
+        ];
+
     private $key;
     private $token;
     private $api_url;
@@ -64,9 +73,7 @@ class ApiDataHandler
         $api_domain = self::getApiDomain();
         
         // Map endpoints to their URL paths
-        $endpoints = [
-            'products' => '/products',
-        ];
+        $endpoints = self::ENDPOINTS;
 
         if (!isset($endpoints[$endpoint])) {
             new \WP_Error(400, "Unsupported API endpoint: {$endpoint}");

@@ -11,8 +11,10 @@ return array(
     'Anar\\Product\\' => array($baseDir . '/includes/product'),
     'Anar\\Lib\\' => array($baseDir . '/includes/lib'),
     'Anar\\Init\\' => array($baseDir . '/includes/init'),
+    'Anar\\Import\\' => array($baseDir . '/includes/import'),
     'Anar\\Core\\' => array($baseDir . '/includes/core'),
     'Anar\\Admin\\Widgets\\' => array($baseDir . '/includes/admin/widgets'),
+    'Anar\\Admin\\Tools\\' => array($baseDir . '/includes/admin/tools'),
     'Anar\\Admin\\' => array($baseDir . '/includes/admin'),
     'Anar\\' => array($baseDir . '/includes'),
 );

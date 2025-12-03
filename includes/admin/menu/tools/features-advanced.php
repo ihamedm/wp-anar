@@ -1,9 +1,9 @@
 <?php
 // Get saved options
 $new_api_validate_feat = get_option('anar_conf_feat__api_validate', 'new');
-$anar_import_type = get_option('anar_conf_feat__import_type', 'pro');
 $activate_anar_optional_price_sync = get_option('anar_conf_feat__optional_price_sync', 'no');
 $anar_log_level = get_option('anar_log_level', 'info');
+$anar_support_mode = get_option('anar_support_mode', 'disable');
 $anar_regular_sync_update_since = get_option('anar_regular_sync_update_since', 10);
 $anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 100);
 
@@ -11,14 +11,13 @@ $anar_sync_outdated_batch_size = get_option('anar_sync_outdated_batch_size', 100
 if (isset($_POST['save_anar_advanced_settings'])) {
     // Sanitize and save the values
     $new_api_validate_feat = $_POST['anar_conf_feat__api_validate'] ?? 'new';
-    $anar_import_type = $_POST['anar_conf_feat__import_type'] ?? 'pro';
     $anar_log_level = $_POST['anar_log_level'] ?? 'info';
+    $anar_support_mode = $_POST['anar_support_mode'] ?? 'disable';
     $anar_regular_sync_update_since = intval($_POST['anar_regular_sync_update_since']);
     $anar_sync_outdated_batch_size = intval($_POST['anar_sync_outdated_batch_size']);
-
-    update_option('anar_conf_feat__import_type', $anar_import_type);
     update_option('anar_conf_feat__api_validate', $new_api_validate_feat);
     update_option('anar_log_level', $anar_log_level);
+    update_option('anar_support_mode', $anar_support_mode);
     update_option('anar_regular_sync_update_since', $anar_regular_sync_update_since);
     update_option('anar_sync_outdated_batch_size', $anar_sync_outdated_batch_size);
 
@@ -51,6 +50,18 @@ if(isset($_GET['anar_optional_price_sync'])){
             </td>
         </tr>
 
+        <tr style="display: none;">
+            <th><label for="anar_support_mode">Anar Support Mode</label></th>
+            <td>
+                <label>
+                    <select name="anar_support_mode" id="anar_support_mode">
+                        <option value="disable" <?php selected($anar_support_mode, 'disable'); ?>>disable</option>
+                        <option value="enable" <?php selected($anar_support_mode, 'enable'); ?>>enable</option>
+                    </select>
+                </label>
+            </td>
+
+        </tr>
         <tr style="display: none;">
             <th><label for="anar_regular_sync_update_since">regular sync [updateSince] - minutes</label></th>
             <td>
@@ -88,24 +99,6 @@ if(isset($_GET['anar_optional_price_sync'])){
                     </select>
                 </label>
                 <p class="description">اگر روش جدید برای شما عملکرد درستی ندارد حتما این مورد را با پشتیبانی در میان بگذارید</p>
-            </td>
-        </tr>
-
-        <tr>
-            <th><label for="anar_conf_feat__import_type">روش درون ریزی محصولات</label></th>
-            <td>
-                <label>
-                    <select name="anar_conf_feat__import_type" id="anar_conf_feat__import_type">
-                        <option value="normal" <?php selected($anar_import_type, 'normal'); ?>>عادی</option>
-                        <option value="slow" <?php selected($anar_import_type, 'slow'); ?>>آهسته</option>
-                        <option value="pro" <?php selected($anar_import_type, 'pro'); ?>>پیشرفته</option>
-                    </select>
-                </label>
-                <p class="description">
-                    <strong>عادی:</strong> روش استاندارد درون ریزی محصولات<br>
-                    <strong>آهسته:</strong> برای هاست‌هایی که منابع کمتری دارند (۳۰ محصول در دقیقه)<br>
-                    <strong>پیشرفته:</strong> روش یکپارچه با جدول مخصوص برای جلوگیری از تکرار محصولات (عملکرد بهتر)
-                </p>
             </td>
         </tr>
 

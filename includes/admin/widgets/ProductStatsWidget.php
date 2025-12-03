@@ -119,7 +119,7 @@ class ProductStatsWidget extends AbstractReportWidget
             INNER JOIN {$wpdb->postmeta} sync ON p.ID = sync.post_id AND sync.meta_key = '_anar_last_sync_time'
             WHERE p.post_type = 'product'
               AND sku.meta_value != ''
-              AND sync.meta_value > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+              AND sync.meta_value > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ");
 
         // Not synced recently (more than 1 hour)
@@ -130,7 +130,7 @@ class ProductStatsWidget extends AbstractReportWidget
             LEFT JOIN {$wpdb->postmeta} sync ON p.ID = sync.post_id AND sync.meta_key = '_anar_last_sync_time'
             WHERE p.post_type = 'product'
               AND sku.meta_value != ''
-              AND (sync.meta_value IS NULL OR sync.meta_value < DATE_SUB(NOW(), INTERVAL 1 HOUR))
+              AND (sync.meta_value IS NULL OR sync.meta_value < DATE_SUB(NOW(), INTERVAL 24 HOUR))
         ");
 
         // Never synced
@@ -144,10 +144,34 @@ class ProductStatsWidget extends AbstractReportWidget
               AND sync.meta_value IS NULL
         ");
 
+        // Products with _anar_need_fix meta
+        $need_fix = $wpdb->get_var("
+            SELECT COUNT(DISTINCT p.ID)
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} sku ON p.ID = sku.post_id AND sku.meta_key = '_anar_sku'
+            INNER JOIN {$wpdb->postmeta} need_fix ON p.ID = need_fix.post_id AND need_fix.meta_key = '_anar_need_fix'
+            WHERE p.post_type = 'product'
+              AND sku.meta_value != ''
+              AND need_fix.meta_value != ''
+        ");
+
+        // Products with _anar_sync_error meta
+        $sync_error = $wpdb->get_var("
+            SELECT COUNT(DISTINCT p.ID)
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} sku ON p.ID = sku.post_id AND sku.meta_key = '_anar_sku'
+            INNER JOIN {$wpdb->postmeta} sync_error ON p.ID = sync_error.post_id AND sync_error.meta_key = '_anar_sync_error'
+            WHERE p.post_type = 'product'
+              AND sku.meta_value != ''
+              AND sync_error.meta_value != ''
+        ");
+
         return [
             'recently_synced' => intval($recently_synced),
             'not_synced_recently' => intval($not_synced_recently),
-            'never_synced' => intval($never_synced)
+            'never_synced' => intval($never_synced),
+            'need_fix' => intval($need_fix),
+            'sync_error' => intval($sync_error)
         ];
     }
 

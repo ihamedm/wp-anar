@@ -11,6 +11,7 @@
 use Anar\Sync\OutdatedSync;
 use Anar\Sync\RegularSync;
 use Anar\Sync\RealTimeSync;
+use Anar\Sync\Sync;
 
 
 /**
@@ -96,3 +97,33 @@ function anar_sync_product_with_anar_sku(){}
  * @return void
  */
 function anar_sync_product_with_anar_product_data(){}
+
+/**
+ * Gets the Persian error message for a sync error code
+ *
+ * Retrieves the human-readable Persian error message corresponding to a sync error code.
+ * Used for displaying sync errors to users in the admin interface.
+ *
+ * @param string $error_code The sync error code (e.g., 'no_wc_variants', 'no_anar_variant', 'unknown')
+ * @return string The Persian error message, or a default message if code not found
+ */
+function anar_get_sync_error_message($error_code) {
+    if (empty($error_code)) {
+        return 'خطای همگام‌سازی نامشخص است.';
+    }
+
+    // Use reflection to access protected static property
+    $reflection = new \ReflectionClass(Sync::class);
+    $property = $reflection->getProperty('sync_error_codes');
+    $property->setAccessible(true);
+    $error_codes = $property->getValue();
+
+    if (isset($error_codes[$error_code])) {
+        return $error_codes[$error_code];
+    }
+
+    // Return default message for unknown error codes
+    return isset($error_codes[Sync::ERROR_UNKNOWN]) 
+        ? $error_codes[Sync::ERROR_UNKNOWN] 
+        : 'خطای ناشناخته در همگام‌سازی رخ داد.';
+}

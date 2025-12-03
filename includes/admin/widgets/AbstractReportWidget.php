@@ -112,6 +112,16 @@ abstract class AbstractReportWidget
     abstract protected function get_report_data();
 
     /**
+     * Public method to get report data (for use by other classes)
+     * 
+     * @return array Report data
+     */
+    public function get_data()
+    {
+        return $this->get_report_data();
+    }
+
+    /**
      * Verify user permissions
      */
     protected function verify_permissions()

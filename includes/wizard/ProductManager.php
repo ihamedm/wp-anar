@@ -603,6 +603,12 @@ class ProductManager{
             if($deprecate){
                 update_post_meta($product_id, '_anar_deprecated', $job_id);
 
+                // Track retry counter: increment existing value (or start at 0 if doesn't exist)
+                $current_retries = (int) get_post_meta($product_id, '_anar_restore_retries', true);
+                $new_retries = $current_retries + 1;
+                update_post_meta($product_id, '_anar_restore_retries', $new_retries);
+                self::$logger->log("Product #{$product_id} deprecated. Retry count: {$current_retries} >> {$new_retries}", $log_file);
+
                 // make a backup from sku then delete
                 self::backup_anar_meta_data($product_id);
 

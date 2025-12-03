@@ -1,5 +1,13 @@
 import $ from 'jquery';
 import { awca_toast } from "../functions";
+import { generateSystemInfoHTML } from './widgets/system-info-widget';
+import { generateDatabaseHealthHTML } from './widgets/database-health-widget';
+import { generateProductStatsHTML } from './widgets/product-stats-widget';
+import { generateErrorLogHTML } from './widgets/error-log-widget';
+import { generateBenchmarkHTML } from './widgets/benchmark-widget';
+import { generateApiHealthHTML } from './widgets/api-health-widget';
+import { generateCronHealthHTML } from './widgets/cron-health-widget';
+import { generateCrontrolHTML } from './widgets/crontrol-widget';
 
 /**
  * Report Widgets Manager
@@ -91,258 +99,45 @@ export class ReportWidgetsManager {
 
         // System Info Widget
         if (data.wp_info) {
-            html += this.generateSystemInfoHTML(data);
+            html += generateSystemInfoHTML(data);
         }
 
         // Database Health Widget
         if (data.tables) {
-            html += this.generateDatabaseHealthHTML(data);
+            html += generateDatabaseHealthHTML(data);
         }
 
         // Product Stats Widget
         if (data.total_products) {
-            html += this.generateProductStatsHTML(data);
+            html += generateProductStatsHTML(data);
         }
 
         // Error Log Widget
-        if (data.anar_logs) {
-            html += this.generateErrorLogHTML(data);
+        if (data.anar_logs || data.log_files) {
+            html += generateErrorLogHTML(data);
+        }
+
+        // Benchmark Widget
+        if (data.overall_score !== undefined) {
+            html += generateBenchmarkHTML(data);
+        }
+
+        // API Health Widget
+        if (data.endpoints !== undefined || data.health_score !== undefined) {
+            html += generateApiHealthHTML(data);
+        }
+
+        // Cron Health Widget
+        if (data.wp_cron_disabled !== undefined || data.important_jobs !== undefined) {
+            html += generateCronHealthHTML(data);
+        }
+
+        // Crontrol Widget (has cron_jobs array but no strategies/product_meta_stats)
+        if (data.cron_jobs !== undefined && Array.isArray(data.cron_jobs) && data.strategies === undefined && data.product_meta_stats === undefined) {
+            html += generateCrontrolHTML(data);
         }
 
         return html || '<p>هیچ داده‌ای یافت نشد.</p>';
-    }
-
-    generateSystemInfoHTML(data) {
-        let html = '<div class="anar-widget-section">';
-        html += '<h4>اطلاعات وردپرس</h4>';
-        html += '<div class="anar-info-grid">';
-        
-        Object.entries(data.wp_info).forEach(([key, value]) => {
-            html += `<div class="anar-info-item">
-                <span class="anar-info-label">${this.getLabel(key)}:</span>
-                <span class="anar-info-value">${value}</span>
-            </div>`;
-        });
-        
-        html += '</div></div>';
-
-        if (data.wc_info && Object.keys(data.wc_info).length > 0) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>اطلاعات ووکامرس</h4>';
-            html += '<div class="anar-info-grid">';
-            
-            Object.entries(data.wc_info).forEach(([key, value]) => {
-                html += `<div class="anar-info-item">
-                    <span class="anar-info-label">${this.getLabel(key)}:</span>
-                    <span class="anar-info-value">${value}</span>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        if (data.anar_info) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>اطلاعات انار</h4>';
-            html += '<div class="anar-info-grid">';
-            
-            Object.entries(data.anar_info).forEach(([key, value]) => {
-                html += `<div class="anar-info-item">
-                    <span class="anar-info-label">${this.getLabel(key)}:</span>
-                    <span class="anar-info-value">${value}</span>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        return html;
-    }
-
-    generateDatabaseHealthHTML(data) {
-        let html = '<div class="anar-widget-section">';
-        html += '<h4>وضعیت جداول</h4>';
-        html += '<div class="anar-table-health">';
-        
-        Object.entries(data.tables).forEach(([key, table]) => {
-            const statusClass = table.status === 'good' ? 'status-good' : 'status-warning';
-            html += `<div class="anar-table-item">
-                <div class="anar-table-name">${table.name}</div>
-                <div class="anar-table-details">
-                    <span>ردیف‌ها: ${table.rows}</span>
-                    <span>اندازه داده: ${table.data_length}</span>
-                    <span>موتور: ${table.engine}</span>
-                    <span class="${statusClass}">${table.status === 'good' ? '✓' : '⚠'}</span>
-                </div>
-            </div>`;
-        });
-        
-        html += '</div></div>';
-
-        if (data.indexes) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>وضعیت ایندکس‌ها</h4>';
-            html += '<div class="anar-indexes-health">';
-            
-            Object.entries(data.indexes).forEach(([key, index]) => {
-                const statusClass = index.status === 'good' ? 'status-good' : 'status-warning';
-                html += `<div class="anar-index-item">
-                    <span class="anar-index-name">${index.name}</span>
-                    <span class="${statusClass}">${index.exists ? '✓ موجود' : '✗ موجود نیست'}</span>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        return html;
-    }
-
-    generateProductStatsHTML(data) {
-        let html = '<div class="anar-widget-section">';
-        html += '<h4>آمار کلی محصولات</h4>';
-        html += '<div class="anar-stats-grid">';
-        
-        Object.entries(data.total_products).forEach(([status, count]) => {
-            html += `<div class="anar-stat-item">
-                <span class="anar-stat-label">${this.getStatusLabel(status)}:</span>
-                <span class="anar-stat-value">${count}</span>
-            </div>`;
-        });
-        
-        html += '</div></div>';
-
-        if (data.anar_products) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>محصولات انار</h4>';
-            html += '<div class="anar-stats-grid">';
-            
-            Object.entries(data.anar_products).forEach(([key, count]) => {
-                html += `<div class="anar-stat-item">
-                    <span class="anar-stat-label">${this.getLabel(key)}:</span>
-                    <span class="anar-stat-value">${count}</span>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        if (data.sync_status) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>وضعیت همگام‌سازی</h4>';
-            html += '<div class="anar-stats-grid">';
-            
-            Object.entries(data.sync_status).forEach(([key, count]) => {
-                html += `<div class="anar-stat-item">
-                    <span class="anar-stat-label">${this.getLabel(key)}:</span>
-                    <span class="anar-stat-value">${count}</span>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        return html;
-    }
-
-    generateErrorLogHTML(data) {
-        let html = '<div class="anar-widget-section">';
-        
-        if (data.summary) {
-            html += '<h4>خلاصه خطاها (24 ساعت گذشته)</h4>';
-            html += '<div class="anar-error-summary">';
-            
-            if (data.summary.total_errors > 0) {
-                html += `<div class="anar-error-total">کل خطاها: <strong>${data.summary.total_errors}</strong></div>`;
-                
-                Object.entries(data.summary.last_24h).forEach(([level, count]) => {
-                    const levelClass = level === 'critical' ? 'status-critical' : level === 'error' ? 'status-warning' : 'status-good';
-                    html += `<div class="anar-error-level ${levelClass}">${this.getLevelLabel(level)}: ${count}</div>`;
-                });
-            } else {
-                html += '<div class="status-good">هیچ خطایی در 24 ساعت گذشته ثبت نشده است</div>';
-            }
-            
-            html += '</div>';
-        }
-
-        if (data.anar_logs && data.anar_logs.length > 0) {
-            html += '<div class="anar-widget-section">';
-            html += '<h4>آخرین خطاهای انار</h4>';
-            html += '<div class="anar-error-logs">';
-            
-            data.anar_logs.slice(0, 10).forEach(log => {
-                const levelClass = log.level === 'critical' ? 'status-critical' : 'status-warning';
-                html += `<div class="anar-error-log-item">
-                    <div class="anar-error-log-header">
-                        <span class="anar-error-level ${levelClass}">${this.getLevelLabel(log.level)}</span>
-                        <span class="anar-error-time">${log.created_at}</span>
-                    </div>
-                    <div class="anar-error-message">${log.message}</div>
-                </div>`;
-            });
-            
-            html += '</div></div>';
-        }
-
-        html += '</div>';
-        return html;
-    }
-
-    getLabel(key) {
-        const labels = {
-            'version': 'نسخه',
-            'multisite': 'چندسایتی',
-            'language': 'زبان',
-            'timezone': 'منطقه زمانی',
-            'memory_limit': 'حد حافظه',
-            'max_execution_time': 'حد زمان اجرا',
-            'currency': 'واحد پول',
-            'products_count': 'تعداد محصولات',
-            'orders_count': 'تعداد سفارشات',
-            'php_version': 'نسخه PHP',
-            'mysql_version': 'نسخه MySQL',
-            'server_software': 'نرم‌افزار سرور',
-            'upload_max_filesize': 'حد آپلود فایل',
-            'post_max_size': 'حد اندازه پست',
-            'plugin_version': 'نسخه افزونه',
-            'anar_products': 'محصولات انار',
-            'last_sync': 'آخرین همگام‌سازی',
-            'total': 'کل',
-            'with_prices': 'با قیمت',
-            'zero_profit': 'سود صفر',
-            'deprecated': 'منسوخ شده',
-            'recently_synced': 'همگام‌سازی شده',
-            'not_synced_recently': 'همگام‌سازی نشده',
-            'never_synced': 'هرگز همگام‌سازی نشده',
-            'created_today': 'ایجاد شده امروز',
-            'updated_today': 'به‌روزرسانی شده امروز'
-        };
-        
-        return labels[key] || key;
-    }
-
-    getStatusLabel(status) {
-        const labels = {
-            'published': 'منتشر شده',
-            'draft': 'پیش‌نویس',
-            'pending': 'در انتظار بررسی',
-            'private': 'خصوصی',
-            'trash': 'سطل زباله'
-        };
-        
-        return labels[status] || status;
-    }
-
-    getLevelLabel(level) {
-        const labels = {
-            'critical': 'بحرانی',
-            'error': 'خطا',
-            'warning': 'هشدار',
-            'info': 'اطلاعات'
-        };
-        
-        return labels[level] || level;
     }
 }
 

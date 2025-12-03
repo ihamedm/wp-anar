@@ -7,8 +7,17 @@ use Anar\Import;
 use Anar\ProductData;
 
 class Menus{
-    
+
+    private static $instance;
     public $is_activated;
+
+
+    public static function get_instance() {
+        if (!isset(self::$instance)) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
     public function __construct(){
         
@@ -77,6 +86,17 @@ class Menus{
             [$this, 'tools_page_content']
         );
 
+        if(ANAR_SUPPORT_MODE){
+            add_submenu_page(
+                'wp-anar',
+                'درون‌ریزی جدید (نسخه ۲)',
+                'درون‌ریزی نسخه ۲',
+                'manage_options',
+                'wp-anar-import-v2',
+                [$this, 'import_v2_page_content']
+            );
+        }
+
         add_submenu_page(
             'wp-anar',
             'فعالسازی',
@@ -137,7 +157,9 @@ class Menus{
             <h2 class="nav-tab-wrapper">
                 <a href="?page=tools&tab=tools" class="nav-tab <?php echo $active_tab === 'tools' ? 'nav-tab-active' : ''; ?>">ابزارها</a>
                 <a href="?page=tools&tab=features" class="nav-tab <?php echo $active_tab === 'features' ? 'nav-tab-active' : ''; ?>">تنظیمات</a>
-                <a href="?page=tools&tab=status" class="nav-tab <?php echo $active_tab === 'status' ? 'nav-tab-active' : ''; ?>">وضعیت سیستم</a>
+                <?php if(ANAR_SUPPORT_MODE): ?>
+                    <a href="?page=tools&tab=status" class="nav-tab <?php echo $active_tab === 'status' ? 'nav-tab-active' : ''; ?>">وضعیت سیستم</a>
+                <?php endif; ?>
             </h2>
 
             <?php include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/tools/'.$active_tab.'.php';?>
@@ -145,6 +167,12 @@ class Menus{
 
         </div>
         <?php
+    }
+
+    public function import_v2_page_content()
+    {
+        $this->force_activation();
+        include_once ANAR_PLUGIN_PATH . 'includes/admin/menu/import-v2.php';
     }
 
     public function docs_page_content()

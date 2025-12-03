@@ -81,6 +81,9 @@ class RealTimeSync extends Sync{
 
         // Add sync button to product edit meta box
         add_action('anar_edit_product_meta_box', [$this, 'add_sync_button_product_meta_box']);
+
+        // Register AJAX handler for legacy re-import
+        add_action('wp_ajax_awca_reimport_product_legacy', [$this, 'handle_reimport_product_legacy_ajax']);
     }
 
     /**
@@ -95,6 +98,17 @@ class RealTimeSync extends Sync{
     {
         global $post;
 
+        // Get product's Anar SKU
+        $anar_sku = get_post_meta($post->ID, '_anar_sku', true);
+
+        // Only show button if SKU exists
+        if (empty($anar_sku)) {
+            return;
+        }
+
+        // Set display style - hidden by default, shown only in debug mode
+        $import_btn_style = ANAR_SUPPORT_MODE || isset($_GET['anar_support']) ? ';' : 'display: none !important;';
+
         ?>
         <a href="#" class="anar-ajax-action awca-primary-btn"
            id="anar-sync-product-form"
@@ -105,6 +119,22 @@ class RealTimeSync extends Sync{
            data-reload="success"
            data-reload_timeout="2000">
             همگام سازی محصول با انار
+            <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66"
+                 xmlns="http://www.w3.org/2000/svg">
+                <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33"
+                        r="30"></circle>
+            </svg>
+        </a>
+
+        <a href="#" class="anar-ajax-action awca_sync_btn awca-alt-btn"
+           id="anar-reimport-product-legacy"
+           style="margin: 10px 0; <?php echo esc_attr($import_btn_style); ?> text-decoration: none;"
+           data-action="awca_reimport_product_legacy"
+           data-anar_sku="<?php echo esc_attr($anar_sku); ?>"
+           data-nonce="<?php echo wp_create_nonce('awca_ajax_nonce'); ?>"
+           data-reload="success"
+           data-reload_timeout="2000">
+            ⚠️ Fix Product (reimport)
             <svg class="spinner-loading" width="24px" height="24px" viewBox="0 0 66 66"
                  xmlns="http://www.w3.org/2000/svg">
                 <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33"
@@ -208,6 +238,57 @@ class RealTimeSync extends Sync{
         $sync_result['needs_refresh'] = false;
 
         wp_send_json_success($sync_result, 200, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Handles AJAX request for legacy product re-import
+     *
+     * Validates request, re-imports the product using legacy system, and returns JSON response.
+     * Used by the debug-only re-import button in product edit meta box.
+     *
+     * @return void Sends JSON response and exits
+     */
+    public function handle_reimport_product_legacy_ajax()
+    {
+        // Verify AJAX nonce for security
+        check_ajax_referer('awca_ajax_nonce', 'nonce');
+
+        // Check user capabilities
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error([
+                'message' => __('شما مجوز انجام این عملیات را ندارید.', 'wp-anar'),
+            ], 403);
+        }
+
+        // Validate Anar SKU parameter
+        if (!isset($_POST['anar_sku']) || empty($_POST['anar_sku'])) {
+            wp_send_json_error([
+                'message' => __('شناسه SKU انار یافت نشد.', 'wp-anar'),
+            ], 400);
+        }
+
+        $anar_sku = sanitize_text_field(wp_unslash($_POST['anar_sku']));
+
+        // Call legacy re-import function
+        $result = anar_create_single_product_legacy($anar_sku);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error([
+                'message' => $result->get_error_message(),
+            ], 400);
+        }
+
+        // Return success response
+        $action_text = $result['created'] ? 'ساخته شد' : 'به‌روزرسانی شد';
+        wp_send_json_success([
+            'message' => sprintf(
+                __('محصول با موفقیت %s.', 'wp-anar'),
+                $action_text
+            ),
+            'product_id' => $result['product_id'] ?? 0,
+            'created' => $result['created'] ?? false,
+            'product_sku' => $result['product_sku'] ?? '',
+        ]);
     }
 
 

@@ -112,8 +112,14 @@ export class GenericModal {
         const $button = $(`#${this.config.modalId}-change-status`);
         const originalText = $button.html();
         
+        // Determine loading text based on action type
+        const isFixAction = this.config.changeStatusAction === 'anar_manual_fix_products';
+        const loadingText = isFixAction 
+            ? '<span class="dashicons dashicons-admin-tools"></span> در حال تعمیر محصولات...'
+            : '<span class="dashicons dashicons-update"></span> در حال تغییر وضعیت...';
+        
         // Disable button and show loading
-        $button.prop('disabled', true).html('<span class="dashicons dashicons-update"></span> در حال تغییر وضعیت...');
+        $button.prop('disabled', true).html(loadingText);
         
         $.ajax({
             url: awca_ajax_object.ajax_url,
@@ -128,7 +134,7 @@ export class GenericModal {
                     // Refresh the data
                     this.fetchData();
                 } else {
-                    awca_toast(response.data.message || 'خطا در تغییر وضعیت', 'error');
+                    awca_toast(response.data.message || 'خطا در اجرای عملیات', 'error');
                 }
             },
             error: (xhr, status, err) => {
@@ -177,6 +183,17 @@ export function initReportModals() {
             changeStatusAction: 'anar_change_duplicate_status',
             changeStatusText: 'تغییر وضعیت تکراری‌ها به "در انتظار بررسی"',
             warningText: 'آیا مطمئن هستید که می‌خواهید محصولات تکراری را به "در انتظار بررسی" تغییر دهید؟\n\nقدیمی‌ترین محصول از هر گروه حفظ می‌شود.'
+        });
+
+        // Need Fix Products
+        new GenericModal({
+            modalId: 'anar-need-fix-modal',
+            buttonId: 'anar-need-fix-products',
+            title: 'محصولات نیازمند تعمیر',
+            action: 'anar_get_need_fix_products',
+            changeStatusAction: 'anar_manual_fix_products',
+            changeStatusText: 'اجرای دستی تعمیر محصولات',
+            warningText: 'آیا مطمئن هستید که می‌خواهید عملیات تعمیر محصولات را اجرا کنید؟'
         });
     });
 }

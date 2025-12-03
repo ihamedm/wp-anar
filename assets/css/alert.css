@@ -1,0 +1,12 @@
+/* Anar Dashboard Alert Styles - Minimal custom styles using WordPress defaults */
+.anar-alert-dismiss-link {
+    margin-right: 12px;
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.anar-alert-dismiss-link:hover {
+    color: #135e96;
+    text-decoration: underline;
+}
+

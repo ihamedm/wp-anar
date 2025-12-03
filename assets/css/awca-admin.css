@@ -1631,55 +1631,7 @@ select::-ms-expand {
 }
 
 
-#awca_notification_list{
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-#awca_notification_list .item{
-  background: #fff;
-  border:1px solid #eee;
-  padding: 16px;
-  border-radius: 8px;
-}
-#awca_notification_list .item.unread{
-  border-color: #dcdcdc;
-}
-#awca_notification_list .item header{
-  display: flex;
-  justify-content: space-between;
-}
-#awca_notification_list .item .meta{
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-}
-#awca_notification_list .item .label{
-  background: #e5f7ff;
-  border-radius: 100px;
-  padding: 2px 8px 4px;
-  font-size: 12px !important;
-}
 
-#awca_notification_list .item.product-out-of-stock .label{
-  background: #ffdfdf;
-}
-#awca_notification_list .item.product-re-stock .label{
-  background: #9ff784;
-}
-#awca_notification_list .item.wordpress .label{
-  background: #96588a;
-  color:#fff;
-}
-
-#awca_notification_list .item.unread .content{
-  font-weight: bold;
-}
-#awca_notification_list .item date{
-  font-size: 12px;
-  color: #999;
-}
 
 /*Animations*/
 
@@ -2233,4 +2185,21 @@ select::-ms-expand {
   .order-type-options label {
     padding: 10px 15px;
   }
+}
+
+/* Anar Dashboard Alert Styles */
+.anar-dashboard-alert {
+  position: relative;
+  padding: 12px 48px;
+}
+
+.anar-alert-dismiss-link {
+  margin-right: 12px;
+  text-decoration: none;
+  color: #2271b1;
+}
+
+.anar-alert-dismiss-link:hover {
+  color: #135e96;
+  text-decoration: underline;
 }

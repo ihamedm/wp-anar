@@ -33,6 +33,8 @@ class Edit{
     public function anar_product_edit_page_meta_box_html($post) {
 
         $last_sync_time = get_post_meta($post->ID, '_anar_last_sync_time', true);
+        $sync_error = get_post_meta($post->ID, '_anar_sync_error', true);
+        $last_try_sync_time = get_post_meta($post->ID, '_anar_last_try_sync_time', true);
         $anar_prices = get_post_meta($post->ID, '_anar_prices', true);
         $anar_shipments = get_post_meta($post->ID, '_anar_prices', true);
         $anar_sku = get_post_meta($post->ID, '_anar_sku', true);
@@ -52,6 +54,23 @@ class Edit{
                     ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE == 'yes' ? 'همگام سازی قیمت غیر فعال است.' : ''
                 );
 
+            }?>
+
+            <?php if($sync_error) {
+                $error_message = anar_get_sync_error_message($sync_error);
+                $try_time_display = '';
+                if($last_try_sync_time) {
+                    $try_time_display = sprintf(
+                        ' (آخرین تلاش: %s%s)',
+                        mysql2date('j F Y' . ' ساعت ' . 'H:i', $last_try_sync_time),
+                        awca_time_ago($last_try_sync_time)
+                    );
+                }
+                printf(
+                    '<div class="awca-product-sync-error" style="color: #d63638; margin-top: 10px; padding: 8px; background-color: #fcf0f1; border-left: 4px solid #d63638;"><strong>خطای همگام‌سازی:</strong> %s%s</div>',
+                    esc_html($error_message),
+                    esc_html($try_time_display)
+                );
             }?>
 
             <div class="awca-product-anar-prices">

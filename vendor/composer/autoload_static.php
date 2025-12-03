@@ -14,8 +14,10 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
             'Anar\\Product\\' => 13,
             'Anar\\Lib\\' => 9,
             'Anar\\Init\\' => 10,
+            'Anar\\Import\\' => 12,
             'Anar\\Core\\' => 10,
             'Anar\\Admin\\Widgets\\' => 19,
+            'Anar\\Admin\\Tools\\' => 17,
             'Anar\\Admin\\' => 11,
             'Anar\\' => 5,
         ),
@@ -42,6 +44,10 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         array (
             0 => __DIR__ . '/../..' . '/includes/init',
         ),
+        'Anar\\Import\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/import',
+        ),
         'Anar\\Core\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/core',
@@ -49,6 +55,10 @@ class ComposerStaticInitf493960dbf3229f8998effb35c5e910d
         'Anar\\Admin\\Widgets\\' => 
         array (
             0 => __DIR__ . '/../..' . '/includes/admin/widgets',
+        ),
+        'Anar\\Admin\\Tools\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/includes/admin/tools',
         ),
         'Anar\\Admin\\' => 
         array (

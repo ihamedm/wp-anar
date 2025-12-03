@@ -182,16 +182,19 @@ class OutdatedSync extends Sync{
             // Step 4: Direct SQL query for better performance than WP_Query
             // Finds products with Anar SKU that haven't been synced recently
             // Orders by last sync time (oldest first) to prioritize stale products
+            // Excludes products with restore retries >= 3 to prevent infinite loops
             $sql = $wpdb->prepare("
                 SELECT DISTINCT p.ID, 
                        COALESCE(sku.meta_value, sku_backup.meta_value) as anar_sku
                 FROM {$wpdb->posts} p
                 LEFT JOIN {$wpdb->postmeta} sku ON p.ID = sku.post_id AND sku.meta_key = '_anar_sku'
                 LEFT JOIN {$wpdb->postmeta} sku_backup ON p.ID = sku_backup.post_id AND sku_backup.meta_key = '_anar_sku_backup'
+                LEFT JOIN {$wpdb->postmeta} retries ON p.ID = retries.post_id AND retries.meta_key = '_anar_restore_retries'
                 INNER JOIN {$wpdb->postmeta} last_try ON p.ID = last_try.post_id AND last_try.meta_key = '_anar_last_sync_time'
                 WHERE p.post_type = 'product'
                 AND p.post_status IN ('publish', 'draft')
                 AND (sku.meta_value IS NOT NULL OR sku_backup.meta_value IS NOT NULL)
+                AND (retries.meta_value IS NULL OR CAST(retries.meta_value AS UNSIGNED) < 3)
                 AND last_try.meta_value < %s
                 ORDER BY last_try.meta_value ASC
                 LIMIT %d

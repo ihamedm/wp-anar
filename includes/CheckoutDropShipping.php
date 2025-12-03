@@ -48,6 +48,12 @@ class CheckoutDropShipping extends Checkout {
     protected static $instance;
 
     /**
+     * Flag to track if Anar shipping has been displayed (prevents duplicates)
+     * @var bool
+     */
+    private static $shipping_displayed = false;
+
+    /**
      * Get singleton instance
      * 
      * @return CheckoutDropShipping
@@ -76,7 +82,10 @@ class CheckoutDropShipping extends Checkout {
         parent::__construct();
 
         // Checkout Customization
+        // Primary hook: fires when shipping methods exist
         add_action( 'woocommerce_review_order_before_shipping', [$this, 'display_anar_products_shipping'] , 99);
+        // Fallback hook: always fires even when no shipping methods are configured
+        add_action( 'woocommerce_review_order_before_order_total', [$this, 'display_anar_products_shipping_fallback'] , 5);
         add_filter( 'woocommerce_shipping_package_name', [$this, 'prefix_shipping_package_name_other_products'] );
         add_action( 'woocommerce_cart_calculate_fees', [$this, 'calculate_total_shipping_fee'] );
 
@@ -133,7 +142,10 @@ class CheckoutDropShipping extends Checkout {
      * @access public
      */
     public function display_anar_products_shipping() {
-
+        // Reset flag at start of each display attempt (will be set if display happens)
+        // This ensures fallback can display if primary hook doesn't fire
+        $was_already_displayed = self::$shipping_displayed;
+        
         try {
             // Check if the billing city and state are filled
             $billing_country = WC()->customer->get_billing_country();
@@ -209,75 +221,128 @@ class CheckoutDropShipping extends Checkout {
             }
 
             // Display Anar shipping methods if Anar products are present
-            if ($has_anar_product) {
-                $pack_index = 0;
-                
-                // Use parent method to get package info for multi-origin alert
-                $packages_info = $this->get_cart_packages_info();
-                
-                // Show notice if multiple packages
-                if($packages_info['package_count'] > 1){
-                    echo '<tr class="anar-shipments-user-notice-row"><td colspan="2"><p>کالاهای انتخابی شما از چند انبار مختلف ارسال می شوند.</p></td></tr>';
-                }
-                
-                foreach ($ship as $key => $v) {
-                    $pack_index++;
-                    $product_uniques = array_unique($v['names']);
-
-                    // Use parent method to generate product list markup
-                    $product_list_markup = $this->generate_product_list_markup($product_uniques, $pack_index);
-
-                    // Process delivery options with free shipping conditions
-                    $radio_data = [];
-                    foreach ($v['delivery'] as $delivery_key => $delivery) {
-                        $package_total = $this->calculate_package_total($product_uniques);
-                        
-                        // Check free condition
-                        if (isset($delivery['freeConditions']) && isset($delivery['freeConditions']['purchasesPrice'])){
-                            if($package_total >= $delivery['freeConditions']['purchasesPrice']) {
-                                $delivery['price'] = 0;
-                                $delivery['estimatedTime'] = 'ارسال رایگان';
-                            }
-                        }
-
-                        $radio_data[$delivery_key] = [
-                            'label' => anar_translator($delivery['name']),
-                            'estimated_time' => $delivery['estimatedTime'] ?? '',
-                            'price' => anar_get_formatted_price($delivery['price']),
-                        ];
-                    }
-
-                    // Get the chosen delivery option from the session or checkout value
-                    $chosen = WC()->session->get('anar_delivery_option_' . $key);
-                    $chosen = empty($chosen) ? WC()->checkout->get_value('anar_delivery_option_' . $key) : $chosen;
-
-                    // If no option is chosen, set the first one as default
-                    if (empty($chosen) && !empty($radio_data)) {
-                        $chosen = key($radio_data);
-                    }
-
-                    ?>
-                    <tr class="anar-shipments-package-row">
-                        <td colspan="2">
-                            <div class="anar-shipments-package-content <?php echo count($product_uniques) > 2 ? 'vertical-view' : '';?>">
-                                <div class="anar-package-items-list">
-                                    <?php
-                                    echo $product_list_markup;
-                                    ?>
-                                </div>
-                                <div class="anar-delivery-options-area">
-                                    <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php
+            if ($has_anar_product && !empty($ship)) {
+                $this->render_anar_shipping_display($ship);
+                // Mark as displayed to prevent duplicate display
+                self::$shipping_displayed = true;
+            } elseif ($has_anar_product && empty($ship)) {
+                // If we have Anar products but no shipping data, mark as attempted
+                // This prevents fallback from trying again unnecessarily
+                if (!$was_already_displayed) {
+                    // Only log if this is the first attempt (not fallback)
+                    $this->log('Anar products found but no shipping data available', 'warning');
                 }
             }
         } catch (Exception $e) {
             awca_log($e->getMessage());
         }
 
+    }
+
+    /**
+     * Fallback method to display Anar shipping when primary hook doesn't fire
+     * 
+     * This method ensures Anar shipping methods are displayed even when no
+     * WooCommerce shipping methods are configured. It checks if shipping was
+     * already displayed via the primary hook and only displays if not shown yet.
+     * 
+     * Hooked to: woocommerce_review_order_before_order_total (priority 5)
+     * 
+     * @return void Outputs HTML directly if not already displayed
+     * @since 1.0.0
+     * @access public
+     */
+    public function display_anar_products_shipping_fallback() {
+        // If already displayed via primary hook, skip
+        if (self::$shipping_displayed) {
+            return;
+        }
+
+        // Check if we have Anar products in cart
+        $has_anar_product = WC()->session->get('has_anar_product');
+        if (!$has_anar_product) {
+            return;
+        }
+
+        // Call the main display method
+        $this->display_anar_products_shipping();
+    }
+
+    /**
+     * Render Anar shipping display HTML
+     * 
+     * Core method that generates and outputs the HTML for Anar shipping
+     * options. Extracted from display_anar_products_shipping() for reuse.
+     * 
+     * @param array $ship Grouped shipping packages by shipmentsReferenceId
+     * @return void Outputs HTML directly
+     * @since 1.0.0
+     * @access private
+     */
+    private function render_anar_shipping_display($ship) {
+        $pack_index = 0;
+        
+        // Use parent method to get package info for multi-origin alert
+        $packages_info = $this->get_cart_packages_info();
+        
+        // Show notice if multiple packages
+        if($packages_info['package_count'] > 1){
+            echo '<tr class="anar-shipments-user-notice-row"><td colspan="2"><p>کالاهای انتخابی شما از چند انبار مختلف ارسال می شوند.</p></td></tr>';
+        }
+        
+        foreach ($ship as $key => $v) {
+            $pack_index++;
+            $product_uniques = array_unique($v['names']);
+
+            // Use parent method to generate product list markup
+            $product_list_markup = $this->generate_product_list_markup($product_uniques, $pack_index);
+
+            // Process delivery options with free shipping conditions
+            $radio_data = [];
+            foreach ($v['delivery'] as $delivery_key => $delivery) {
+                $package_total = $this->calculate_package_total($product_uniques);
+                
+                // Check free condition
+                if (isset($delivery['freeConditions']) && isset($delivery['freeConditions']['purchasesPrice'])){
+                    if($package_total >= $delivery['freeConditions']['purchasesPrice']) {
+                        $delivery['price'] = 0;
+                        $delivery['estimatedTime'] = 'ارسال رایگان';
+                    }
+                }
+
+                $radio_data[$delivery_key] = [
+                    'label' => anar_translator($delivery['name']),
+                    'estimated_time' => $delivery['estimatedTime'] ?? '',
+                    'price' => anar_get_formatted_price($delivery['price']),
+                ];
+            }
+
+            // Get the chosen delivery option from the session or checkout value
+            $chosen = WC()->session->get('anar_delivery_option_' . $key);
+            $chosen = empty($chosen) ? WC()->checkout->get_value('anar_delivery_option_' . $key) : $chosen;
+
+            // If no option is chosen, set the first one as default
+            if (empty($chosen) && !empty($radio_data)) {
+                $chosen = key($radio_data);
+            }
+
+            ?>
+            <tr class="anar-shipments-package-row">
+                <td colspan="2">
+                    <div class="anar-shipments-package-content <?php echo count($product_uniques) > 2 ? 'vertical-view' : '';?>">
+                        <div class="anar-package-items-list">
+                            <?php
+                            echo $product_list_markup;
+                            ?>
+                        </div>
+                        <div class="anar-delivery-options-area">
+                            <?php $this->generate_delivery_option_field($key, $radio_data, $chosen );?>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            <?php
+        }
     }
 
     /**

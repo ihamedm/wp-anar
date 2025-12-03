@@ -1,0 +1,711 @@
+.awca-import-v2 {
+    direction: rtl;
+}
+
+.awca-stepper {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.awca-stepper__item {
+    flex: 1;
+    text-align: center;
+    padding: 1rem;
+    border-bottom: 3px solid #d3d4d5;
+    position: relative;
+}
+
+.awca-stepper__item.completed {
+    border-color: #2e8b57;
+    color: #2e8b57;
+}
+
+.awca-stepper__item.current {
+    border-color: #2271b1;
+    color: #2271b1;
+    font-weight: 600;
+}
+
+.awca-stepper__indicator {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 0.5rem;
+    border-radius: 999px;
+    background: #f0f0f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.awca-stepper__item.completed .awca-stepper__indicator {
+    background: #2e8b57;
+    color: #fff;
+}
+
+.awca-stepper__item.current .awca-stepper__indicator {
+    background: #2271b1;
+    color: #fff;
+}
+
+.awca-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.awca-card--center {
+    text-align: center;
+}
+
+.awca-fetch-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.awca-fetch-item__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.awca-progress-bar {
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    background: #f0f0f1;
+    overflow: hidden;
+}
+
+.awca-progress-bar__inner {
+    height: 100%;
+    background: #2271b1;
+    width: 0;
+    transition: width 0.3s ease;
+}
+
+.awca-fetch-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.awca-fetch-actions .button[disabled] {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.awca-fetch-log {
+    margin-top: 2rem;
+}
+
+.awca-fetch-log__entries {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e4e7;
+    font-size: 0.95rem;
+}
+
+.awca-fetch-log__entries p {
+    margin: 0 0 0.5rem;
+}
+
+.awca-card--categories {
+    margin-top: 1.5rem;
+}
+
+.awca-card--attributes {
+    margin-top: 1.5rem;
+}
+
+.awca-card--creation {
+    margin-top: 1.5rem;
+}
+
+.awca-creation-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.awca-creation-stat {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.awca-creation-stat span {
+    display: block;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.awca-creation-stat strong {
+    font-size: 1.5rem;
+    color: #111827;
+}
+
+.awca-creation-time-info {
+    display: flex;
+    gap: 2rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f0f7ff;
+    border-radius: 8px;
+    border: 1px solid #cfe2ff;
+}
+
+.awca-time-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.awca-time-info-label {
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.awca-time-info-value {
+    color: #111827;
+    font-family: monospace;
+}
+
+.awca-progress-bar--large {
+    height: 18px;
+}
+
+.awca-creation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.awca-creation-actions .button[disabled] {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.awca-attribute-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.awca-attribute-card {
+    border: 1px solid #e4e5e7;
+    border-radius: 12px;
+    padding: 1rem;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.awca-attribute-card__header h3 {
+    margin: 0;
+}
+
+.awca-attribute-card__values {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.awca-attribute-card__more {
+    color: #374151;
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+
+.awca-attribute-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.awca-attribute-card__actions .button {
+    align-self: flex-start;
+}
+
+.awca-attribute-card__mapping {
+    font-size: 0.9rem;
+    color: #2e8b57;
+}
+
+.awca-attribute-card__mapping--pending {
+    color: #c2410c;
+}
+
+/* Hide keys element */
+.awca-attribute-card__keys {
+    display: none !important;
+}
+
+/* Info icon styling */
+.awca-attribute-card__header {
+    position: relative;
+}
+
+.awca-attribute-card__info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: #6b7280;
+    opacity: 0.6;
+    transition: opacity 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.awca-attribute-card__info:hover {
+    opacity: 1;
+    color: #2271b1;
+    background: #f0f0f1;
+}
+
+.awca-attribute-card__info .dashicons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
+
+/* Created attribute card styling */
+.awca-attribute-card--created {
+    background: #f3f3f3;
+    border-color: #cecece;
+}
+
+.awca-attribute-card--created .awca-attribute-card__header h3 {
+    color: #393939;
+}
+
+/* Mapped attribute card styling - WooCommerce official colors */
+.awca-attribute-card--mapped {
+    background: #f0f6fc;
+    border-color: #2271b1;
+    border-width: 1px;
+}
+
+.awca-attribute-card--mapped .awca-attribute-card__header h3 {
+    color: #2271b1;
+}
+
+.awca-attribute-card--mapped .awca-attribute-card__mapping {
+    color: #2271b1;
+    font-weight: 600;
+}
+
+/* Created + Mapped combination */
+.awca-attribute-card--created.awca-attribute-card--mapped {
+    background: #e8f4fd;
+    border-color: #2271b1;
+    border-width: 2px;
+}
+
+.awca-attribute-card--created.awca-attribute-card--mapped .awca-attribute-card__header h3 {
+    color: #2271b1;
+}
+
+/* Created badge */
+.awca-attribute-card__badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.awca-attribute-card__badge--created {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* Disabled mapping button */
+.awca-attribute-card__actions .button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Info modal styling */
+.awca-attribute-info {
+    margin: 1rem 0;
+    max-height: 60vh;
+    overflow: scroll;
+}
+
+.awca-attribute-info > div {
+    margin-bottom: 1rem;
+}
+
+.awca-attribute-info strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.awca-attribute-info__name span {
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+#awca-attribute-info-keys-list {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+    direction: ltr;
+}
+
+#awca-attribute-info-keys-list table {
+    width: 100%;
+    border-collapse: collapse;
+    direction: ltr;
+    text-align: left;
+}
+
+#awca-attribute-info-keys-list th,
+#awca-attribute-info-keys-list td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+#awca-attribute-info-keys-list th {
+    background: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+#awca-attribute-info-keys-list tr:last-child td {
+    border-bottom: none;
+}
+
+.awca-attribute-info__key-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.awca-attribute-info__key-item:last-child {
+    border-bottom: none;
+}
+
+.awca-attribute-info__key-item strong {
+    display: inline;
+    margin: 0;
+    color: #6366f1;
+}
+
+.awca-attribute-info__key-item span {
+    color: #6b7280;
+}
+
+.awca-attribute-info__mapping span {
+    color: #2e8b57;
+    font-weight: 500;
+}
+
+.awca-category-tree {
+    list-style: none;
+    padding-left: 1rem;
+    margin: 0;
+    display: none;
+}
+
+.awca-category-tree--root {
+    display: block;
+    padding-left: 0;
+}
+
+.awca-category-tree .awca-category-tree {
+    margin-right: 1.5rem;
+}
+
+.awca-category-node {
+    padding: 0.85rem;
+    background: #f6f6f6;
+}
+
+.awca-category-node__content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.awca-category-toggle {
+    width: 22px;
+    height: 23px;
+    border: 1px solid #d0d5dd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    margin-left: 0.75rem;
+    float: right;
+    padding: 0;
+}
+
+.awca-category-toggle--placeholder {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.awca-category-node__name {
+    font-weight: 600;
+    min-width: 200px;
+}
+
+.awca-category-node__count {
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 0.9em;
+    margin-right: 0.25rem;
+}
+
+.awca-category-node__mapping {
+    color: #2e8b57;
+    font-size: 0.9rem;
+}
+
+.awca-category-node__mapping--pending {
+    color: #c2410c;
+}
+
+.awca-category-node__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.awca-category-node.expanded > .awca-category-tree {
+    display: block;
+}
+
+.awca-import-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.awca-import-modal[aria-hidden="false"] {
+    display: flex;
+}
+
+.awca-import-modal__content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 480px;
+    max-width: 90%;
+    position: relative;
+}
+
+.awca-import-v2__header {
+    margin-bottom: 1.5rem;
+}
+
+.awca-import-v2__actions {
+    float:left
+}
+
+.awca-import-modal__close {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.awca-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.awca-modal-feedback {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+#awca-category-map-form.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+#awca-attribute-map-form.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+#awca-single-product-form.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Fix Select2 z-index in modals - dropdown is appended to body */
+/* When modal is open, Select2 dropdowns need higher z-index than modal (10000) */
+.select2-container {
+    z-index: 10001 !important;
+}
+
+.select2-dropdown {
+    z-index: 10002 !important;
+}
+
+/* Fix Select2 z-index in modals */
+.awca-import-modal .select2-container {
+    z-index: 10001 !important;
+}
+
+.awca-import-modal .select2-dropdown {
+    z-index: 10002 !important;
+    position: absolute !important;
+    display: block !important;
+}
+
+.awca-import-modal .select2-search--dropdown {
+    z-index: 10003 !important;
+    position: relative !important;
+}
+
+.awca-import-modal .select2-results {
+    z-index: 10003 !important;
+    position: relative !important;
+    display: block !important;
+}
+
+/* Ensure Select2 dropdown is visible when open */
+.awca-import-modal .select2-container--open .select2-dropdown {
+    position: absolute !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix for SelectWoo (WooCommerce's Select2) */
+.awca-import-modal .selectWoo-container {
+    z-index: 10001 !important;
+}
+
+.awca-import-modal .selectWoo-dropdown {
+    z-index: 10002 !important;
+    position: absolute !important;
+    display: block !important;
+}
+
+/* Ensure modal content has proper stacking context */
+.awca-import-modal__content {
+    z-index: 10001;
+    position: relative;
+    overflow: visible;
+}
+
+/* Fix for Select2 results visibility */
+.awca-import-modal .select2-results__options {
+    max-height: 200px;
+    overflow-y: auto;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Ensure Select2 results are visible */
+.awca-import-modal .select2-results__option {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Fix for Select2 container when open */
+.awca-import-modal .select2-container--open {
+    z-index: 10001 !important;
+}
+
+.awca-import-modal .select2-container--open .select2-selection {
+    z-index: 10001 !important;
+}
+
+/* Single Product Modal Logs */
+.awca-single-product-logs {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.awca-single-product-logs h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.awca-single-product-logs__container {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.awca-single-product-logs__container p {
+    margin: 4px 0;
+    padding: 2px 0;
+}
+
+.awca-single-product-logs__container p[data-type="success"] {
+    color: #46b450;
+}
+
+.awca-single-product-logs__container p[data-type="error"] {
+    color: #dc3232;
+}
+
+.awca-single-product-logs__container p[data-type="warning"] {
+    color: #ffb900;
+}
+
+.awca-single-product-logs__container p[data-type="info"] {
+    color: #2271b1;
+}
+
+.awca-modal-feedback--success {
+    color: #46b450;
+}
+
+.awca-modal-feedback--error {
+    color: #dc3232;
+}
+

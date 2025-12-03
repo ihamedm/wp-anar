@@ -1,13 +1,15 @@
 <?php
-namespace Anar\Init;
+namespace Anar\Admin\Tools;
 
 defined( 'ABSPATH' ) || exit;
 
-class StatusTools{
+
+class DatabaseTools {
 
     private static $instance;
 
     private $batch_size;
+
     private $outdated_threshold = '1 day';
 
     public static function get_instance(){
@@ -17,19 +19,15 @@ class StatusTools{
         return self::$instance;
     }
 
-    public function __construct(){
+    public function __construct() {
         $this->batch_size = get_option('anar_sync_outdated_batch_size', 30);
-
-        // Ensure database indexes are created for optimal performance
-        //self::ensure_indexes_created();
-
         // Register AJAX handlers
         add_action('wp_ajax_anar_create_indexes', array($this, 'create_indexes_ajax'));
-        add_action('wp_ajax_anar_clear_sync_times', array($this, 'clear_sync_times_ajax'));
-        add_action('wp_ajax_anar_test_query_performance', array($this, 'test_query_performance_ajax'));
         add_action('wp_ajax_anar_check_index_status', array($this, 'check_index_status_ajax'));
-        add_action('wp_ajax_anar_manual_sync_outdated', array($this, 'manual_sync_outdated_ajax'));
+        add_action('wp_ajax_anar_test_query_performance', array($this, 'test_query_performance_ajax'));
     }
+
+
 
     /**
      * Ensure database indexes are created for optimal performance
@@ -70,83 +68,6 @@ class StatusTools{
         }
     }
 
-    /**
-     * AJAX handler for clearing sync times
-     * Updates _anar_last_sync_time to old date instead of deleting for better performance
-     */
-    public function clear_sync_times_ajax() {
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error('شما این مجوز را ندارید!');
-            wp_die();
-        }
-
-        try {
-            global $wpdb;
-
-            // Get total count of products with _anar_sku
-            $total_products = $wpdb->get_var("
-                SELECT COUNT(DISTINCT post_id) 
-                FROM {$wpdb->postmeta} 
-                WHERE meta_key = '_anar_sku'
-            ");
-
-            if ($total_products === null) {
-                wp_send_json_error('خطا در دریافت تعداد محصولات');
-                return;
-            }
-
-            // Set a very old date (1 year ago) to mark all products as needing sync
-            // This is better than deleting because:
-            // 1. Maintains index efficiency
-            // 2. Keeps data integrity
-            // 3. Faster than delete operations
-            $old_date = date('Y-m-d H:i:s', strtotime('-1 year'));
-
-            // First, update existing _anar_last_sync_time records
-            $updated = $wpdb->update(
-                $wpdb->postmeta,
-                array('meta_value' => $old_date),
-                array('meta_key' => '_anar_last_sync_time')
-            );
-
-            if ($updated === false) {
-                wp_send_json_error('خطا در بروزرسانی زمان‌های بروزرسانی');
-                return;
-            }
-
-            // Then, insert _anar_last_sync_time for parent products that don't have it yet
-            // Only add to parent products, not variants
-            $inserted = $wpdb->query($wpdb->prepare("
-                INSERT IGNORE INTO {$wpdb->postmeta} (post_id, meta_key, meta_value)
-                SELECT DISTINCT pm.post_id, '_anar_last_sync_time', %s
-                FROM {$wpdb->postmeta} pm
-                INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-                LEFT JOIN {$wpdb->postmeta} sync_time ON pm.post_id = sync_time.post_id AND sync_time.meta_key = '_anar_last_sync_time'
-                WHERE pm.meta_key = '_anar_sku'
-                AND p.post_type = 'product'
-                AND p.post_parent = 0
-                AND sync_time.post_id IS NULL
-            ", $old_date));
-
-            $total_processed = $updated + ($inserted ? $inserted : 0);
-
-            awca_log("Reset sync times for {$updated} existing products and added for {$inserted} new products", 'info');
-
-            wp_send_json_success([
-                'message' => 'زمان‌های بروزرسانی با موفقیت به تاریخ قدیمی تنظیم شدند',
-                'total_products' => $total_products,
-                'updated_count' => $updated,
-                'inserted_count' => $inserted,
-                'total_processed' => $total_processed,
-                'reset_date' => $old_date
-            ]);
-
-        } catch (\Exception $e) {
-            wp_send_json_error([
-                'message' => $e->getMessage()
-            ]);
-        }
-    }
 
     /**
      * AJAX handler for testing query performance
@@ -253,10 +174,12 @@ class StatusTools{
             FROM {$wpdb->posts} p
             LEFT JOIN {$wpdb->postmeta} sku ON p.ID = sku.post_id AND sku.meta_key = '_anar_sku'
             LEFT JOIN {$wpdb->postmeta} sku_backup ON p.ID = sku_backup.post_id AND sku_backup.meta_key = '_anar_sku_backup'
+            LEFT JOIN {$wpdb->postmeta} retries ON p.ID = retries.post_id AND retries.meta_key = '_anar_restore_retries'
             INNER JOIN {$wpdb->postmeta} last_try ON p.ID = last_try.post_id AND last_try.meta_key = '_anar_last_sync_time'
             WHERE p.post_type = 'product'
             AND p.post_status IN ('publish', 'draft')
             AND (sku.meta_value IS NOT NULL OR sku_backup.meta_value IS NOT NULL)
+            AND (retries.meta_value IS NULL OR CAST(retries.meta_value AS UNSIGNED) < 3)
             AND last_try.meta_value < %s
             ORDER BY last_try.meta_value ASC
             LIMIT %d
@@ -289,13 +212,6 @@ class StatusTools{
     public static function create_sync_indexes() {
         global $wpdb;
 
-        $indexes_created = get_option('anar_indexes_created', false);
-
-        if ($indexes_created) {
-            awca_log('Indexes already created!');
-            return;
-        }
-
         try {
             // Check if indexes already exist to avoid errors
             $existing_indexes = self::get_existing_indexes();
@@ -315,6 +231,26 @@ class StatusTools{
                 [
                     'table' => $wpdb->postmeta,
                     'name' => 'idx_anar_last_sync_time',
+                    'columns' => '(meta_key, meta_value(50))'
+                ],
+                [
+                    'table' => $wpdb->postmeta,
+                    'name' => 'idx_anar_restore_retries',
+                    'columns' => '(meta_key, meta_value(50))'
+                ],
+                [
+                    'table' => $wpdb->postmeta,
+                    'name' => 'idx_anar_need_fix',
+                    'columns' => '(meta_key, meta_value(50))'
+                ],
+                [
+                    'table' => $wpdb->postmeta,
+                    'name' => 'idx_anar_sync_error',
+                    'columns' => '(meta_key, meta_value(50))'
+                ],
+                [
+                    'table' => $wpdb->postmeta,
+                    'name' => 'idx_anar_last_try_sync_time',
                     'columns' => '(meta_key, meta_value(50))'
                 ],
                 [
@@ -398,6 +334,10 @@ class StatusTools{
                 'idx_anar_sku',
                 'idx_anar_sku_backup',
                 'idx_anar_last_sync_time',
+                'idx_anar_restore_retries',
+                'idx_anar_need_fix',
+                'idx_anar_sync_error',
+                'idx_anar_last_try_sync_time',
                 'idx_posts_product_sync'
             ];
 
@@ -466,6 +406,10 @@ class StatusTools{
                 'idx_anar_sku',
                 'idx_anar_sku_backup',
                 'idx_anar_last_sync_time',
+                'idx_anar_restore_retries',
+                'idx_anar_need_fix',
+                'idx_anar_sync_error',
+                'idx_anar_last_try_sync_time',
                 'idx_posts_product_sync'
             ];
 
@@ -497,32 +441,4 @@ class StatusTools{
             return false;
         }
     }
-
-    /**
-     * AJAX handler for manually triggering sync outdated products
-     */
-    public function manual_sync_outdated_ajax() {
-        if (!current_user_can('manage_woocommerce')) {
-            wp_send_json_error('شما این مجوز را ندارید!');
-            wp_die();
-        }
-
-        try {
-            do_action('anar_sync_outdated_products');
-
-            // Return the actual results
-            wp_send_json_success([
-                'message' => 'ایونت کرون جاب sync_outdated خارج از برنامه اجرا شد',
-                'processed' => 0,
-                'failed' => 0,
-                'total_checked' => 0
-            ]);
-
-        } catch (\Exception $e) {
-            wp_send_json_error([
-                'message' => 'خطا در اجرای همگام‌سازی: ' . $e->getMessage()
-            ]);
-        }
-    }
-
 }

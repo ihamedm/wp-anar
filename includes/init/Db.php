@@ -14,6 +14,7 @@ class Db{
         $table_name = $wpdb->prefix . ANAR_DB_NAME;
         $jobs_table_name = $wpdb->prefix . 'anar_jobs';
         $products_table_name = $wpdb->prefix . ANAR_DB_PRODUCTS_NAME;
+        $data_table_name = $wpdb->prefix . 'anar_data';
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if main table exists
@@ -116,6 +117,38 @@ class Db{
                 awca_log('Table ' . $products_table_name . ' created successfully.');
             } else {
                 awca_log('Failed to create table ' . $products_table_name . '. Error: ' . $wpdb->last_error);
+            }
+        }
+
+        // Check if anar_data table exists (for paginated storage)
+        $data_table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $data_table_name)) === $data_table_name;
+
+        if (!$data_table_exists) {
+            // Create anar_data table for paginated storage of categories, attributes, and products
+            $sql = "CREATE TABLE IF NOT EXISTS $data_table_name (
+                id bigint(20) NOT NULL AUTO_INCREMENT,
+                `key` varchar(255) NOT NULL,
+                `_id` varchar(255) NOT NULL,
+                `data` longtext NOT NULL,
+                `status` varchar(20) NOT NULL DEFAULT 'pending',
+                `wc_id` bigint(20) DEFAULT NULL,
+                `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY unique_key_id (`key`, `_id`),
+                KEY idx_key (`key`),
+                KEY idx_status (`status`),
+                KEY idx_wc_id (`wc_id`),
+                KEY idx_created_at (`created_at`)
+            ) $charset_collate;";
+
+            // Execute the SQL directly
+            $result = $wpdb->query($sql);
+
+            if ($result !== false) {
+                awca_log('Table ' . $data_table_name . ' created successfully.');
+            } else {
+                awca_log('Failed to create table ' . $data_table_name . '. Error: ' . $wpdb->last_error);
             }
         }
 

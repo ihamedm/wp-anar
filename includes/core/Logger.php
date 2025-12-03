@@ -77,6 +77,25 @@ class Logger {
     }
 
     /**
+     * Set the log file prefix
+     *
+     * @param string $prefix The log file prefix to use
+     * @return void
+     */
+    public function set_log_prefix($prefix) {
+        $this->log_file_prefix = $prefix;
+    }
+
+    /**
+     * Get the current log file prefix
+     *
+     * @return string The current log file prefix
+     */
+    public function get_log_prefix() {
+        return $this->log_file_prefix;
+    }
+
+    /**
      * Check if the given log level should be logged
      *
      * @param int $level The log level to check

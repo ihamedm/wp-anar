@@ -3,14 +3,14 @@
  * Plugin Name:      	 انار 360
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
- * Description:      	 پلاگین سازگار با ووکامرس برای دریافت محصولات انار 360 در وبسایت کاربران
- * Version:          	0.6.1
+ * Description:      	به کمک پلاگین انار۳۶۰ میتوانید کلیه محصولات انار خود را در وب سایت خود ایمپورت کنید، قیمت و موجودی به صورت لحظه ایی با انار سینک می شود و سفارش های دریافتی ووکامرس با یک کلیک در انار ثبت می شوند.
+ * Version:          	0.7.0
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
- * Tested up to: 		6.7.2
- * WC tested up to: 	9.7.0
- * Stable tag: 			0.2.0
+ * Tested up to: 		6.8.3
+ * WC tested up to: 	10.3.4
+ * Stable tag: 			0.6.1
  * Requires PHP: 		7.4
  *
  * Copyright:            (c) 2024 Anar360 Dev. Group, All rights reserved.
@@ -32,13 +32,10 @@ namespace Anar;
 
 // If this file is called directly, abort.
 
-use Anar\Init\Checks;
 use Anar\Init\Db;
-use Anar\Init\StatusTools;
 use Anar\Init\Install;
 use Anar\Init\Reset;
 use Anar\Init\Uninstall;
-use Anar\Init\Update;
 
 if (!defined('ABSPATH')) {
 	exit;
@@ -189,11 +186,12 @@ class Wp_Anar
         define('ANAR_PLUGIN_BASENAME', self::$plugin_base_name);
         define('ANAR_DB_NAME', 'anar');
         define('ANAR_DB_PRODUCTS_NAME', 'anar_products');
-        define('ANAR_DB_VERSION', '1.11.4');
+        define('ANAR_DB_VERSION', '1.12');
         define('ANAR_CRON_VERSION', '1.14');
 
 
         define('ANAR_DEBUG', get_option('anar_log_level', 'info') == 'debug');
+        define('ANAR_SUPPORT_MODE', get_option('anar_support_mode', 'disable') == 'enable' ?? false);
         define('ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE', get_option('anar_conf_feat__optional_price_sync', 'no') !== 'no');
         define('ANAR_IS_ENABLE_NOTIF_PAGE', true);
 
@@ -253,18 +251,21 @@ class Wp_Anar
     {
 
         // Initial
-        Checks::get_instance();
-        Update::get_instance();
-        new Core\Activation();
-        new Core\Assets();
-        new Admin\Menus();
+        Init\Checks::get_instance();
+        Init\Update::get_instance();
+        Core\Assets::get_instance();
+        Core\Activation::get_instance();
+        Admin\Menus::get_instance();
         Core\CronJobs::get_instance();
+
 
         // Import
         new Wizard\Wizard();
         new Wizard\Category();
         new Wizard\Attributes();
         Wizard\ProductManager::get_instance();
+        Import\BackgroundImporter::get_instance();
+        new Import\AjaxHandlers();
 
         // Product
         new Product\Edit();
@@ -273,15 +274,18 @@ class Wp_Anar
 
         // Tools & Features
         Gallery::get_instance();
-        new Notifications();
-        Admin\Tools::get_instance();
-        StatusTools::get_instance();
         Reset::get_instance();
+        Admin\Tools::get_instance();
 
+        // Pages
+        Notifications::get_instance();
+
+        // Sync
         Sync\RegularSync::get_instance();
         Sync\OutdatedSync::get_instance();
         Sync\RealTimeSync::get_instance();
         Sync\ForceSync::get_instance();
+        Sync\FixProducts::get_instance();
 
         // Order
         Order::get_instance();
@@ -294,6 +298,7 @@ class Wp_Anar
         if(anar_shipping_enabled()){
             new CheckoutDropShipping();
         }
+
 
     }
 
@@ -348,7 +353,7 @@ class Wp_Anar
 
         if ($installed_version !== ANAR_DB_VERSION || $wpdb->get_var("SHOW TABLES LIKE '$table_name'") !== $table_name) {
             Db::make_tables();
-            StatusTools::force_recreate_indexes();
+            Admin\Tools\DatabaseTools::force_recreate_indexes();
         }
     }
 

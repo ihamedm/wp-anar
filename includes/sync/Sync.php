@@ -63,6 +63,54 @@ class Sync {
     const COOLDOWN_PERIOD = 10; // Seconds
 
     /**
+     * Error code constants for sync errors
+     */
+    const ERROR_NO_WC_VARIANTS = 'no_wc_variants';
+    const ERROR_NO_ANAR_VARIANT = 'no_anar_variant';
+    const ERROR_UNKNOWN = 'unknown';
+
+    /**
+     * Meta key for storing last sync attempt time
+     *
+     * @var string
+     */
+    const LAST_TRY_SYNC_META_KEY = '_anar_last_try_sync_time';
+
+    /**
+     * Meta key for storing sync error code
+     *
+     * @var string
+     */
+    const SYNC_ERROR_META_KEY = '_anar_sync_error';
+
+    /**
+     * Meta key for storing fix requirement flag
+     *
+     * @var string
+     */
+    const NEED_FIX_META_KEY = '_anar_need_fix';
+
+    /**
+     * Array mapping sync error codes to Persian error messages
+     *
+     * @var array<string, string>
+     */
+    protected static $sync_error_codes = [
+        self::ERROR_NO_WC_VARIANTS => 'محصول متغیر بدون واریانت ووکامرس است. نیاز به بازسازی دارد.',
+        self::ERROR_NO_ANAR_VARIANT => 'واریانت انار یافت نشد.',
+        self::ERROR_UNKNOWN => 'خطای ناشناخته در همگام‌سازی رخ داد.',
+    ];
+
+    /**
+     * Array of fixable error keys that can be automatically fixed
+     *
+     * @var array<string>
+     */
+    protected static $fix_error_keys = [
+        self::ERROR_NO_WC_VARIANTS,
+    ];
+
+    /**
      * Sync constructor
      *
      * Initializes the base API URL and logger instance.
@@ -222,6 +270,10 @@ class Sync {
         $sync_result['message'] = 'محصول با موفقیت آپدیت شد.';
         $this->addLog("Product #{$processed_product_id} updated successfully");
 
+        // Reset retry counter on successful sync (product recovered)
+        delete_post_meta($processed_product_id, '_anar_restore_retries');
+        $this->addLog("Reset restore retry counter for product #{$processed_product_id}");
+
         return $sync_result;
     }
 
@@ -273,6 +325,9 @@ class Sync {
     public function syncProduct($wc_product_id, $options = []) {
         // Reset log collector at start of sync
         $this->resetLogCollector();
+
+        // Track sync attempt time (set early to track all attempts)
+        update_post_meta($wc_product_id, self::LAST_TRY_SYNC_META_KEY, current_time('mysql'));
 
         // Handle legacy positional parameters for backward compatibility
         // If second parameter is not an array, treat it as old positional parameters
@@ -407,6 +462,9 @@ class Sync {
             $sync_result['message'] = 'محصول در دیتابیس وردپرس پیدا نشد!';
             return $sync_result;
         }
+
+        // Track sync attempt time
+        update_post_meta($wc_product_id, self::LAST_TRY_SYNC_META_KEY, current_time('mysql'));
 
         // Get WooCommerce product object
         $wc_product = wc_get_product($wc_product_id);
@@ -564,6 +622,24 @@ class Sync {
             $variations = $wc_parent_product->get_children();
             $exist_anar_variation_ids = [];
             $this->addLog("Found " . count($variations) . " existing variations for parent product #{$wc_parent_product_id}");
+
+            // Check if product has no WooCommerce variations (product not created properly)
+            if (empty($variations)) {
+                $error_msg = "Variable product has no WooCommerce variations";
+                $this->addLog("Variable product processing failed: {$error_msg}");
+                
+                // Set error meta to mark product as needing fix
+                update_post_meta($wc_parent_product_id, self::SYNC_ERROR_META_KEY, self::ERROR_NO_WC_VARIANTS);
+                update_post_meta($wc_parent_product_id, self::NEED_FIX_META_KEY, self::ERROR_NO_WC_VARIANTS);
+                
+                // Ensure last try sync time is set
+                update_post_meta($wc_parent_product_id, self::LAST_TRY_SYNC_META_KEY, current_time('mysql'));
+                
+                return [
+                    'success' => false,
+                    'message' => self::$sync_error_codes[self::ERROR_NO_WC_VARIANTS] ?? $error_msg
+                ];
+            }
 
             // Step 1: Mark all existing variations as out of stock and build mapping
             // This ensures variants not in Anar data are marked unavailable
@@ -807,6 +883,10 @@ class Sync {
 
         // Remove pending flag (product is now synced)
         delete_post_meta($wcProductParentId, '_anar_pending');
+
+        // Clear error meta on successful sync
+        delete_post_meta($wcProductParentId, self::SYNC_ERROR_META_KEY);
+        delete_post_meta($wcProductParentId, self::NEED_FIX_META_KEY);
     }
 
 

@@ -32,12 +32,11 @@ class ProductTransformation {
         }
 
         $current_type = $product->get_type();
-        $has_attributes = !empty($anar_product->attributes);
-        $variant_count = isset($anar_product->variants) ? count($anar_product->variants) : 0;
-
+        
         // Determine what the product should be based on Anar data
-        $should_be_variable = $has_attributes && $variant_count > 1;
-        $should_be_simple = !$has_attributes || $variant_count <= 1;
+        // Only check if attributes exist (same logic as initialize_new_product)
+        $should_be_variable = !empty($anar_product->attributes);
+        $should_be_simple = empty($anar_product->attributes);
 
         // Check if transformation is needed
         if ($current_type === 'simple' && $should_be_variable) {

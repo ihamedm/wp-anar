@@ -145,10 +145,12 @@ class RegularSync extends Sync{
         }
 
         // Step 3: Check if import is in progress (skip sync during import)
+        /**
         if(anar_is_import_in_progress()){
             $this->logger->log('⚠️  [REGULAR SYNC] Skipped - Import in progress', 'sync', 'info');
             return;
         }
+         **/
 
         // Step 4: Initialize job tracking
         $this->set_jobID();

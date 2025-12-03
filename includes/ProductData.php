@@ -13,11 +13,21 @@ class ProductData{
      */
     public static function get_anar_sku($wc_product_id){
         try{
-            $anar_sku = get_post_meta($wc_product_id, 'anar_sku', true);
+            $anar_sku = get_post_meta($wc_product_id, '_anar_sku', true);
             if (!$anar_sku) {
                 $anar_sku_backup = get_post_meta($wc_product_id, '_anar_sku_backup', true);
                 if ($anar_sku_backup) {
-                    anar_log('Product #' . $wc_product_id . ' was deprecated. try to restore it.', 'debug');
+                    // Check retry counter before auto-restoring
+                    $retry_count = (int) get_post_meta($wc_product_id, '_anar_restore_retries', true);
+                    
+                    if ($retry_count >= 3) {
+                        // Product has exceeded retry limit - don't auto-restore
+                        anar_log('Product #' . $wc_product_id . ' has exceeded restore retry limit (' . $retry_count . '). Skipping auto-restore.', 'info');
+                        return new WP_Error(404, 'این محصول انار نیست و بیش از حد مجاز تلاش برای بازگردانی انجام شده است.');
+                    }
+                    
+                    // Retry count is below limit - proceed with auto-restore
+                    anar_log('Product #' . $wc_product_id . ' was deprecated. try to restore it. Retry count: ' . $retry_count, 'debug');
                     ProductManager::restore_product_deprecation($wc_product_id);
                     return $anar_sku_backup;
                 }

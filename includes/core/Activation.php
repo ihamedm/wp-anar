@@ -5,6 +5,15 @@ use Anar\ApiDataHandler;
 
 class Activation{
 
+    private static $instance;
+
+    public static function get_instance() {
+        if ( ! isset( self::$instance ) ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
     public function __construct()
     {
         add_action('wp_ajax_awca_handle_token_activation_ajax', [$this, 'handle_anar_token_activation_ajax']);
@@ -83,6 +92,7 @@ class Activation{
         if(is_wp_error($tokenValidationResponse))
             return false;
 
+
         if ($tokenValidationResponse['response']['code'] == 200) {
             $tokenValidation = json_decode($tokenValidationResponse['body']);
 
@@ -99,6 +109,9 @@ class Activation{
                 update_option('_anar_domain_connected_at', $tokenValidation->domainConnectedAt);
             }
 
+            // Check for forceUpdate
+            self::check_force_update($tokenValidation);
+
             if (isset($tokenValidation->success) && $tokenValidation->success === true) {
                 update_option('_anar_token_validation', 'valid');
                 if (!get_option('_anar_activation_first_time_at')) {
@@ -109,6 +122,9 @@ class Activation{
 
         }else{
             $tokenValidation = json_decode($tokenValidationResponse['body']);
+
+            // Check for forceUpdate even in error response
+            self::check_force_update($tokenValidation);
 
             delete_option('_anar_shop_url');
             delete_option('_anar_subscription_plan');
@@ -174,6 +190,64 @@ class Activation{
                 return 'کد خطا نامعتبر است.';
         }
 
+    }
+
+    /**
+     * Check for forceUpdate in API response and show alert if version mismatch
+     * 
+     * @param object|null $tokenValidation The decoded JSON response from API
+     * @return void
+     */
+    private static function check_force_update($tokenValidation) {
+        // Check if tokenValidation is a valid object
+        if (!is_object($tokenValidation)) {
+            return;
+        }
+
+        // Check if forceUpdate exists
+        if (!isset($tokenValidation->forceUpdate)) {
+            return;
+        }
+
+        $force_update_version = $tokenValidation->forceUpdate;
+
+        // If forceUpdate is false, clear any existing alert
+        if ($force_update_version === false) {
+            $existing_alert = get_option('anar_dashboard_alert');
+            if ($existing_alert && isset($existing_alert['notificationId']) && $existing_alert['notificationId'] === 'force_update_alert') {
+                delete_option('anar_dashboard_alert');
+            }
+            return;
+        }
+
+        // Get current plugin version
+        $current_version = defined('ANAR_PLUGIN_VERSION') ? ANAR_PLUGIN_VERSION : '0.0.0';
+
+        // Check if forceUpdate is a version number and doesn't match current version
+        if (is_string($force_update_version) && version_compare($force_update_version, $current_version, 'gt')) {
+            // Set dashboard alert
+            $alert_data = [
+                'type' => 'error',
+                'title' => 'بروزرسانی اجباری پلاگین انار',
+                'message' => sprintf(
+                    'نسخه فعلی پلاگین انار شما (%s) منسوخ شده است. لطفا فورا به نسخه %s بروزرسانی کنید.',
+                    esc_html($current_version),
+                    esc_html($force_update_version)
+                ),
+                'buttonText' => 'برو به صفحه افزونه‌ها',
+                'buttonLink' => '',
+                'buttonAdminLink' => admin_url('plugins.php'),
+                'notificationId' => 'force_update_alert',
+            ];
+
+            update_option('anar_dashboard_alert', $alert_data);
+        } else {
+            // Clear alert if versions match
+            $existing_alert = get_option('anar_dashboard_alert');
+            if ($existing_alert && isset($existing_alert['notificationId']) && $existing_alert['notificationId'] === 'force_update_alert') {
+                delete_option('anar_dashboard_alert');
+            }
+        }
     }
 
 }
