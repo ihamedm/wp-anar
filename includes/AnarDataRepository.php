@@ -71,8 +71,9 @@ class AnarDataRepository
 
     /**
      * Retrieve the latest record for a key.
+     * @return array | false
      */
-    public function get(string $key, ?int $page = null): array|false
+    public function get(string $key, ?int $page = null)
     {
         $normalized_key = $this->normalize_key($key);
 

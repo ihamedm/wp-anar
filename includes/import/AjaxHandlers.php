@@ -418,7 +418,11 @@ class AjaxHandlers
         }
     }
 
-    private function decode_response(array|WP_Error $response)
+    /**
+     * @param array|WP_Error $response
+     * @return mixed
+     */
+    private function decode_response($response)
     {
         if (is_wp_error($response)) {
             wp_send_json_error([
