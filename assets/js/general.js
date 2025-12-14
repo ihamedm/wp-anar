@@ -288,49 +288,6 @@ import {paginateLinks} from "./functions";
           });
         });
 
-        jQuery('#awca-dl-the-product-images').on('click', function(e){
-          e.preventDefault();
-
-          var loadingIcon = $(this).find('.spinner-loading')
-          var ProductID = $(this).data('product-id')
-          var msgType = 'error'
-
-          jQuery.ajax({
-            url: awca_ajax_object.ajax_url,
-            type: "POST",
-            dataType: "json",
-            data: {
-              product_id : ProductID ,
-              action: 'awca_dl_the_product_images_ajax'
-            },
-            beforeSend: function () {
-              loadingIcon.show();
-              $(this).attr("disabled", "disabled");
-            },
-            success: function (response) {
-              if (response.success) {
-                msgType = 'success'
-              }
-              awca_toast(response.data.message, msgType);
-            },
-            error: function (xhr, status, err) {
-              awca_toast('حطایی در برقراری ارتباط پیش آمده است.')
-              loadingIcon.hide();
-              $(this).removeAttr("disabled");
-
-            },
-            complete: function () {
-              loadingIcon.hide();
-              $(this).removeAttr("disabled");
-              setTimeout(function (){
-                location.reload();
-              }, 2000)
-
-            },
-          });
-
-        })
-
         jQuery('#get-save-categories-btn').on('click', function(e){
           e.preventDefault()
 

@@ -8,6 +8,7 @@ import './ajax-form';
 import './tool-ajax-form';
 import './not-synced';
 import './dl-gallery';
+import './dl-thumbnail';
 import './multi-package-fee';
 import './force-check-anar';
 import './alert';

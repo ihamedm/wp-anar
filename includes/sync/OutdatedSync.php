@@ -94,7 +94,7 @@ class OutdatedSync extends Sync{
         $this->schedule_cron();
 
         // Get batch size from options (default: 30)
-        $this->batch_size = get_option('anar_sync_outdated_batch_size', 30);
+        $this->batch_size = get_option('anar_sync_outdated_batch_size', 200);
 
         // Register cron hook handler
         add_action($this->cron_hook, array($this, 'sync_found_outdated_products'));

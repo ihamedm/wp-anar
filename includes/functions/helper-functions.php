@@ -250,6 +250,7 @@ function anar_translator($string) {
         'postFree' => 'پست رایگان',
         'postPostPaid' => 'پست (کرایه در مقصد)',
         'express' => 'پیشتاز',
+        'expressPost' => 'پست اکسپرس',
         'expressPostPaid' => 'پیشتاز (کرایه در مقصد)',
         'chapar' => 'چاپار',
         'chaparPostPaid' => 'چاپار (کرایه در مقصد)',
