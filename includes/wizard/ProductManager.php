@@ -232,8 +232,7 @@ class ProductManager{
     }
 
     public static function update_simple_product($product, $product_data) {
-        $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
-        $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
+        self::set_product_price($product, $product_data['regular_price'], $product_data['price']);
         $product->set_stock_quantity($product_data['stock_quantity']);
         $product->set_manage_stock(true);
     }
@@ -293,8 +292,7 @@ class ProductManager{
     }
 
     public static function setup_simple_product_data($product, $product_data) {
-        $product->set_price(awca_convert_price_to_woocommerce_currency($product_data['price']));
-        $product->set_regular_price(awca_convert_price_to_woocommerce_currency($product_data['regular_price']));
+        self::set_product_price($product, $product_data['price'], $product_data['regular_price']);
         $product->set_stock_quantity($product_data['stock_quantity']);
         $product->set_manage_stock(true);
         $product->save();
@@ -436,8 +434,9 @@ class ProductManager{
                 foreach ($batch as $variation_data) {
                     $variation = new WC_Product_Variation();
                     $variation->set_parent_id($wc_parent_product_id);
-                    $variation->set_price(awca_convert_price_to_woocommerce_currency($variation_data->price));
-                    $variation->set_regular_price(awca_convert_price_to_woocommerce_currency($variation_data->regular_price));
+
+                    self::set_product_price($variation, $variation_data->price, $variation_data->labelPrice);
+
                     $variation->set_stock_quantity($variation_data->stock);
                     $variation->set_manage_stock(true);
 
@@ -857,6 +856,45 @@ class ProductManager{
         // Clear some common WooCommerce transients that might be affected
         delete_transient('wc_products_onsale');
         delete_transient('wc_featured_products');
+    }
+
+    public static function set_product_price($product, $price, $label_price){
+        // Extract prices from API variant data
+        $apiPrice = $price; // Potential Sale Price
+        $apiLabelPrice = $label_price; // Potential Regular Price
+
+        // Convert prices to WooCommerce currency (handles currency conversion if needed)
+        $wcPrice = ($apiPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiPrice) : null;
+        $wcLabelPrice = ($apiLabelPrice !== null) ? awca_convert_price_to_woocommerce_currency($apiLabelPrice) : null;
+
+        // Determine final prices based on API values
+        if ($wcLabelPrice !== null && $wcLabelPrice > 0 && $wcPrice !== null && $wcLabelPrice > $wcPrice) {
+            // Scenario 1: Both prices exist and labelPrice > price (sale scenario)
+            // labelPrice becomes Regular Price, price becomes Sale Price
+            $finalRegularPrice = $wcLabelPrice;
+            $finalSalePrice = $wcPrice;
+            $finalActivePrice = $wcPrice; // Active price is the sale price
+        } elseif ($wcPrice !== null) {
+            // Scenario 2: Only price exists (or no valid sale scenario)
+            // price becomes Regular Price, no Sale Price
+            $finalRegularPrice = $wcPrice;
+            $finalSalePrice = ''; // Ensure sale price is empty
+            $finalActivePrice = $wcPrice; // Active price is the regular price
+        } else {
+            // Scenario 3: Neither price is valid (product unavailable)
+            // Set empty prices to prevent incorrect pricing
+            $finalRegularPrice = '';
+            $finalSalePrice = '';
+            $finalActivePrice = '';
+        }
+
+        // Set WooCommerce product prices
+        $product->set_regular_price($finalRegularPrice);
+        $product->set_sale_price($finalSalePrice);
+        $product->set_price($finalActivePrice); // Set the active price (what customer sees)
+
+        // Save product changes
+        $product->save();
     }
 
 }

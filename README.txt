@@ -1,4 +1,4 @@
-=== Plugin Name ===
+=== انار۳۶۰ ===
 Contributors: anar360, ihamed
 Tags: drop_shipping, ووکامرس, woocommerce, انار, dropshipping
 Requires at least: 6.0.0
@@ -57,6 +57,12 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 
 == Changelog ==
+
+
+## [0.7.3] - 1404/10/16
+* رفع مشکل قیمت محصولات متغیر بعد از درون ریزی
+* بهبود برخی مشکلات گزارش شده
+
 
 ## [0.7.2] - 1404/09/23
 * جدید : افزودن ابزار دانلود تصاویر شاخص محصولات

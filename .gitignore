@@ -1,0 +1,53 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+
+# Build directories
+dist/
+build/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Composer dependencies
+# Ignore Composer dev-related files
+/vendor/bin/
+/vendor/.git/
+/vendor/.github/
+/vendor/*/tests/
+/vendor/*/docs/
+/vendor/*/examples/
+/vendor/composer/installed.json
+
+# Allow everything else in vendor
+!vendor/
+!vendor/**/*
+composer.lock
+
+# Compiled CSS and JS
+assets/css/*.css.map
+assets/js/*.js.map
+
+# WordPress specific
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/cache/
+
+# IDE specific
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Other
+*.swp
+*.bak
+*.tmp
+*.temp
+*.orig
+
+phpunit.xml
