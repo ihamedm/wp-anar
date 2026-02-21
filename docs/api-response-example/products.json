@@ -1,0 +1,2255 @@
+{
+    "total": 4875,
+    "skip": 0,
+    "limit": 10,
+    "items": [
+        {
+            "id": "69081f5486d5c5746659b186",
+            "title": "کرم روز الارو|Ellaro Day Hydrating Cream",
+            "description": "<h2>معرفی کرم روز الارو در حجم 150 میل </h2>\r\n\r\n<p style=\"text-align: justify;\">کرم روز الارو یک کرم تخصصی و باکیفیت برای مراقبت روزانه از پوست است که با ترکیبی از مواد مؤثر طبیعی و فرمولاسیونی مدرن، آبرسانی عمیق و بازسازی پوست را فراهم می‌کند. این کرم با فناوری انکپسولاسیون، جذب مؤثر ترکیبات فعال را افزایش داده و باعث روشن‌تر شدن و شفافیت طبیعی پوست می‌شود. وجود ترکیبات مغذی مانند رویال ژلی، شی باتر و روغن جوجوبا به تقویت تولید کلاژن، حفظ رطوبت و افزایش خاصیت ارتجاعی پوست کمک می‌کند. عصاره آلوئه‌ورا و بابونه پوست را تسکین داده و قرمزی و التهاب را کاهش می‌دهند، در حالی که روغن جوانه گندم و کالاندولا با خاصیت آنتی‌اکسیدانی قوی از پوست در برابر پیری زودرس محافظت می‌کنند. همچنین، وجود اسید هیالورونیک موجب پر شدن خطوط ریز و افزایش نرمی و لطافت پوست می‌شود. استفاده منظم از کرم روز الارو باعث می‌شود پوست ظاهری شاداب، یکدست، درخشان و جوان‌تر داشته باشد. این محصول گزینه‌ای ایده‌آل برای افرادی است که به دنبال کرمی سبک، مؤثر و مناسب برای استفاده روزانه هستند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/6260482512543.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/6260482512543.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de842"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/626048251254333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de843"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "ellaro",
+                    "value": "الارو",
+                    "_id": "691a9990d095a5d1088de844"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-11-03T03:19:48.121Z",
+            "updatedAt": "2025-11-17T03:42:08.560Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cc4ed6294b3290a5fad",
+                    "attributes": {
+                        "brand": "الارو"
+                    },
+                    "stock": 11,
+                    "labelPrice": "749000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 749000,
+                    "price": 653128,
+                    "priceForResell": 599200,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellUpdatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 53928,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "69074949188def790a79e9b1",
+            "title": "قاب/کاور سیلیکونی گوشی 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05 / A05s",
+            "description": "✨️ قاب/کاور سیلیکونی کیفیت اصلی  ✨️\n\n❗️❗️ مناسب انواع مدل  گوشی های سامسونگ\n💫𝐒𝐀𝐌𝐒𝐔𝐍𝐆💫\n🔴❗️مدل گوشی و رنگ دلخواه خود را تز لیست زیر انتخاب کنید . \n\n✔️ جنس رویه  بهترین کیفیت سيليكون \n✔️جنس  داخل پارچه اى\n✔️ ده رنگ مختلف \n\n✅️ مقاوم در برابر ضربه\n✅️ مقاوم در برابر آب\n✅️مقاومت در برابر سقوط\n✅️ دسترسى آسان به درگاه ها \n✅️ انعطاف پذير، داراى پوشش نرم داخلى \n✅️ لبه هاى برجسته براى محافظت صفحه نمايش ،  ✅️ لبه هاى برجسته براى محافظت دوربين\n✅️ مقاوم دربرابر خط و خش \n\n",
+            "mainImage": "https://s3.anar360.com/anar360.com/ffe72c62-6d38-475d-b5ea-65d12788d782.jpg",
+            "images": [
+                {
+                    "src": "https://s3.anar360.com/anar360.com/0be6b0a2-fffb-498d-8b07-73729717e555.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7801"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/72708bba-c399-49c9-a4d2-8044b9a0edc2.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7802"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/cad48b57-098d-4009-b11d-9217ddf18b0c.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7803"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/b127a898-0e7e-45c3-b9de-34843949dd49.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7804"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/ffe72c62-6d38-475d-b5ea-65d12788d782.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": true,
+                    "_id": "690758e23d0ed5d03a6a7805"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/afc0f2ad-239f-46de-a433-9e7b9a8f7128.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7806"
+                },
+                {
+                    "src": "https://s3.anar360.com/anar360.com/6ee8f901-a806-4203-858c-2429521cdc17.jpg",
+                    "thumbnail": "",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "690758e23d0ed5d03a6a7807"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [
+                {
+                    "key": "64008cca64332f981a2908aa",
+                    "name": "رنگ",
+                    "visible": true,
+                    "variation": true,
+                    "values": [
+                        "سفید",
+                        "مشکی",
+                        "قرمز",
+                        "بنفش",
+                        "آبی",
+                        "سرمه ای",
+                        "صورتی",
+                        "لیمویی",
+                        "فیروزه ای"
+                    ],
+                    "_id": "69074a6a3d0ed5d03a697a5f"
+                },
+                {
+                    "key": "68f3733387eb455dc0980edd",
+                    "name": "انتخاب مدل گوشی ",
+                    "visible": true,
+                    "variation": true,
+                    "values": [
+                        "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05",
+                        "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    ],
+                    "_id": "69074a6a3d0ed5d03a697a60"
+                }
+            ],
+            "brands": [],
+            "categories": [
+                {
+                    "_id": "65f7515106fd5e664ca5b8ef",
+                    "name": "قاب و کاور",
+                    "attributeIds": [
+                        "64008cca64332f981a2908a4",
+                        "64008cca64332f981a2908a7",
+                        "64008cca64332f981a2908aa",
+                        "64008cca64332f981a2908ad",
+                        "64008cca64332f981a2908a4"
+                    ],
+                    "type": "retail",
+                    "order": 0,
+                    "level": "last",
+                    "parent": "65537d17e5689abc14616b7e",
+                    "route": [
+                        "کالای دیجیتال",
+                        "لوازم جانبی موبایل",
+                        "قاب و کاور"
+                    ],
+                    "createdAt": "2024-03-17T20:23:45.852Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-11-02T12:06:33.548Z",
+            "updatedAt": "2025-11-04T13:50:45.903Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "663fd3e30768fcd99d2e2120",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "tehranBasic",
+                            "price": null,
+                            "estimatedTime": "1 تا ۲ ساعت در تایم اداری ",
+                            "freeCondition": {
+                                "purchasesPrice": 5000000
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d30"
+                        },
+                        {
+                            "deliveryType": "bikePostPaid",
+                            "price": 0,
+                            "estimatedTime": "۳۰ دقیقه تا ۱ ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 5000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d31"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 40000,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d32"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 60000,
+                            "estimatedTime": "یک تا دو روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d33"
+                        },
+                        {
+                            "deliveryType": "expressPostPaid",
+                            "price": 0,
+                            "estimatedTime": "یک روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d34"
+                        },
+                        {
+                            "deliveryType": "tipax",
+                            "price": 130000,
+                            "estimatedTime": "یک تا دو  روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d35"
+                        },
+                        {
+                            "deliveryType": "chapar",
+                            "price": 50000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d36"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "690767113d0ed5d03a6b3d2f"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 40000,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d38"
+                        },
+                        {
+                            "deliveryType": "postPostPaid",
+                            "price": 0,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d39"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 60000,
+                            "estimatedTime": "بین ۱ تا ۲ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d3a"
+                        },
+                        {
+                            "deliveryType": "tipaxPostPaid",
+                            "price": 0,
+                            "estimatedTime": "بین ۲ تا ۳ روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d3b"
+                        },
+                        {
+                            "deliveryType": "chaparPostPaid",
+                            "price": 0,
+                            "estimatedTime": "بین ۲ تا ۳ روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d3c"
+                        },
+                        {
+                            "deliveryType": "tipax",
+                            "price": 170000,
+                            "estimatedTime": "2 الی 3 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d3d"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "690767113d0ed5d03a6b3d37"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 50000,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d3f"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 75000,
+                            "estimatedTime": "بین ۱ تا ۲ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d40"
+                        },
+                        {
+                            "deliveryType": "tipax",
+                            "price": 170000,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 3000000
+                            },
+                            "active": true,
+                            "_id": "690767113d0ed5d03a6b3d41"
+                        },
+                        {
+                            "deliveryType": "tipaxPostPaid",
+                            "price": 0,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d42"
+                        },
+                        {
+                            "deliveryType": "chaparPostPaid",
+                            "price": 0,
+                            "estimatedTime": "بین ۳ تا ۴ روز کاری (پس‌کرایه)",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "690767113d0ed5d03a6b3d43"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "690767113d0ed5d03a6b3d3e"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141e03ed6294b3290a9a2b",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "سفید",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-02T12:45:55.623Z",
+                    "resellUpdatedAt": "2025-11-04T13:50:45.930Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a2d",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "سفید",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-02T12:45:55.623Z",
+                    "resellUpdatedAt": "2025-11-04T13:50:45.930Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a2f",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "مشکی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a31",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "قرمز",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a33",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "مشکی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a35",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "قرمز",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a37",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "بنفش",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a39",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "آبی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e03ed6294b3290a9a3b",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "سرمه ای",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a3d",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "صورتی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a3f",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "لیمویی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a41",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "فیروزه ای",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a43",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "بنفش",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a45",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "آبی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a47",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "سرمه ای",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a49",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "صورتی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a4b",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "لیمویی",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                },
+                {
+                    "_id": "69141e04ed6294b3290a9a4d",
+                    "attributes": {
+                        "64008cca64332f981a2908aa": "فیروزه ای",
+                        "68f3733387eb455dc0980edd": "𝐒𝐀𝐌𝐒𝐔𝐍𝐆 A05s"
+                    },
+                    "stock": 20,
+                    "labelPrice": "185000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 1000000000000,
+                    "price": 160000,
+                    "priceForResell": 149000,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellUpdatedAt": "2025-11-10T22:32:07.673Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 11000,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "6906ccad86d5c574668d4b98",
+            "title": "کیت رنگ مو شماره 8 بلوند روشن مای|My num8 Hair Color blonde light",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 8 بلوند روشن مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند. در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد. کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/6260482522498.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/6260482522498.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de82e"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de82f"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de830"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de831"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-11-02T03:14:53.020Z",
+            "updatedAt": "2025-11-17T03:42:08.545Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67be",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 50,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellUpdatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "6906ccac86d5c574668d4b65",
+            "title": "کیت رنگ مو شماره 8.63 شکلاتی روشن مای|My num8.63 Hair Color chocolate light",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 8.63 شکلاتی روشن مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند. در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد. کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/6260482522450.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/6260482522450.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de838"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de839"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de83a"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de83b"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-11-02T03:14:52.912Z",
+            "updatedAt": "2025-11-17T03:42:08.553Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67bc",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 50,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellUpdatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "6906ccac86d5c574668d4b32",
+            "title": "کیت رنگ مو شماره 7.063 بلوند کاراملی متوسط مای|My num7.063 Hair Color medium caramel blonde",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 7.063 بلوند کاراملی متوسط مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند. در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد. کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/6260482522443.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/6260482522443.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de833"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de834"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de835"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de836"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-11-02T03:14:52.821Z",
+            "updatedAt": "2025-11-17T03:42:08.549Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67ba",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 50,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellUpdatedAt": "2025-11-04T18:28:00.464Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "690195bd86d5c5746642d4cf",
+            "title": "کیت رنگ مو شماره 7 بلوند متوسط مای|My num7 Hair Color medium blonde",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 7 بلوند متوسط مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند. در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد. کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/1000000002505.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/1000000002505.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de829"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de82a"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de82b"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de82c"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-10-29T04:19:09.684Z",
+            "updatedAt": "2025-11-17T03:42:08.542Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67b8",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 49,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellUpdatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "690195bd86d5c5746642d49c",
+            "title": "کیت رنگ مو شماره 6.63 شکلاتی مای|My num6.63 Hair Color chocolate",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 6.63 شکلاتی مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند. در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد. کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/1000000002560.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/1000000002560.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de83d"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de83e"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de83f"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de840"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-10-29T04:19:09.604Z",
+            "updatedAt": "2025-11-17T03:42:08.556Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67b6",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 49,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellUpdatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "690195bd86d5c5746642d469",
+            "title": "کیت رنگ مو شماره 6 بلوند تیره مای|My num6 Hair Color Kit dark blonde",
+            "description": "<h2 style=\"margin-top: 20px; margin-bottom: 10px;\"><span style=\"font-size: 24px;\">معرفی کیت رنگ مو شماره 6 بلوند تیره مای</span></h2>\r\n\r\n<p dir=\"rtl\" style=\"margin-bottom: 10px; text-align: justify;\"><span style=\"font-size: 14px;\">﻿</span><span style=\"font-size: 14px;\"></span>اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند.در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد.کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n\r\n<p dir=\"rtl\" style=\"margin-bottom: 10px; color: rgb(119, 119, 119); font-family: IRANSans-web, Tahoma, Arial, &quot;Microsoft Sans Serif&quot;; font-size: 12px; text-align: justify;\"> </p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/1000000002574.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/1000000002574.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de846"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de847"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de848"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de849"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-10-29T04:19:09.452Z",
+            "updatedAt": "2025-11-17T03:42:08.563Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67b4",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 48,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellUpdatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "690195bd86d5c5746642d3eb",
+            "title": "کیت رنگ مو شماره 5.6 برنز سولاری مای|My num5.6 Hair Color Kit bronze",
+            "description": "<h2>معرفی کیت رنگ مو شماره 5.6 برنز سولاری مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند.در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد.کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/1000000002406.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/1000000002406.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de804"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de805"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de806"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de807"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-10-29T04:19:09.006Z",
+            "updatedAt": "2025-11-17T03:42:08.502Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67b2",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 49,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellUpdatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        },
+        {
+            "id": "690195bc86d5c5746642d3c0",
+            "title": "کیت رنگ مو شماره 10.1 بلوند خاکستری مای|My num10.1 Hair Color Kit grey blonde",
+            "description": "<h2 style=\"text-align: justify;\">معرفی کیت رنگ مو شماره 10.1 بلوند خاکستری مای</h2>\r\n\r\n<p style=\"text-align: justify;\">اگر به دنبال رنگ مویی باکیفیت، ایمن و درخشان هستید که علاوه بر رنگ‌دهی فوق‌العاده، از سلامت موهای شما نیز محافظت کند، کیت رنگ موی مای بهترین انتخاب برای شماست. این محصول حرفه‌ای با فرمولاسیونی پیشرفته و ترکیبات مغذی خود، تجربه‌ای متفاوت از رنگ کردن مو را برایتان رقم می‌زند.در ترکیب این رنگ مو از روغن ماکادمیا و کراتین هیدرولیز شده استفاده شده است؛ دو ماده ارزشمند که به بازسازی، تقویت و نرمی موها کمک می‌کنند. روغن ماکادمیا با دارا بودن ویتامین A و اسیدهای چرب ضروری، رطوبت را در تارهای مو حفظ کرده و از خشکی، شکنندگی و وز شدن مو جلوگیری می‌کند. از سوی دیگر، کراتین هیدرولیز شده با نفوذ به بافت مو، موهای آسیب‌دیده را ترمیم کرده و به آن‌ها لطافت و درخشندگی طبیعی می‌بخشد.</p>\r\n\r\n<p style=\"text-align: justify;\">فرمولاسیون ویژه رنگ موی مای، به‌گونه‌ای طراحی شده که استفاده از آن بسیار آسان است و رنگی یکدست، براق و ماندگار روی مو ایجاد می‌کند. این محصول ضمن رنگ‌آمیزی کامل، از تارهای مو محافظت کرده و هیچ‌گونه خشکی یا زبری روی موها باقی نمی‌گذارد.کیت رنگ موی مای دارای قدرت پوشانندگی بالا است و موهای سفید و خاکستری را به‌طور کامل می‌پوشاند. همچنین، وجود نرم‌کننده در ترکیب آن باعث می‌شود موها پس از رنگ کردن نرم، خوش‌حالت و درخشان باقی بمانند.</p>\r\n",
+            "mainImage": "https://beautycode.ir/image/catalog/1000000002475.jpg",
+            "images": [
+                {
+                    "src": "https://beautycode.ir/image/catalog/1000000002475.jpg",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de809"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/1000000002543333-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de80a"
+                },
+                {
+                    "src": "https://beautycode.ir/image/cache/catalog/10000000025433-500x500.webp",
+                    "_type": "image",
+                    "main": false,
+                    "_id": "691a9990d095a5d1088de80b"
+                }
+            ],
+            "isReseller": false,
+            "attributes": [],
+            "brands": [
+                {
+                    "key": "my",
+                    "value": "مای",
+                    "_id": "691a9990d095a5d1088de80c"
+                }
+            ],
+            "categories": [
+                {
+                    "_id": "655e8ac0b595023e89a0977b",
+                    "name": "زیبایی و سلامت",
+                    "attributeIds": [],
+                    "type": "retail",
+                    "order": 2,
+                    "key": "Beauty and health",
+                    "level": "hasChildren",
+                    "route": [
+                        "زیبایی و سلامت"
+                    ],
+                    "createdAt": "2023-11-22T23:12:00.205Z",
+                    "updatedAt": "2025-06-08T12:37:46.974Z",
+                    "__v": 0
+                }
+            ],
+            "createdAt": "2025-10-29T04:19:08.954Z",
+            "updatedAt": "2025-11-17T03:42:08.506Z",
+            "status": "active",
+            "type": "retail",
+            "resellStatus": "accepted",
+            "shipmentsReferenceId": "6841d390d6541258a6fc9c28",
+            "shipmentsReferenceState": "تهران",
+            "shipmentsReferenceCity": "تهران",
+            "shipments": [
+                {
+                    "type": "insideShopCity",
+                    "delivery": [
+                        {
+                            "deliveryType": "bike",
+                            "price": 70000,
+                            "estimatedTime": "بین 4 تا 24 ساعت",
+                            "freeCondition": {
+                                "purchasesPrice": 500000
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302da9"
+                        },
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302daa"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "یک روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dab"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302da8"
+                },
+                {
+                    "type": "insideShopState",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302dad"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 20000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302dae"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302dac"
+                },
+                {
+                    "type": "otherStates",
+                    "delivery": [
+                        {
+                            "deliveryType": "post",
+                            "price": 75000,
+                            "estimatedTime": "3 روز کاری پس از ثبت سفارش کد رهگیری ثبت میگردد",
+                            "freeCondition": {
+                                "purchasesPrice": 1200000
+                            },
+                            "active": true,
+                            "_id": "661326d0ac010e23f3302db0"
+                        },
+                        {
+                            "deliveryType": "express",
+                            "price": 30000,
+                            "estimatedTime": "بین 1 الی 2 روز کاری",
+                            "freeCondition": {
+                                "purchasesPrice": 0
+                            },
+                            "active": false,
+                            "_id": "661326d0ac010e23f3302db1"
+                        }
+                    ],
+                    "active": true,
+                    "_id": "661326d0ac010e23f3302daf"
+                }
+            ],
+            "variants": [
+                {
+                    "_id": "69141cceed6294b3290a67b0",
+                    "attributes": {
+                        "brand": "مای"
+                    },
+                    "stock": 50,
+                    "labelPrice": "252000",
+                    "minPriceForResell": 0,
+                    "maxPriceForResell": 252000,
+                    "price": 219744,
+                    "priceForResell": 201600,
+                    "isReseller": true,
+                    "resellCreatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellUpdatedAt": "2025-10-30T00:46:08.556Z",
+                    "resellStatus": "accepted",
+                    "resellerProfit": 18144,
+                    "sellerDiscount": 0,
+                    "type": "retail"
+                }
+            ]
+        }
+    ]
+}

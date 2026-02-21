@@ -1,4 +1,4 @@
-<div class="wrapper anar-tools-wrapper">
+<div class="anar-tools-wrapper">
     <h2 class="awca_plugin_titles">دانلود تصاویر گالری محصولات انار</h2>
     <p class="awca_plugin_subTitles">
     </p>

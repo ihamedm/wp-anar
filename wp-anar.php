@@ -4,7 +4,7 @@
  * Plugin URI:       	 https://wp.anar360.com/
  * Plugin Signature:  	AWCA
  * Description:      	به کمک پلاگین انار۳۶۰ میتوانید کلیه محصولات انار خود را در وب سایت خود ایمپورت کنید، قیمت و موجودی به صورت لحظه ایی با انار سینک می شود و سفارش های دریافتی ووکامرس با یک کلیک در انار ثبت می شوند.
- * Version:          	0.7.3
+ * Version:          	0.7.4
  * Author:            	تیم توسعه انار 360
  * Author URI:        	https://anar360.com/
  * Text Domain:       	awca
@@ -192,6 +192,7 @@ class Wp_Anar
 
         define('ANAR_DEBUG', get_option('anar_log_level', 'info') == 'debug');
         define('ANAR_SUPPORT_MODE', get_option('anar_support_mode', 'disable') == 'enable' ?? false);
+        define('ANAR_SLEEP_MODE', get_option('anar_sleep_mode', 'disable') == 'enable' ?? false);
         define('ANAR_IS_ENABLE_OPTIONAL_SYNC_PRICE', get_option('anar_conf_feat__optional_price_sync', 'no') !== 'no');
         define('ANAR_IS_ENABLE_NOTIF_PAGE', true);
 

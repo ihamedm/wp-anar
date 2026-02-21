@@ -51,3 +51,6 @@ wp-content/cache/
 *.orig
 
 phpunit.xml
+
+webpack.conf.js
+doc-server.js

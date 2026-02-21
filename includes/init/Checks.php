@@ -22,6 +22,7 @@ class Checks {
         add_action('admin_notices', [$this, 'admin_notice_max_input_vars']);
         add_action('admin_notices', [$this, 'admin_notice_cron_health']);
         add_action('admin_notices', [$this, 'admin_notice_token_inactive']);
+        add_action('admin_notices', [$this, 'admin_notice_sleep_mode']);
         // Remove AJAX and JS hooks
     }
 
@@ -215,6 +216,23 @@ class Checks {
                 </p>
             </div>
             <?php
+        }
+    }
+
+
+    public function admin_notice_sleep_mode(){
+
+        if(ANAR_SLEEP_MODE){?>
+            <div class="notice notice-error" style="border-color: #ca1919; background: #ffb9b9; color: #580000">
+                <p>
+                    <strong>انار ۳۶۰</strong> : مُد خواب فعال است. در این حالت محصولات انار غیر قابل فروش هستند.
+                </p>
+                <p>می توانید از مسیر  <strong style="padding: 0 10px">انار۳۶۰ » ابزارها</strong> مُد خواب را غیرفعال کنید تا مجددا همه محصولات موجود و قابل فروش شوند. </p>
+                <p>
+                    <a href="<?php echo admin_url('admin.php?page=tools'); ?>" class="button button-secondary">مشاهده ابزار مُد خواب</a>
+                </p>
+            </div>
+        <?php
         }
     }
 }

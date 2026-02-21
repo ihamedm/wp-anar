@@ -55,15 +55,24 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 32px;
+  gap: 16px;
   justify-content: flex-start;
 }
 
 .anar-tools-wrapper{
-  max-width: 33%;
-  margin: 0;
+  width: 33%;
+  float: right;
+  margin: 10px;
+  background-color: white;
+  padding: 32px;
+  border-radius: 15px;
+  font-family: "KalamehWeb";
+  overflow: hidden;
 }
 
+.anar-tools-wrapper .awca_plugin_titles{
+  font-family: "KalamehWeb";
+}
 
 
 .anar-text {
@@ -904,7 +913,7 @@ input#plugin_activation_button {
   display: block;
 }
 
-.modal {
+.modal_legacy {
   position: relative;
   width: 60%;
   max-width: 600px;
@@ -2202,4 +2211,9 @@ select::-ms-expand {
 .anar-alert-dismiss-link:hover {
   color: #135e96;
   text-decoration: underline;
+}
+
+.anar-tool-ajax-form{}
+.anar-tool-ajax-form.loading{
+  background: #f8f9fa;
 }

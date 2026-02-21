@@ -399,6 +399,20 @@ class Sync {
             }
         }
 
+        // check sleep mode
+        if (ANAR_SLEEP_MODE){
+            // Sleep Mode is Enable - mark as pending product to prevent sales
+            ProductManager::set_product_as_deprecated($wc_product_id, $sync_strategy, false);
+            $this->updateProductSyncTime($wc_product_id);
+            $this->addLog("Sleep Mode is active, sync process skipped.");
+            $sync_result['status_code'] = 400;
+            $sync_result['logs'] = $this->getCollectedLogs();
+            $sync_result['message'] = 'مد اسلیپ فعال است. سینک متوقف است.';
+
+            return $sync_result;
+        }
+
+
         // Fetch fresh product data from Anar API
         $anar_product_data = anar_fetch_product_data_by($anar_sku);
         if (is_wp_error($anar_product_data)) {
@@ -879,7 +893,7 @@ class Sync {
      */
     protected function updateProductMetadata($wcProductParentId, $variant) {
         // Update last sync timestamp (used for cooldown period checks)
-        update_post_meta($wcProductParentId, self::LAST_SYNC_META_KEY, current_time('mysql'));
+        $this->updateProductSyncTime($wcProductParentId);
 
         // Remove pending flag (product is now synced)
         delete_post_meta($wcProductParentId, '_anar_pending');
@@ -887,6 +901,11 @@ class Sync {
         // Clear error meta on successful sync
         delete_post_meta($wcProductParentId, self::SYNC_ERROR_META_KEY);
         delete_post_meta($wcProductParentId, self::NEED_FIX_META_KEY);
+    }
+
+
+    protected function updateProductSyncTime($wcProductParentId){
+        update_post_meta($wcProductParentId, self::LAST_SYNC_META_KEY, current_time('mysql'));
     }
 
 

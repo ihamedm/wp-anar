@@ -18,6 +18,7 @@ class SyncTools{
 
         add_action('wp_ajax_anar_clear_sync_times', array($this, 'clear_sync_times_ajax'));
         add_action('wp_ajax_anar_manual_sync_outdated', array($this, 'manual_sync_outdated_ajax'));
+        add_action('wp_ajax_anar_toggle_sleep_mode', array($this, 'toggle_sleep_mode'));
     }
 
 
@@ -125,6 +126,32 @@ class SyncTools{
                 'message' => 'خطا در اجرای همگام‌سازی: ' . $e->getMessage()
             ]);
         }
+    }
+
+
+    /**
+     * Ajax Handler for toggle the Sleep-Mode enable/disable
+     * this method used for a tool that placed on general tools tab
+     */
+    public function toggle_sleep_mode(){
+        anar_log(print_r($_POST, true), "info");
+
+        if(
+            !current_user_can('manage_woocommerce') ||
+            !DOING_AJAX ||
+            !wp_verify_nonce($_POST["sleep_mode_ajax_field"], 'sleep_mode_ajax_nonce')
+        ){
+            wp_send_json_error(["message" => "شما مجوز انجام این عملیات را ندارید!"]);
+            wp_die();
+        }
+
+        if(isset($_POST['anar-sleep-mode-toggle'])){
+            update_option('anar_sleep_mode', $_POST['anar-sleep-mode-toggle'] == 'on' ? 'enable' : 'disable');
+            wp_send_json_success(["message" => "مد اسلیپ تغییر داده شد"]);
+        }
+
+        wp_send_json_error(["message" => "مشکلی در ارسال اطلاعات پیش آمده است."]);
+
     }
 
 }

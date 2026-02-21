@@ -144,6 +144,13 @@ class OutdatedSync extends Sync{
         }
     }
 
+    private function is_allowed(){
+        if(ANAR_SLEEP_MODE){
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Finds and syncs outdated products
      *
@@ -157,6 +164,7 @@ class OutdatedSync extends Sync{
      * @return void
      */
     public function sync_found_outdated_products() {
+
         // Initialize job tracking
         $this->set_jobID();
         $this->startTime = microtime(true);

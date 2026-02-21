@@ -3,7 +3,7 @@
 
 ?>
 
-<div class="wrapper anar-tools-wrapper"">
+<div class="anar-tools-wrapper"">
     <h2 class="awca_plugin_titles">ریست تنظیمات و وضعیت های پلاگین انار</h2>
     <p class="awca_plugin_subTitles">هیچگونه اطلاعات مهمی پاک نمی شود. فقط تنظیمات موقت پلاگین ریست می شود.</p>
     <p class="awca_plugin_subTitles">اگر مشکلی در عملگرد پلاگین هنگام همگام سازی محصولات مشاهده کردید می توانید از این گزینه استفاده کنید.</p>

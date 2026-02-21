@@ -96,6 +96,7 @@ class Activation{
         if ($tokenValidationResponse['response']['code'] == 200) {
             $tokenValidation = json_decode($tokenValidationResponse['body']);
 
+
             if(isset($tokenValidation->shopUrl)){
                 update_option('_anar_shop_url', $tokenValidation->shopUrl);
             }
@@ -111,6 +112,7 @@ class Activation{
 
             // Check for forceUpdate
             self::check_force_update($tokenValidation);
+            self::handle_feature_flags($tokenValidation);
 
             if (isset($tokenValidation->success) && $tokenValidation->success === true) {
                 update_option('_anar_token_validation', 'valid');
@@ -125,6 +127,7 @@ class Activation{
 
             // Check for forceUpdate even in error response
             self::check_force_update($tokenValidation);
+            self::handle_feature_flags($tokenValidation);
 
             delete_option('_anar_shop_url');
             delete_option('_anar_subscription_plan');
@@ -248,6 +251,36 @@ class Activation{
                 delete_option('anar_dashboard_alert');
             }
         }
+    }
+
+    private static function handle_feature_flags($tokenValidation){
+        // Check if tokenValidation is a valid object
+        if (!is_object($tokenValidation)) {
+            return;
+        }
+
+        // Check if for feature flags
+        if (!isset($tokenValidation->flags) || !is_object($tokenValidation->flags)) {
+            return;
+        }
+
+        $defined_flags = [
+            'sleep_mode' => 'anar_sleep_mode'
+        ];
+
+        foreach ($defined_flags as $flag_key => $flag_opt) {
+            if (isset($tokenValidation->flags->{$flag_key})) {
+                $value = get_option($flag_opt);
+                // compare only if values changed update the DB
+                if($value !== $tokenValidation->flags->{$flag_key}){
+                    update_option($flag_opt, $tokenValidation->flags->{$flag_key});
+                }
+            }
+        }
+
+
+
+
     }
 
 }

@@ -1,4 +1,4 @@
-<div class="wrapper anar-tools-wrapper"">
+<div class="anar-tools-wrapper"">
     <h2 class="awca_plugin_titles">انتشار همه محصولات انار</h2>
     <p class="awca_plugin_subTitles">
         محصولات انار بصورت پیش فرض در حالت <strong>پیش نویس</strong> هستند.

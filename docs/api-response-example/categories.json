@@ -1,0 +1,214 @@
+{
+    "total": 72,
+    "skip": 0,
+    "limit": 10,
+    "items": [
+        {
+            "_id": "64008cca64332f981a290889",
+            "name": "مد و پوشاک",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "route": [
+                "مد و پوشاک"
+            ],
+            "createdAt": "2023-03-02T11:47:22.731Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Fashion and clothing"
+        },
+        {
+            "_id": "64008cca64332f981a29088e",
+            "name": "مردانه",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "parent": "64008cca64332f981a290889",
+            "route": [
+                "مد و پوشاک",
+                "مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:22.744Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 1,
+            "key": "for men"
+        },
+        {
+            "_id": "64008cca64332f981a290893",
+            "name": "لباس مردانه",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "parent": "64008cca64332f981a29088e",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:22.753Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Menswear"
+        },
+        {
+            "_id": "64008cca64332f981a2908d7",
+            "name": "لباس راحتی مردانه",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "parent": "64008cca64332f981a290893",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "لباس راحتی مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:22.897Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's casual clothes"
+        },
+        {
+            "_id": "64008cca64332f981a2908ed",
+            "name": "تاپ و تیشرت راحتی مردانه",
+            "attributeIds": [
+                "64008cca64332f981a2908a4",
+                "64008cca64332f981a2908a7",
+                "64008cca64332f981a2908aa",
+                "64008cca64332f981a2908ad",
+                "64008cca64332f981a2908a4"
+            ],
+            "type": "retail",
+            "level": "last",
+            "parent": "64008cca64332f981a2908d7",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "لباس راحتی مردانه",
+                "تاپ و تیشرت راحتی مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:22.943Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's comfortable tops and t-shirts"
+        },
+        {
+            "_id": "64008ccb64332f981a29092f",
+            "name": "ژاکت و پلیور مردانه",
+            "attributeIds": [
+                "64008cca64332f981a2908a4",
+                "64008cca64332f981a2908a7",
+                "64008cca64332f981a2908aa",
+                "64008cca64332f981a2908ad",
+                "64008cca64332f981a2908a4"
+            ],
+            "type": "retail",
+            "level": "last",
+            "parent": "64008cca64332f981a290893",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "ژاکت و پلیور مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:23.144Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's jackets and sweaters"
+        },
+        {
+            "_id": "64008ccb64332f981a29093f",
+            "name": "پالتو،بارانی و کاپشن مردانه",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "parent": "64008cca64332f981a290893",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "پالتو،بارانی و کاپشن مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:23.214Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's coats, raincoats and jackets"
+        },
+        {
+            "_id": "64008ccb64332f981a290955",
+            "name": "کت چرم مردانه",
+            "attributeIds": [
+                "64008cca64332f981a2908a4",
+                "64008cca64332f981a2908a7",
+                "64008cca64332f981a2908aa",
+                "64008cca64332f981a2908ad",
+                "64008cca64332f981a2908a4"
+            ],
+            "type": "retail",
+            "level": "last",
+            "parent": "64008ccb64332f981a29093f",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "پالتو،بارانی و کاپشن مردانه",
+                "کت چرم مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:23.302Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's leather jacket"
+        },
+        {
+            "_id": "64008ccb64332f981a2909b8",
+            "name": "جوراب مردانه",
+            "attributeIds": [
+                "64008cca64332f981a2908a4",
+                "64008cca64332f981a2908a7",
+                "64008cca64332f981a2908aa",
+                "64008cca64332f981a2908ad",
+                "64008cca64332f981a2908a4"
+            ],
+            "type": "retail",
+            "level": "last",
+            "parent": "64008cca64332f981a290893",
+            "route": [
+                "مد و پوشاک",
+                "مردانه",
+                "لباس مردانه",
+                "جوراب مردانه"
+            ],
+            "createdAt": "2023-03-02T11:47:23.682Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "Men's socks"
+        },
+        {
+            "_id": "64008ccc64332f981a290b10",
+            "name": "زنانه",
+            "attributeIds": [],
+            "type": "retail",
+            "level": "hasChildren",
+            "parent": "64008cca64332f981a290889",
+            "route": [
+                "مد و پوشاک",
+                "زنانه"
+            ],
+            "createdAt": "2023-03-02T11:47:24.787Z",
+            "updatedAt": "2025-06-08T12:37:46.974Z",
+            "__v": 0,
+            "order": 0,
+            "key": "feminine"
+        }
+    ]
+}
